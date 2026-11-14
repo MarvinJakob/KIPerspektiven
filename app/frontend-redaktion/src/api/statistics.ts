@@ -7,13 +7,12 @@ export type PageViewStats = components['schemas']['PageViewStats'];
 export type ReadinessResultPage = components['schemas']['ReadinessResultPage'];
 export type ReadinessResult = components['schemas']['ReadinessResult'];
 
-// Ticket #130. Beim Wechsel von Zeitraum oder Seite bleiben die bisherigen Zahlen sichtbar, bis die neuen da sind.
+// Seitenaufrufe wechseln ohne Platzhalterdaten, damit alte Werte nicht als neuer Zeitraum erscheinen (#139).
 
 export const usePageViews = (period: Period) =>
   useQuery({
     queryKey: ['admin', 'statistics', 'pageViews', period],
     queryFn: () => unwrap(client.GET('/api/admin/statistics/page-views', { params: { query: { period } } })),
-    placeholderData: keepPreviousData,
   });
 
 export const useReadinessResults = (period: Period, page: number) =>

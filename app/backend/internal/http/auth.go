@@ -221,7 +221,7 @@ func (s *apiServer) Login(ctx context.Context, req api.LoginRequestObject) (api.
 	sess, err := s.checkCredentials(ctx, req.Body.Email, req.Body.Password)
 	switch {
 	case errors.Is(err, service.ErrInvalidCredentials):
-		attempt.Failed()
+		attempt.Count() // Fehlversuch
 		return api.Login401JSONResponse{UnauthorizedJSONResponse: api.UnauthorizedJSONResponse{
 			Message: "E-Mail-Adresse oder Passwort ist falsch, oder das Konto ist deaktiviert.",
 		}}, nil
@@ -235,7 +235,7 @@ func (s *apiServer) Login(ctx context.Context, req api.LoginRequestObject) (api.
 	case err != nil:
 		return nil, err
 	}
-	attempt.Succeeded()
+	attempt.Reset() // Erfolg setzt die Fehlversuche der IP-Adresse zurück
 	// Eine vorherige Sitzung desselben Browsers wird ersetzt.
 	if old, ok := ctx.Value(previousSessionKey{}).(string); ok && old != "" {
 		_ = s.accounts.Logout(ctx, auth.HashToken(old))

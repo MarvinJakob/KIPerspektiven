@@ -2,7 +2,17 @@ import { render } from '@testing-library/react';
 import { createMemoryRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { vi } from 'vitest';
-import type { AuditDimension, AuditOverview, AuditQuestion, Post, PostSummary, ReadinessResultInput, Topic, TopicDetail } from '../api/client';
+import type {
+  AuditDimension,
+  AuditOverview,
+  AuditQuestion,
+  ConsultationRequestInput,
+  Post,
+  PostSummary,
+  ReadinessResultInput,
+  Topic,
+  TopicDetail,
+} from '../api/client';
 import { Providers, createQueryClient, routes } from '../App';
 
 type L = 'de' | 'en';
@@ -165,11 +175,29 @@ export function holdReadiness() {
   return answer;
 }
 
+/** Gesendete Beratungsanfragen (Ticket #136) seit dem letzten installFakeApi. */
+export const consultationCalls: ConsultationRequestInput[] = [];
+const consultationAnswers: number[] = [];
+/** Legt die Statuscodes der nächsten Beratungsanfragen fest, z. B. 500 oder 429; danach antwortet die API mit 204. */
+export const answerConsultations = (...statuses: number[]) => {
+  consultationAnswers.push(...statuses);
+};
+const heldConsultations: Promise<number>[] = [];
+/** Hält die nächste Beratungsanfrage an, bis sie mit dem übergebenen Status beantwortet wird. */
+export function holdConsultation() {
+  let answer!: (status: number) => void;
+  heldConsultations.push(new Promise((resolve) => (answer = resolve)));
+  return answer;
+}
+
 /** Ersetzt fetch durch eine kleine Nachbildung der öffentlichen API. */
 export function installFakeApi(posts: FakePost[] = POSTS) {
   readinessCalls.length = 0;
   readinessFails = false;
   heldReadiness.length = 0;
+  consultationCalls.length = 0;
+  consultationAnswers.length = 0;
+  heldConsultations.length = 0;
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     const lang = (url.searchParams.get('lang') ?? 'de') as L;
@@ -179,6 +207,11 @@ export function installFakeApi(posts: FakePost[] = POSTS) {
       readinessCalls.push({ method: input.method, path: url.pathname, body });
       const status = await (heldReadiness.shift() ?? (readinessFails ? 500 : 204));
       return status === 204 ? new Response(null, { status }) : json(status, { message: 'Interner Fehler.' });
+    }
+    if (parts[1] === 'consultation-requests' && input instanceof Request && input.method === 'POST') {
+      consultationCalls.push(JSON.parse(await input.text()) as ConsultationRequestInput);
+      const status = await (heldConsultations.shift() ?? consultationAnswers.shift() ?? 204);
+      return status === 204 ? new Response(null, { status }) : json(status, { message: 'Fehler.' });
     }
     if (parts[1] === 'topics' && parts.length === 2) {
       return json(200, { items: Object.keys(topicData).map((s) => topic(s, lang, posts)) });

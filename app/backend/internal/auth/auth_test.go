@@ -79,17 +79,17 @@ func mustRefuse(t *testing.T, l *Limiter, key, why string) {
 func TestLimiterCountsFailuresPerKeyAndWindow(t *testing.T) {
 	l, now := testLimiter(3)
 	for range 3 {
-		mustReserve(t, l, "1.2.3.4").Failed()
+		mustReserve(t, l, "1.2.3.4").Count()
 	}
 	mustRefuse(t, l, "1.2.3.4", "obwohl 3 Fehlversuche gezählt sind")
 	mustReserve(t, l, "5.6.7.8").Cancel()
 
 	// Das Zeitfenster beginnt mit dem ersten Fehlversuch und endet nach einer Minute.
 	*now = now.Add(time.Minute)
-	mustReserve(t, l, "1.2.3.4").Failed()
+	mustReserve(t, l, "1.2.3.4").Count()
 	*now = now.Add(59 * time.Second)
-	mustReserve(t, l, "1.2.3.4").Failed()
-	mustReserve(t, l, "1.2.3.4").Failed()
+	mustReserve(t, l, "1.2.3.4").Count()
+	mustReserve(t, l, "1.2.3.4").Count()
 	mustRefuse(t, l, "1.2.3.4", "obwohl das neue Zeitfenster 3 Fehlversuche enthält")
 }
 
@@ -112,32 +112,32 @@ func TestLimiterOutcomes(t *testing.T) {
 	t.Run("Fehlversuch zählt einmal", func(t *testing.T) {
 		l, _ := testLimiter(3)
 		a := mustReserve(t, l, "ip")
-		a.Failed()
-		a.Failed() // wirkt nicht mehr
+		a.Count()
+		a.Count()  // wirkt nicht mehr
 		a.Cancel() // wirkt nicht mehr, wie ein abschließendes defer
-		mustReserve(t, l, "ip").Failed()
+		mustReserve(t, l, "ip").Count()
 		mustReserve(t, l, "ip").Cancel()
-		mustReserve(t, l, "ip").Failed()
+		mustReserve(t, l, "ip").Count()
 		mustRefuse(t, l, "ip", "obwohl 3 Fehlversuche gezählt sind")
 	})
 	t.Run("Abbruch hebt keine Sperre auf", func(t *testing.T) {
 		l, _ := testLimiter(3)
-		mustReserve(t, l, "ip").Failed()
-		mustReserve(t, l, "ip").Failed()
+		mustReserve(t, l, "ip").Count()
+		mustReserve(t, l, "ip").Count()
 		for range 5 {
 			mustReserve(t, l, "ip").Cancel()
 		}
-		mustReserve(t, l, "ip").Failed()
+		mustReserve(t, l, "ip").Count()
 		mustRefuse(t, l, "ip", "obwohl 3 Fehlversuche gezählt sind")
 	})
 	t.Run("Erfolg setzt zurück und lässt andere Reservierungen bestehen", func(t *testing.T) {
 		l, _ := testLimiter(3)
-		mustReserve(t, l, "ip").Failed()
+		mustReserve(t, l, "ip").Count()
 		ok := mustReserve(t, l, "ip")
 		mustReserve(t, l, "ip") // läuft weiter
 		mustRefuse(t, l, "ip", "obwohl 1 Fehlversuch und 2 laufende Versuche bestehen")
-		ok.Succeeded()
-		ok.Failed() // wirkt nicht mehr
+		ok.Reset()
+		ok.Count() // wirkt nicht mehr
 		mustReserve(t, l, "ip")
 		mustReserve(t, l, "ip")
 		mustRefuse(t, l, "ip", "obwohl 3 Versuche laufen")
@@ -145,9 +145,9 @@ func TestLimiterOutcomes(t *testing.T) {
 	t.Run("Abgeschlossene Versuche ohne Fehlversuch hinterlassen keinen Eintrag", func(t *testing.T) {
 		l, _ := testLimiter(3)
 		mustReserve(t, l, "a").Cancel()
-		mustReserve(t, l, "b").Succeeded()
+		mustReserve(t, l, "b").Reset()
 		f := mustReserve(t, l, "c")
-		f.Failed()
+		f.Count()
 		if len(l.keys) != 1 || l.keys["c"] == nil {
 			t.Fatalf("Einträge: %v, erwartet nur c", l.keys)
 		}
@@ -181,7 +181,7 @@ func TestLimiterParallelReserve(t *testing.T) {
 		t.Fatalf("%d von %d gleichzeitigen Versuchen zugelassen, erwartet %d", len(admitted), n, max)
 	}
 	for _, a := range admitted {
-		wg.Go(a.Failed)
+		wg.Go(a.Count)
 	}
 	wg.Wait()
 	mustRefuse(t, l, "1.2.3.4", "obwohl 10 Fehlversuche gezählt sind")
@@ -190,7 +190,7 @@ func TestLimiterParallelReserve(t *testing.T) {
 func TestLimiterPrunesExpiredEntries(t *testing.T) {
 	l, now := testLimiter(3)
 	for i := range maxTrackedKeys {
-		mustReserve(t, l, fmt.Sprintf("10.0.%d.%d", i/256, i%256)).Failed()
+		mustReserve(t, l, fmt.Sprintf("10.0.%d.%d", i/256, i%256)).Count()
 	}
 	running := mustReserve(t, l, "laufend")
 	*now = now.Add(time.Minute)
@@ -198,7 +198,7 @@ func TestLimiterPrunesExpiredEntries(t *testing.T) {
 	if len(l.keys) != 2 {
 		t.Fatalf("%d Einträge nach dem Aufräumen, erwartet 2 (laufend, neu)", len(l.keys))
 	}
-	running.Failed()
+	running.Count()
 }
 
 // Ticket #138: Throttle begrenzt laufende Prüfungen und Wartende und lehnt alle weiteren sofort ab.

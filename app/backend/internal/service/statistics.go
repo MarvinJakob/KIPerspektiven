@@ -133,7 +133,7 @@ func (s *Statistics) firstDay(p Period) (start time.Time, ok bool) {
 }
 
 // PageViews liefert die Seitenaufrufe im Zeitraum. Begrenzte Zeiträume enthalten jeden Tag, auch ohne
-// Aufrufe, damit Lücken nicht übersehen werden. „Gesamt“ enthält nur Tage mit Aufrufen.
+// Aufrufe, damit Lücken nicht übersehen werden. „Gesamt“ beginnt am ersten erfassten Tag und endet heute.
 func (s *Statistics) PageViews(ctx context.Context, p Period) (PageViewStats, error) {
 	start, bounded := s.firstDay(p)
 	since := ""
@@ -146,18 +146,26 @@ func (s *Statistics) PageViews(ctx context.Context, p Period) (PageViewStats, er
 	}
 	var out PageViewStats
 	if !bounded {
-		for _, r := range rows {
-			out.Total += r.Views
-			out.Days = append(out.Days, DayViews{Day: r.Day, Views: r.Views})
+		if len(rows) == 0 {
+			return out, nil
 		}
-		return out, nil
+		start, err = time.ParseInLocation(dayLayout, rows[len(rows)-1].Day, StatsZone)
+		if err != nil {
+			return PageViewStats{}, err
+		}
 	}
 	views := make(map[string]int64, len(rows))
 	for _, r := range rows {
 		views[r.Day] = r.Views
 	}
-	for i := p.days() - 1; i >= 0; i-- {
-		day := start.AddDate(0, 0, i).Format(dayLayout)
+	y, m, d := s.now().In(StatsZone).Date()
+	end := time.Date(y, m, d, 0, 0, 0, 0, StatsZone)
+	if bounded {
+		// Dieselbe Momentaufnahme wie firstDay, auch wenn die Abfrage über Mitternacht läuft.
+		end = start.AddDate(0, 0, p.days()-1)
+	}
+	for date := end; !date.Before(start); date = date.AddDate(0, 0, -1) {
+		day := date.Format(dayLayout)
 		out.Total += views[day]
 		out.Days = append(out.Days, DayViews{Day: day, Views: views[day]})
 	}

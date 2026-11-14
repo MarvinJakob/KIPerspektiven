@@ -150,7 +150,7 @@ func TestPageViewPeriods(t *testing.T) {
 	}{
 		{"?period=7d", 1 + 2, 7},
 		{"?period=30d", 1 + 2 + 4 + 8, 30},
-		{"?period=all", 1 + 2 + 4 + 8 + 16, 5}, // gesamt: nur Tage mit Aufrufen
+		{"?period=all", 1 + 2 + 4 + 8 + 16, 31}, // gesamt: lückenlos seit dem ersten Aufruf
 	} {
 		resp, body := b.do(http.MethodGet, "/api/admin/statistics/page-views"+c.query, nil)
 		wantStatus(t, resp, body, http.StatusOK)
@@ -158,12 +158,38 @@ func TestPageViewPeriods(t *testing.T) {
 		if st.Total != c.total || len(st.Days) != c.days {
 			t.Errorf("%s: Summe %d mit %d Tagen, erwartet %d mit %d", c.query, st.Total, len(st.Days), c.total, c.days)
 		}
+		if st.Days[1] != (api.PageViewDay{Date: dayOffset(1), Views: 0}) {
+			t.Errorf("%s: Tag ohne Aufrufe fehlt: %+v", c.query, st.Days[1])
+		}
 		if !slices.IsSortedFunc(st.Days, func(a, b api.PageViewDay) int { return strings.Compare(b.Date, a.Date) }) {
 			t.Errorf("%s: Tage nicht absteigend: %+v", c.query, st.Days)
 		}
 	}
 	resp, body := b.do(http.MethodGet, "/api/admin/statistics/page-views?period=365d", nil)
 	wantStatus(t, resp, body, http.StatusBadRequest)
+}
+
+// Gesamt bleibt ohne erfasste Aufrufe leer und ergänzt auch Tage nach dem letzten Aufruf.
+func TestAllPageViewsWithoutRecentViews(t *testing.T) {
+	srv, db := newServerWithAccounts(t)
+	b := newBrowser(t, srv)
+	b.mustLogin(editorEmail)
+	resp, body := b.do(http.MethodGet, "/api/admin/statistics/page-views?period=all", nil)
+	wantStatus(t, resp, body, http.StatusOK)
+	st := decode[api.PageViewStats](t, body)
+	if st.Total != 0 || len(st.Days) != 0 {
+		t.Fatalf("Ohne Aufrufe: %+v", st)
+	}
+	if _, err := db.Exec("INSERT INTO page_views (day, views) VALUES (?, ?)", dayOffset(2), 5); err != nil {
+		t.Fatal(err)
+	}
+	resp, body = b.do(http.MethodGet, "/api/admin/statistics/page-views?period=all", nil)
+	wantStatus(t, resp, body, http.StatusOK)
+	st = decode[api.PageViewStats](t, body)
+	want := []api.PageViewDay{{Date: dayOffset(0), Views: 0}, {Date: dayOffset(1), Views: 0}, {Date: dayOffset(2), Views: 5}}
+	if st.Total != 5 || !slices.Equal(st.Days, want) {
+		t.Fatalf("Gesamt: %+v, erwartet %+v", st, want)
+	}
 }
 
 func TestReadinessResultIsSavedUpdatedAndNotDuplicated(t *testing.T) {
@@ -225,10 +251,12 @@ func TestReadinessResultRejectsIncompleteOrInvalidResults(t *testing.T) {
 	b := newBrowser(t, srv)
 	valid := func() api.ReadinessResultInput { return resultInput(t, resultKey, api.De, 2) }
 	cases := map[string]func(*api.ReadinessResultInput){
-		"Dimension fehlt":         func(in *api.ReadinessResultInput) { in.Ratings = in.Ratings[1:] },
-		"keine Bewertung":         func(in *api.ReadinessResultInput) { in.Ratings = nil },
-		"Dimension doppelt":       func(in *api.ReadinessResultInput) { in.Ratings[len(in.Ratings)-1] = in.Ratings[0] },
-		"zusätzliche Dimension":   func(in *api.ReadinessResultInput) { in.Ratings = append(in.Ratings, api.ReadinessRating{Dimension: "erfunden", Level: 1}) },
+		"Dimension fehlt":   func(in *api.ReadinessResultInput) { in.Ratings = in.Ratings[1:] },
+		"keine Bewertung":   func(in *api.ReadinessResultInput) { in.Ratings = nil },
+		"Dimension doppelt": func(in *api.ReadinessResultInput) { in.Ratings[len(in.Ratings)-1] = in.Ratings[0] },
+		"zusätzliche Dimension": func(in *api.ReadinessResultInput) {
+			in.Ratings = append(in.Ratings, api.ReadinessRating{Dimension: "erfunden", Level: 1})
+		},
 		"unbekannte Dimension":    func(in *api.ReadinessResultInput) { in.Ratings[0].Dimension = "erfunden" },
 		"Reifegrad 0":             func(in *api.ReadinessResultInput) { in.Ratings[0].Level = 0 },
 		"Reifegrad 4":             func(in *api.ReadinessResultInput) { in.Ratings[0].Level = 4 },

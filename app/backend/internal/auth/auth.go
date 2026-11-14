@@ -111,13 +111,14 @@ func EqualTokens(a, b string) bool {
 	return a != "" && subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 
-// Limiter begrenzt Anmeldeversuche je Schlüssel (IP-Adresse) auf max Fehlversuche je Zeitfenster. Das
-// Zeitfenster beginnt mit dem ersten gezählten Fehlversuch.
+// Limiter begrenzt Ereignisse je Schlüssel (IP-Adresse) auf max je Zeitfenster: fehlgeschlagene
+// Anmeldeversuche und angenommene Beratungsanfragen (Ticket #136). Das Zeitfenster beginnt mit dem ersten
+// gezählten Ereignis.
 //
-// Zulassung und Ergebnis sind getrennt (Ticket #138): Reserve lässt einen Versuch nur zu, solange
-// Fehlversuche und laufende Versuche zusammen unter max liegen, und reserviert ihn in derselben Sperre.
-// Laufende Versuche zählen also mit, als wären sie bereits gescheitert. Parallele Anfragen können die Grenze
-// deshalb nicht überholen, während ihre Passwortprüfung noch läuft.
+// Zulassung und Ergebnis sind getrennt (Ticket #138): Reserve lässt einen Versuch nur zu, solange gezählte
+// Ereignisse und laufende Versuche zusammen unter max liegen, und reserviert ihn in derselben Sperre.
+// Laufende Versuche zählen also mit, als wären sie bereits gezählt. Parallele Anfragen können die Grenze
+// deshalb nicht überholen, solange ihr Ergebnis noch aussteht, etwa während der Passwortprüfung.
 //
 // Die Zähler liegen nur im Arbeitsspeicher (ARCHITECTURE.md, Abschnitt 11).
 type Limiter struct {
@@ -130,31 +131,31 @@ type Limiter struct {
 
 // attempts sind die Versuche eines Schlüssels.
 type attempts struct {
-	start    time.Time // Beginn des Zeitfensters, gültig solange failures > 0
-	failures int       // gezählte Fehlversuche im Zeitfenster
-	pending  int       // zugelassene Versuche, deren Ergebnis noch aussteht
+	start   time.Time // Beginn des Zeitfensters, gültig solange count > 0
+	count   int       // gezählte Ereignisse im Zeitfenster
+	pending int       // zugelassene Versuche, deren Ergebnis noch aussteht
 }
 
-// expire setzt die Fehlversuche zurück, wenn ihr Zeitfenster abgelaufen ist.
+// expire setzt die gezählten Ereignisse zurück, wenn ihr Zeitfenster abgelaufen ist.
 func (a *attempts) expire(now time.Time, window time.Duration) {
-	if a.failures > 0 && now.Sub(a.start) >= window {
-		a.failures = 0
+	if a.count > 0 && now.Sub(a.start) >= window {
+		a.count = 0
 	}
 }
 
-// maxTrackedKeys löst das Aufräumen abgelaufener Einträge aus. Neue Einträge mit Fehlversuchen entstehen nur
-// nach einer Passwortprüfung, deren Zahl Throttle begrenzt; die Tabelle wächst daher nur langsam.
+// maxTrackedKeys löst das Aufräumen abgelaufener Einträge aus. Gezählte Anmeldeversuche entstehen nur nach
+// einer Passwortprüfung, deren Zahl Throttle begrenzt; die Tabelle wächst daher nur langsam.
 const maxTrackedKeys = 10_000
 
-// NewLimiter erlaubt max Fehlversuche je Zeitfenster.
+// NewLimiter erlaubt max Ereignisse je Zeitfenster.
 func NewLimiter(max int, w time.Duration) *Limiter {
 	return &Limiter{max: max, window: w, now: time.Now, keys: map[string]*attempts{}}
 }
 
-// Reserve lässt einen Anmeldeversuch für key zu und reserviert ihn, wenn Fehlversuche und laufende Versuche
+// Reserve lässt einen Versuch für key zu und reserviert ihn, wenn gezählte Ereignisse und laufende Versuche
 // zusammen unter max liegen. Andernfalls ist ok false und es wurde nichts reserviert.
 //
-// Der Aufrufer meldet das Ergebnis eines zugelassenen Versuchs mit Attempt.Failed, Attempt.Succeeded oder
+// Der Aufrufer meldet das Ergebnis eines zugelassenen Versuchs mit Attempt.Count, Attempt.Reset oder
 // Attempt.Cancel. Nur der erste dieser Aufrufe wirkt; ein abschließendes „defer attempt.Cancel()“ gibt die
 // Reservierung deshalb in jedem Fall frei, auch nach einem Panic.
 func (l *Limiter) Reserve(key string) (attempt *Attempt, ok bool) {
@@ -170,49 +171,50 @@ func (l *Limiter) Reserve(key string) (attempt *Attempt, ok bool) {
 		l.keys[key] = a
 	}
 	a.expire(now, l.window)
-	if a.failures+a.pending >= l.max {
+	if a.count+a.pending >= l.max {
 		return nil, false
 	}
 	a.pending++
 	return &Attempt{l: l, key: key}, true
 }
 
-// prune entfernt Einträge ohne laufende Versuche, deren Fehlversuche abgelaufen sind. Aufruf nur unter l.mu.
+// prune entfernt Einträge ohne laufende Versuche, deren Ereignisse abgelaufen sind. Aufruf nur unter l.mu.
 func (l *Limiter) prune(now time.Time) {
 	for k, a := range l.keys {
 		a.expire(now, l.window)
-		if a.failures == 0 && a.pending == 0 {
+		if a.count == 0 && a.pending == 0 {
 			delete(l.keys, k)
 		}
 	}
 }
 
-// Attempt ist ein zugelassener Anmeldeversuch, dessen Ergebnis noch aussteht.
+// Attempt ist ein zugelassener Versuch, dessen Ergebnis noch aussteht.
 type Attempt struct {
 	l    *Limiter
 	key  string
 	done bool // geschützt durch l.mu
 }
 
-// Failed zählt den Versuch als Fehlversuch: Die Passwortprüfung hat falsche Zugangsdaten ergeben.
-func (a *Attempt) Failed() {
+// Count zählt den Versuch als Ereignis: bei der Anmeldung ein Fehlversuch (falsche Zugangsdaten), bei
+// Beratungsanfragen eine angenommene Anfrage.
+func (a *Attempt) Count() {
 	a.finish(func(s *attempts, now time.Time) {
-		if s.failures == 0 {
+		if s.count == 0 {
 			s.start = now
 		}
-		s.failures++
+		s.count++
 	})
 }
 
-// Succeeded setzt die Fehlversuche nach einer erfolgreichen Anmeldung zurück. Andere laufende Versuche
-// desselben Schlüssels bleiben reserviert und melden ihr Ergebnis selbst.
-func (a *Attempt) Succeeded() {
-	a.finish(func(s *attempts, _ time.Time) { s.failures = 0 })
+// Reset setzt die gezählten Ereignisse des Schlüssels zurück, etwa die Fehlversuche nach einer erfolgreichen
+// Anmeldung. Andere laufende Versuche desselben Schlüssels bleiben reserviert und melden ihr Ergebnis selbst.
+func (a *Attempt) Reset() {
+	a.finish(func(s *attempts, _ time.Time) { s.count = 0 })
 }
 
-// Cancel gibt die Reservierung frei, ohne etwas zu zählen. Das gilt, wenn die Passwortprüfung kein Ergebnis
-// geliefert hat: ungültige Anfrage, Überlast, Abbruch durch den Client vor der Prüfung oder ein interner
-// Fehler. Bereits gezählte Fehlversuche bleiben erhalten; Cancel hebt die Sperre also nicht auf.
+// Cancel gibt die Reservierung frei, ohne etwas zu zählen: Der Versuch hat kein zählbares Ergebnis, etwa bei
+// ungültiger Anfrage, Überlast, Abbruch durch den Client vor der Passwortprüfung oder einem internen Fehler.
+// Bereits gezählte Ereignisse bleiben erhalten; Cancel hebt eine Sperre also nicht auf.
 func (a *Attempt) Cancel() {
 	a.finish(func(*attempts, time.Time) {})
 }
@@ -232,7 +234,7 @@ func (a *Attempt) finish(apply func(s *attempts, now time.Time)) {
 	now := l.now()
 	s.expire(now, l.window)
 	apply(s, now)
-	if s.failures == 0 && s.pending == 0 {
+	if s.count == 0 && s.pending == 0 {
 		delete(l.keys, a.key)
 	}
 }

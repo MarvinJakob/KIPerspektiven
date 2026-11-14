@@ -2,6 +2,7 @@ import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@ta
 import type { RouteObject } from 'react-router';
 import { ApiError, ME_KEY, isStatus } from './api/client';
 import { Layout, RequireRole } from './components/Layout';
+import { ConsultationRequestsPage } from './pages/ConsultationRequests';
 import { LoginPage } from './pages/Login';
 import { EditPostPage } from './pages/EditPost';
 import { NotFound } from './pages/NotFound';
@@ -21,6 +22,7 @@ export const routes: RouteObject[] = [
       { index: true, element: <RequireRole can="edit"><PostsPage /></RequireRole> },
       { path: 'beitraege/:id', element: <RequireRole can="edit"><EditPostPage /></RequireRole> },
       { path: 'statistik', element: <RequireRole can="edit"><StatisticsPage /></RequireRole> },
+      { path: 'beratungsanfragen', element: <RequireRole can="edit"><ConsultationRequestsPage /></RequireRole> },
       { path: 'benutzer', element: <RequireRole can="manageUsers"><UsersPage /></RequireRole> },
       { path: '*', element: <NotFound /> },
     ],

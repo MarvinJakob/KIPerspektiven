@@ -168,6 +168,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/consultation-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Kostenloses Beratungsgespräch nach der Selbsteinschätzung anfragen
+         * @description Ticket #136, ADR 0011. Das Formular auf der Auswertung sendet nur die E-Mail-Adresse und die Sprache
+         *     der Seite, kein Ergebnis der Selbsteinschätzung. Das Backend speichert die Anfrage für die Redaktion
+         *     (`GET /api/admin/consultation-requests`), die sich zur Terminabstimmung per E-Mail meldet. Eine erneute
+         *     Anfrage mit derselben Adresse aktualisiert den bestehenden Eintrag. Anfragen von fremder Herkunft lehnt
+         *     das Backend mit `403` ab, zu große Anfragetexte mit `413`, mehr als fünf angenommene Anfragen je
+         *     IP-Adresse und Stunde mit `429`.
+         */
+        post: operations["requestConsultation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -472,6 +497,48 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/consultation-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Offene Anfragen für ein Beratungsgespräch, neueste zuerst
+         * @description Ticket
+         */
+        get: operations["adminListConsultationRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/consultation-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Erledigte Anfrage löschen
+         * @description Ticket
+         */
+        delete: operations["adminDeleteConsultationRequest"];
         options?: never;
         head?: never;
         patch?: never;
@@ -813,6 +880,30 @@ export interface components {
             levels: components["schemas"]["AuditLevelInfo"][];
             items: components["schemas"]["ReadinessResult"][];
         };
+        /**
+         * @description Anfrage für ein kostenloses Beratungsgespräch (Ticket #136). Die E-Mail-Adresse ist die einzige
+         *     Angabe der Person. Leere oder ungültige Adressen lehnt das Backend mit `422` ab.
+         */
+        ConsultationRequestInput: {
+            /** @description E-Mail-Adresse für die Terminabstimmung; Groß- und Kleinschreibung zählt nicht */
+            email: string;
+            lang: components["schemas"]["Lang"];
+        };
+        ConsultationRequest: {
+            /** Format: int64 */
+            id: number;
+            /** @description Normalisiert (ohne Leerzeichen, kleingeschrieben) */
+            email: string;
+            lang: components["schemas"]["Lang"];
+            /**
+             * Format: date-time
+             * @description Zeitpunkt der letzten Anfrage mit dieser Adresse
+             */
+            requestedAt: string;
+        };
+        ConsultationRequestList: {
+            items: components["schemas"]["ConsultationRequest"][];
+        };
     };
     responses: {
         /** @description Ungültige Anfrage */
@@ -1089,6 +1180,40 @@ export interface operations {
             };
             403: components["responses"]["Forbidden"];
             422: components["responses"]["Unprocessable"];
+        };
+    };
+    requestConsultation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsultationRequestInput"];
+            };
+        };
+        responses: {
+            /** @description Anfrage eingegangen */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Unprocessable"];
+            /** @description Zu viele Anfragen, später erneut versuchen */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     getHealth: {
@@ -1642,6 +1767,51 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    adminListConsultationRequests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Alle offenen Anfragen */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationRequestList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminDeleteConsultationRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Gelöscht */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
 }

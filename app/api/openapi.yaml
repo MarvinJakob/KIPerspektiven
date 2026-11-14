@@ -182,6 +182,38 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/Unprocessable'
+  /api/consultation-requests:
+    post:
+      operationId: requestConsultation
+      summary: Kostenloses Beratungsgespräch nach der Selbsteinschätzung anfragen
+      description: |
+        Ticket #136, ADR 0011. Das Formular auf der Auswertung sendet nur die E-Mail-Adresse und die Sprache
+        der Seite, kein Ergebnis der Selbsteinschätzung. Das Backend speichert die Anfrage für die Redaktion
+        (`GET /api/admin/consultation-requests`), die sich zur Terminabstimmung per E-Mail meldet. Eine erneute
+        Anfrage mit derselben Adresse aktualisiert den bestehenden Eintrag. Anfragen von fremder Herkunft lehnt
+        das Backend mit `403` ab, zu große Anfragetexte mit `413`, mehr als fünf angenommene Anfragen je
+        IP-Adresse und Stunde mit `429`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsultationRequestInput'
+      responses:
+        '204':
+          description: Anfrage eingegangen
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          description: Zu viele Anfragen, später erneut versuchen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/health:
     get:
       operationId: getHealth
@@ -705,6 +737,43 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /api/admin/consultation-requests:
+    get:
+      operationId: adminListConsultationRequests
+      summary: Offene Anfragen für ein Beratungsgespräch, neueste zuerst
+      description: Ticket #136. Für die Rollen `editor` und `admin`.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Alle offenen Anfragen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsultationRequestList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/consultation-requests/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    delete:
+      operationId: adminDeleteConsultationRequest
+      summary: Erledigte Anfrage löschen
+      description: Ticket #136. Die Redaktion löscht eine Anfrage, sobald der Termin abgestimmt ist.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '204':
+          description: Gelöscht
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     sessionCookie:
@@ -1367,3 +1436,40 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ReadinessResult'
+    ConsultationRequestInput:
+      type: object
+      description: |
+        Anfrage für ein kostenloses Beratungsgespräch (Ticket #136). Die E-Mail-Adresse ist die einzige
+        Angabe der Person. Leere oder ungültige Adressen lehnt das Backend mit `422` ab.
+      required: [email, lang]
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          description: E-Mail-Adresse für die Terminabstimmung; Groß- und Kleinschreibung zählt nicht
+        lang:
+          $ref: '#/components/schemas/Lang'
+    ConsultationRequest:
+      type: object
+      required: [id, email, lang, requestedAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+          description: Normalisiert (ohne Leerzeichen, kleingeschrieben)
+        lang:
+          $ref: '#/components/schemas/Lang'
+        requestedAt:
+          type: string
+          format: date-time
+          description: Zeitpunkt der letzten Anfrage mit dieser Adresse
+    ConsultationRequestList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConsultationRequest'
