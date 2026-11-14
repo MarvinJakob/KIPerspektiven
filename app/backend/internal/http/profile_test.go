@@ -3,17 +3,29 @@ package httpserver_test
 import (
 	"encoding/xml"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 )
 
+// Ticket #124: Titel und Beschreibung stehen gleichlautend in frontend/src/i18n/profile.ts, damit sie nach dem
+// Laden nicht wechseln.
 func TestProfileDirectAndReload(t *testing.T) {
 	srv, _ := newServer(t, false)
+	source, err := os.ReadFile("../../../frontend/src/i18n/profile.ts")
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, tc := range []struct{ lang, title, description string }{
-		{"de", "Marvin Jakob – Profil", "IT-Berater und Full-Stack-Entwickler"},
-		{"en", "Marvin Jakob – Profile", "IT consultant and full-stack developer"},
+		{"de", "Marvin Jakob – Profil", "Marvin Jakob, Creative IT Specialist: Technologie verstehen. KI in der Praxis nutzen. Beratung zu KI-Einsatz, Datenstrategie und Agentic AI."},
+		{"en", "Marvin Jakob – Profile", "Marvin Jakob, Creative IT Specialist: understand technology. Use AI in practice. Consulting on AI adoption, data strategy and agentic AI."},
 	} {
 		t.Run(tc.lang, func(t *testing.T) {
+			for _, want := range []string{"title: '" + tc.title + "'", "description: '" + tc.description + "'"} {
+				if !strings.Contains(string(source), want) {
+					t.Errorf("Frontend weicht ab, erwartet in profile.ts: %s", want)
+				}
+			}
 			for range 2 {
 				resp, body := get(t, srv, "/"+tc.lang+"/profil")
 				if resp.StatusCode != http.StatusOK {
@@ -22,7 +34,7 @@ func TestProfileDirectAndReload(t *testing.T) {
 				for _, want := range []string{
 					`<html lang="` + tc.lang + `">`,
 					`<title>` + tc.title + ` · KI Perspektiven</title>`,
-					`<meta name="description" content="Marvin Jakob: ` + tc.description,
+					`<meta name="description" content="` + tc.description + `">`,
 					`<link rel="canonical" href="https://example.test/` + tc.lang + `/profil">`,
 					`hreflang="de" href="https://example.test/de/profil"`,
 					`hreflang="en" href="https://example.test/en/profil"`,

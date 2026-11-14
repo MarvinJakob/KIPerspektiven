@@ -88,13 +88,14 @@ func render(index []byte, m Meta) ([]byte, error) {
 }
 
 // texts enthält die Seitentitel und Beschreibungen für Seiten ohne Datenbankinhalt.
-// Die Startseitentexte stehen gleichlautend in frontend/src/i18n/home.ts (title, description), die Texte der
-// Readiness-Auswertung in frontend/src/i18n/{de,en}.ts (assess.resultTitle, assess.resultMeta). Tests prüfen das,
-// damit der Seitentitel nach dem Laden nicht wechselt (Bug #126).
+// Die Startseitentexte stehen gleichlautend in frontend/src/i18n/home.ts (title, description), die Profiltexte in
+// frontend/src/i18n/profile.ts, die Texte der Readiness-Auswertung in frontend/src/i18n/{de,en}.ts
+// (assess.resultTitle, assess.resultMeta). Tests prüfen das, damit der Seitentitel nach dem Laden nicht wechselt
+// (Bug #126).
 var texts = map[service.Lang]map[string]string{
 	service.DE: {
 		"profile.title":         "Marvin Jakob – Profil",
-		"profile.desc":          "Marvin Jakob: IT-Berater und Full-Stack-Entwickler. Mein Hintergrund und meine Fragen zu KI in Softwareentwicklung, Data Analytics und AI Audit.",
+		"profile.desc":          "Marvin Jakob, Creative IT Specialist: Technologie verstehen. KI in der Praxis nutzen. Beratung zu KI-Einsatz, Datenstrategie und Agentic AI.",
 		"home.title":            "KI verstehen. Sinnvoll einsetzen.",
 		"home.desc":             "Praxiswissen für den professionellen Einsatz von KI. Mit klarem Blick auf Nutzen, Grenzen und Verantwortung.",
 		"aiUses.title":          "Wofür KI heute eingesetzt wird",
@@ -112,7 +113,7 @@ var texts = map[service.Lang]map[string]string{
 	},
 	service.EN: {
 		"profile.title":         "Marvin Jakob – Profile",
-		"profile.desc":          "Marvin Jakob: IT consultant and full-stack developer. My background and questions about AI in software development, data analytics and AI audit.",
+		"profile.desc":          "Marvin Jakob, Creative IT Specialist: understand technology. Use AI in practice. Consulting on AI adoption, data strategy and agentic AI.",
 		"home.title":            "Understand AI. Use it wisely.",
 		"home.desc":             "Practical knowledge for the professional use of AI. With a clear view of benefits, limits and responsibility.",
 		"aiUses.title":          "What AI is used for today",
