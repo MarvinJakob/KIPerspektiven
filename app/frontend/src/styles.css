@@ -246,7 +246,7 @@ svg { display: block; }
 
 /* Opake Inhaltsflächen: gemeinsame Form aller Karten */
 .post-row, .empty, .level-item,
-.profile-card, .profile-about, .consent, .landing .tasks, .landing .facts {
+.profile-card, .consent, .landing .tasks, .landing .facts {
   border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow);
 }
 /* Verlinkte Karten heben sich beim Überfahren an */
@@ -640,7 +640,7 @@ svg { display: block; }
 .result-table .text-link { min-height: 0; }
 
 /* ==========================================================================
-   Profil (Tickets #41, #60). Inhalt bleibt opak, die Navigation trägt das Glas.
+   Profil (Tickets #41, #60, #124). Inhalte nach content/Persona.md; der Inhalt bleibt opak, die Navigation trägt das Glas.
    ========================================================================== */
 .profile { overflow-wrap: anywhere; }
 .profile h2 { font-size: clamp(1.75rem, 3.2vw, 2.5rem); }
@@ -657,7 +657,7 @@ svg { display: block; }
 .profile-linkedin svg { width: 24px; height: 24px; }
 .profile-headline { font-size: clamp(1.625rem, 3vw, 2.375rem); line-height: 1.2; letter-spacing: -.035em; font-weight: 650; margin-bottom: 24px; max-width: 520px; }
 .profile-headline span { color: var(--accent); }
-.profile-intro { color: var(--text-2); max-width: 515px; margin-bottom: 28px; }
+.profile-motto { color: var(--text-2); max-width: 515px; margin-bottom: 28px; font-size: 1.125rem; }
 .profile-tags { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; }
 .profile-tags li { border: 1px solid var(--border); background: var(--fill); padding: 5px 12px; border-radius: var(--pill); font-size: .75rem; font-weight: 650; }
 .profile-hero .profile-tags { margin-bottom: 32px; }
@@ -665,53 +665,34 @@ svg { display: block; }
 .profile-portrait img { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1.08; object-fit: cover; border-radius: 120px var(--radius-visual) var(--radius-visual) var(--radius-visual); }
 .profile-portrait figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; font-size: .75rem; color: var(--text-2); padding: 16px 4px 0; }
 .profile-portrait strong { color: var(--text); font-weight: 650; }
-.profile-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--border); padding-block: 28px; margin: 0 0 96px; }
+/* Beschreibung: Überschrift links, Fließtext rechts */
+.profile-about { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 64px; margin-bottom: 64px; }
+.profile-about-text { max-width: 720px; }
+.profile-about-text p { color: var(--text-2); font-size: 1.0625rem; line-height: 1.75; }
+.profile-about-text p + p { margin-top: 16px; }
+.profile-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--border); padding-block: 28px; margin: 0 0 64px; }
 .profile-facts > div { padding-inline: 32px; border-right: 1px solid var(--border); }
 .profile-facts > div:first-child { padding-left: 0; }
 .profile-facts > div:last-child { border: 0; }
 .profile-facts dt { font-size: 1.4375rem; letter-spacing: -.035em; font-weight: 700; color: var(--accent); }
 .profile-facts dd { margin: 4px 0 0; font-size: .8125rem; color: var(--text-2); }
-.profile-section, #expertise-title { scroll-margin-top: calc(var(--header-h) + 24px); }
-.profile-section-head { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 64px; align-items: end; margin-bottom: 32px; }
-.profile-section-head > p { color: var(--text-2); font-size: .9375rem; }
-.profile-expertise { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.profile-card { display: flex; flex-direction: column; padding: 28px; background: var(--fill); }
-.profile-card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 32px; font-size: .75rem; color: var(--text-2); }
-.profile-symbol { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border-radius: var(--radius-small); background: var(--surface); border: 1px solid var(--border); color: var(--accent); font: 700 20px ui-monospace, monospace; }
-.profile-card h3 { margin-bottom: 14px; }
-.profile-card p { font-size: .9375rem; color: var(--text-2); margin-bottom: 24px; }
-.profile-card .profile-application { padding-top: 20px; border-top: 1px solid var(--border); margin-top: auto; }
-.profile-application strong { display: block; color: var(--text); margin-bottom: 5px; font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; }
-.profile-topic-link, .profile-explore a { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-size: .9375rem; font-weight: 650; }
-.profile-topic-link { gap: 8px; }
-.profile-approach { margin: 24px 0 96px; padding: 24px 28px; border-left: 3px solid var(--brand); background: var(--note-bg); border-radius: 0 var(--radius-small) var(--radius-small) 0; }
-.profile-approach p { max-width: 850px; font-size: 1.25rem; line-height: 1.5; letter-spacing: -.015em; }
-.profile-projects { margin-bottom: 96px; }
-.profile-project { border-top: 1px solid var(--border); }
-.profile-project:last-child { border-bottom: 1px solid var(--border); }
-.profile-project summary { display: grid; grid-template-columns: 140px minmax(0, 1fr) 44px; align-items: center; gap: 24px; min-height: 44px; padding-block: 24px; cursor: pointer; list-style: none; border-radius: var(--radius-small); }
-.profile-project summary::-webkit-details-marker { display: none; }
-.profile-project summary:hover { background: var(--fill); }
-.profile-project-toggle { display: grid; place-items: center; border: 1px solid var(--border); background: var(--fill); border-radius: 50%; width: 36px; height: 36px; font-size: 22px; color: var(--accent); }
-.profile-project-toggle::before { content: '+'; }
-.profile-project[open] .profile-project-toggle::before { content: '−'; }
-.profile-period, .profile-project-role { color: var(--text-2); font-size: .8125rem; }
-.profile-project-title { display: block; font-size: 1.125rem; line-height: 1.4; font-weight: 650; letter-spacing: -.02em; }
-.profile-project-role { display: block; margin-top: 4px; }
-.profile-project-body { padding: 0 56px 28px 164px; max-width: 940px; }
-.profile-project-body p { color: var(--text-2); font-size: .9375rem; margin-bottom: 16px; }
-.profile-about { padding: 40px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 64px; margin-bottom: 64px; }
-.profile-about h2 { margin-bottom: 24px; }
-.profile-about p:not(.eyebrow) { color: var(--text-2); font-size: .9375rem; }
-.profile-credentials { margin: 0; }
-.profile-credentials > div { padding-block: 16px; border-bottom: 1px solid var(--border); }
-.profile-credentials > div:first-child { padding-top: 0; }
-.profile-credentials > div:last-child { padding-bottom: 0; border: 0; }
-.profile-credentials dt { color: var(--text-2); font-size: .75rem; margin-bottom: 4px; }
-.profile-credentials dd { margin: 0; font-size: .9375rem; font-weight: 600; }
-.profile-explore { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
-.profile-explore h2 { font-size: 1.75rem; }
-.profile-explore a { gap: 12px; flex-shrink: 0; }
+/* Kontakt: Überschrift und Links in einer Zeile, bei Platzmangel umbrechend */
+.profile-contact { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 32px; margin-bottom: 96px; }
+.profile-contact ul { display: flex; flex-wrap: wrap; gap: 12px; list-style: none; margin: 0; padding: 0; }
+.profile-contact .btn svg { width: 20px; height: 20px; color: var(--accent); }
+/* Beratungsangebote: Beschreibung links, Leistungsumfang und Ergebnis rechts */
+.profile-section, #offers-title { scroll-margin-top: calc(var(--header-h) + 24px); }
+.profile-section > h2 { margin-bottom: 32px; }
+.profile-offers { display: grid; gap: 16px; }
+.profile-card { padding: 36px; background: var(--fill); }
+.profile-offer { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 48px; }
+.profile-offer-number { display: block; margin-bottom: 20px; color: var(--accent); font-size: .8125rem; font-weight: 700; letter-spacing: .08em; font-variant-numeric: tabular-nums; }
+.profile-offer h3 { margin-bottom: 14px; }
+.profile-offer p, .profile-offer dd { color: var(--text-2); font-size: .9375rem; }
+.profile-offer dl { margin: 0; }
+.profile-offer dl > div + div { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+.profile-offer dt { margin-bottom: 6px; color: var(--text); font-size: .75rem; font-weight: 650; text-transform: uppercase; letter-spacing: .08em; }
+.profile-offer dd { margin: 0; }
 
 /* ==========================================================================
    Footer und Cookie-Dialog
@@ -774,10 +755,9 @@ svg { display: block; }
   .landing .what { grid-template-columns: minmax(0, 1fr); gap: 40px; }
   .landing .definition { position: static; }
   .dim-about { grid-template-columns: minmax(0, 1fr); }
-  .profile-hero, .profile-section-head, .profile-about { gap: 32px; }
+  .profile-hero, .profile-about { gap: 32px; }
   .profile-portrait img { border-top-left-radius: 72px; }
-  .profile-expertise { grid-template-columns: minmax(0, 1fr); }
-  .profile-card-top { margin-bottom: 24px; }
+  .profile-offer { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .profile-facts > div { padding-inline: 20px; }
   .profile-facts dt { font-size: 1.25rem; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
@@ -848,19 +828,12 @@ svg { display: block; }
   .profile-hero { grid-template-columns: minmax(0, 1fr); gap: 36px; padding-bottom: 36px; }
   .profile-hero .profile-tags { margin-bottom: 24px; }
   .profile-portrait img { aspect-ratio: 1.15; border-radius: 72px 24px 24px 24px; object-position: center 42%; }
-  .profile-facts { grid-template-columns: minmax(0, 1fr); gap: 20px; margin-bottom: 60px; }
+  .profile-about { grid-template-columns: minmax(0, 1fr); gap: 20px; margin-bottom: 48px; }
+  .profile-about-text p { font-size: 1rem; }
+  .profile-facts { grid-template-columns: minmax(0, 1fr); gap: 20px; margin-bottom: 48px; }
   .profile-facts > div, .profile-facts > div:first-child { padding: 0; border: 0; }
-  .profile-section-head { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .profile-contact { margin-bottom: 60px; }
   .profile-card { padding: 24px; }
-  .profile-approach { padding: 16px 20px; margin-bottom: 60px; }
-  .profile-approach p { font-size: 1.125rem; }
-  .profile-projects { margin-bottom: 60px; }
-  .profile-project summary { grid-template-columns: minmax(0, 1fr) 44px; gap: 8px 12px; }
-  .profile-period, .profile-project-heading { grid-column: 1; }
-  .profile-project-toggle { grid-column: 2; grid-row: 1 / 3; }
-  .profile-project-body { padding: 0 0 24px; }
-  .profile-about { padding: 28px; grid-template-columns: minmax(0, 1fr); gap: 28px; margin-bottom: 40px; }
-  .profile-explore { align-items: flex-start; flex-direction: column; gap: 12px; }
   .consent { padding: 22px; }
 }
 @media (max-width: 359px) {
@@ -939,7 +912,6 @@ svg { display: block; }
   .choice-card[data-selected] { outline: 3px solid Highlight; }
   .choice-card[data-selected] .choice-mark { background: Highlight; color: HighlightText; }
   .nav-btn[aria-current="page"]::after, .nav-btn.is-active::after { background: CanvasText; }
-  .profile-symbol { border: 1px solid ButtonText; }
 }
 @media print {
   :root, :root[data-theme="dark"] { --navigation-bg: var(--paper); --navigation-filter: none; --navigation-sheen: none; }

@@ -1,13 +1,14 @@
 import { Link } from 'react-router';
 import portrait from '../assets/marvin-jakob.jpg';
 import { Icon } from '../components/Icon';
-import { profile } from '../i18n/profile';
+import { PROFILE_MAIL, profile } from '../i18n/profile';
 import { href, useLang } from '../lib/lang';
 import { useHead, usePageFocus } from '../lib/page';
 
-const topicSlugs = ['softwareentwicklung', 'ai-audit', 'data-analytics'];
-const symbols = ['</>', '◎', '≋'];
-
+/**
+ * Profilseite nach content/Persona.md (Ticket #124). Die Abschnitte folgen der Reihenfolge der Vorlage:
+ * Vorstellung mit Porträt, Beschreibung, Fakten, Kontakt und Beratungsangebote.
+ */
 export function Profile() {
   const { lang, t } = useLang();
   const content = profile[lang];
@@ -31,63 +32,50 @@ export function Profile() {
             </a>
           </div>
           <p className="profile-headline">{content.headline}<br /><span>{content.headlineAccent}</span></p>
-          <p className="profile-intro">{content.intro}</p>
+          <p className="profile-motto">{content.motto}</p>
           <ul className="profile-tags" aria-label={content.focusLabel}>
             {content.tags.map((tag) => <li key={tag}>{tag}</li>)}
           </ul>
-          <a className="btn btn-primary press" href="#expertise-title">
-            {content.discover} <span aria-hidden="true">↗</span>
+          <a className="btn btn-primary press" href="#offers-title">
+            {content.discover} <span aria-hidden="true">↓</span>
           </a>
         </div>
         <figure className="profile-portrait">
           <img src={portrait} alt={content.portraitAlt} width={1024} height={1024} fetchPriority="high" />
-          <figcaption><strong>{content.caption}</strong><span>Marvin Jakob</span></figcaption>
+          <figcaption><strong>{content.role}</strong><span>{content.caption}</span></figcaption>
         </figure>
       </header>
+      <section className="profile-about" aria-labelledby="about-title">
+        <h2 id="about-title">{content.aboutTitle}</h2>
+        <div className="profile-about-text">{content.about.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>
+      </section>
       <dl className="profile-facts" aria-label={content.factsLabel}>
         {content.facts.map((fact) => <div key={fact.title}><dt>{fact.title}</dt><dd>{fact.text}</dd></div>)}
       </dl>
-      <section id="expertise" className="profile-section" aria-labelledby="expertise-title">
-        <div className="profile-section-head">
-          <div><p className="eyebrow">{content.expertiseLabel}</p><h2 id="expertise-title" tabIndex={-1}>{content.expertiseTitle}</h2></div>
-          <p>{content.expertiseIntro}</p>
-        </div>
-        <div className="profile-expertise">
-          {content.expertise.map((item, index) => (
-            <section className="profile-card" key={item.title} aria-labelledby={`expertise-${index}`}>
-              <div className="profile-card-top"><span className="profile-symbol" aria-hidden="true">{symbols[index]}</span><span>{item.label}</span></div>
-              <h3 id={`expertise-${index}`}>{item.title}</h3>
-              <p>{item.text}</p>
-              <p className="profile-application"><strong>{content.valueLabel}</strong>{item.value}</p>
-              <Link className="profile-topic-link" to={href(lang, `/themen/${topicSlugs[index]}`)}>{item.link}<span aria-hidden="true"> ↗</span></Link>
+      <section className="profile-contact" aria-labelledby="contact-title">
+        <h2 id="contact-title">{content.contactTitle}</h2>
+        <ul>
+          <li><a className="btn btn-secondary press" href={content.linkedinUrl}><Icon name="linkedin" />LinkedIn</a></li>
+          <li><a className="btn btn-secondary press" href={`mailto:${PROFILE_MAIL}`}><Icon name="mail" />{content.mailLabel}</a></li>
+        </ul>
+      </section>
+      <section className="profile-section" aria-labelledby="offers-title">
+        <h2 id="offers-title" tabIndex={-1}>{content.offersTitle}</h2>
+        <div className="profile-offers">
+          {content.offers.map((offer, index) => (
+            <section className="profile-card profile-offer" key={offer.title} aria-labelledby={`offer-${index}`}>
+              <div>
+                <span className="profile-offer-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                <h3 id={`offer-${index}`}>{offer.title}</h3>
+                <p>{offer.text}</p>
+              </div>
+              <dl>
+                <div><dt>{content.scopeLabel}</dt><dd>{offer.scope}</dd></div>
+                <div><dt>{content.resultLabel}</dt><dd>{offer.result}</dd></div>
+              </dl>
             </section>
           ))}
         </div>
-        <aside className="profile-approach" aria-label={content.approachLabel}><p>{content.approach}</p></aside>
-      </section>
-      <section className="profile-section profile-projects" aria-labelledby="projects-title">
-        <div className="profile-section-head">
-          <div><p className="eyebrow">{content.projectsLabel}</p><h2 id="projects-title">{content.projectsTitle}</h2></div>
-          <p>{content.projectsIntro}</p>
-        </div>
-        {content.projects.map((project, index) => (
-          <details className="profile-project" key={index} open={index === 0}>
-            <summary>
-              <span className="profile-period">{project.period}</span>
-              <span className="profile-project-heading"><span className="profile-project-title">{project.title}</span><span className="profile-project-role">{project.role}</span></span>
-              <span className="profile-project-toggle" aria-hidden="true" />
-            </summary>
-            <div className="profile-project-body"><p>{project.text}</p><ul className="profile-tags">{project.tags.map((tag) => <li key={tag}>{tag}</li>)}</ul></div>
-          </details>
-        ))}
-      </section>
-      <section className="profile-about" aria-labelledby="foundation-title">
-        <div><p className="eyebrow">{content.foundationLabel}</p><h2 id="foundation-title">{content.foundationTitle}</h2><p>{content.foundationText}</p></div>
-        <dl className="profile-credentials">{content.credentials.map((item) => <div key={item.title}><dt>{item.title}</dt><dd>{item.text}</dd></div>)}</dl>
-      </section>
-      <section className="profile-explore" aria-labelledby="explore-title">
-        <h2 id="explore-title">{content.exploreTitle}</h2>
-        <Link to={href(lang, '/blog')}>{content.blogLink} <span aria-hidden="true">↗</span></Link>
       </section>
     </article>
   );
