@@ -106,6 +106,8 @@ docs/adr/               Architekturentscheidungen
 docs/audit-abnahme.md   Regeln und Durchlauf der Selbsteinschätzung (KI Readiness)
 ```
 
+Das Liniendiagramm der Seitenaufrufe ([#139](https://github.com/MarvinJakob/aiboard/issues/139)) verwendet dieselben Tageswerte wie Summe und Tabelle. Auch „Gesamt“ enthält alle Tage vom ersten erfassten Aufruf bis heute, einschließlich Nulltagen. Während des Ladens und bei Fehlern sind bisherige Seitenaufrufwerte ausgeblendet. Umsetzung und Browserprüfung bei 320 und 1280 px: [Abnahme des Statistikdiagramms](docs/statistik-diagramm-abnahme.md).
+
 ## Lokal entwickeln
 
 Voraussetzungen: Go 1.27, Node 24 oder neuer. Docker ist nur für die Compose-Variante nötig.
