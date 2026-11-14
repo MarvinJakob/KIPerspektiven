@@ -23,6 +23,11 @@ type Medium struct {
 	CreatedAt  string
 }
 
+type PageView struct {
+	Day   string
+	Views int64
+}
+
 type Post struct {
 	ID           int64
 	Slug         string
@@ -45,6 +50,19 @@ type PostTranslation struct {
 	Title        string
 	Summary      string
 	BodyMarkdown string
+}
+
+type ReadinessResult struct {
+	ID          int64
+	KeyHash     string
+	Lang        string
+	SubmittedAt string
+}
+
+type ReadinessResultRating struct {
+	ResultID  int64
+	Dimension string
+	Level     int64
 }
 
 type Session struct {

@@ -1,9 +1,11 @@
+import { useEffect } from 'react';
 import Markdown from 'react-markdown';
 import { Link } from 'react-router';
 import { useAudit, useTopics } from '../api/client';
 import { AssessmentSteps } from '../components/AssessmentSteps';
 import { Icon } from '../components/Icon';
 import { ReadinessRadar } from '../components/ReadinessRadar';
+import { ShareConsent } from '../components/ShareConsent';
 import { LoadError, Loading, TranslationNotice } from '../components/Status';
 import { useAssessment } from '../lib/assessment';
 import { AUDIT_TOPIC, auditPath, progress } from '../lib/audit';
@@ -14,14 +16,23 @@ import { useHead, usePageFocus } from '../lib/page';
  * Gesamtauswertung der Selbsteinschätzung (Tickets #113, #114): Netzdiagramm, Tabelle als Textfassung mit
  * „Ändern“-Links und die fachliche Einordnung aus #111. Ein Ergebnis erscheint erst, wenn alle freigegebenen
  * Dimensionen bewertet sind; sonst nennt die Seite die offenen Dimensionen. Es gibt keine Gesamtnote.
+ * Mit Einwilligung speichert sie das Ergebnis anonym (Ticket #130); scheitert das, bleibt die Auswertung
+ * vollständig sichtbar.
  */
 export function AuditResultPage() {
   const { lang, t } = useLang();
   const h1 = usePageFocus<HTMLHeadingElement>();
   const overview = useAudit(lang);
   const { data: topics } = useTopics(lang);
-  const { ratings } = useAssessment();
+  const { ratings, saveResult } = useAssessment();
   useHead(t('assess.resultTitle'), t('assess.resultMeta'));
+
+  // Ticket #130: Beim Anzeigen der vollständigen Auswertung wird das Ergebnis mit Einwilligung gespeichert,
+  // nach Änderungen aktualisiert. saveResult prüft Einwilligung, Vollständigkeit und Änderungen selbst.
+  const slugList = overview.data?.dimensions.map((d) => d.slug).join(' ') ?? '';
+  useEffect(() => {
+    if (slugList) saveResult(lang, slugList.split(' '));
+  }, [slugList, lang, saveResult]);
 
   if (overview.isPending) return <Loading />;
   if (overview.isError) return <LoadError onRetry={() => void overview.refetch()} />;
@@ -75,6 +86,7 @@ export function AuditResultPage() {
           ) : (
             <>
               <p className="lead">{t('assess.resultSelf')}</p>
+              <ShareConsent />
               <section className="section result-chart" aria-labelledby="radarTitle">
                 <h2 className="section-title" id="radarTitle">
                   {t('assess.radarTitle')}

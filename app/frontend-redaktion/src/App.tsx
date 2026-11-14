@@ -6,6 +6,7 @@ import { LoginPage } from './pages/Login';
 import { EditPostPage } from './pages/EditPost';
 import { NotFound } from './pages/NotFound';
 import { PostsPage } from './pages/Posts';
+import { StatisticsPage } from './pages/Statistics';
 import { UsersPage } from './pages/Users';
 
 /** Basispfad des Redaktionsfrontends. */
@@ -19,6 +20,7 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <RequireRole can="edit"><PostsPage /></RequireRole> },
       { path: 'beitraege/:id', element: <RequireRole can="edit"><EditPostPage /></RequireRole> },
+      { path: 'statistik', element: <RequireRole can="edit"><StatisticsPage /></RequireRole> },
       { path: 'benutzer', element: <RequireRole can="manageUsers"><UsersPage /></RequireRole> },
       { path: '*', element: <NotFound /> },
     ],

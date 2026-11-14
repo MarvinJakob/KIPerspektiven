@@ -124,12 +124,14 @@ func runServer(cfg config, log *slog.Logger) error {
 	go cleanupSessions(ctx, accounts, log)
 	editorial := service.NewEditorial(db)
 	go publishScheduled(ctx, editorial, log)
+	stats := service.NewStatistics(db, catalog.Slugs(), audit.LevelCount)
 	hcfg := httpserver.Config{
 		Public:        public,
 		Audit:         catalog,
 		Accounts:      accounts,
-		Site:          web.New(public, catalog, cfg.baseURL, nil, log),
+		Site:          web.New(public, catalog, stats, cfg.baseURL, nil, log),
 		Editorial:     editorial,
+		Statistics:    stats,
 		Media:         media.NewStore(cfg.mediaPath),
 		EditorialSite: web.NewEditorial(accounts, nil, log),
 		SecureCookies: strings.HasPrefix(cfg.baseURL, "https://"),

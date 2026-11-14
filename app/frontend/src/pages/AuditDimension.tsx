@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { isNotFound, useAudit, useAuditDimension, useTopics, type AuditDimension } from '../api/client';
 import { AssessmentSteps } from '../components/AssessmentSteps';
 import { Icon } from '../components/Icon';
+import { ShareConsent } from '../components/ShareConsent';
 import { LoadError, Loading, TranslationNotice } from '../components/Status';
 import { useAssessment } from '../lib/assessment';
 import { AUDIT_TOPIC, auditPath, progress, resultPath, type MaturityLevel } from '../lib/audit';
@@ -210,6 +211,8 @@ function LevelChoice({ dimension: d, contentLang, selected, onSelect, slugs, tit
         </fieldset>
       </section>
 
+      {/* Ticket #130: Einwilligung steht vor „Auswertung anzeigen“ */}
+      {isLast && <ShareConsent />}
       <nav className="assess-nav" aria-label={t('assess.navLabel')}>
         <p className="assess-hint" id={hintId} role="status" data-blocked={(blocked && !canContinue) || undefined}>
           {hint}

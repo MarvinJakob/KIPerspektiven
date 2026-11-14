@@ -11,6 +11,20 @@ import (
 	"strings"
 )
 
+const countPageView = `-- name: CountPageView :exec
+
+INSERT INTO page_views (day, views) VALUES (?, 1)
+ON CONFLICT (day) DO UPDATE SET views = views + 1
+`
+
+// ---------------------------------------------------------------------------
+// Statistik der Redaktion (Ticket #130). Zeitraeume beginnen bei einem Tag bzw. Zeitpunkt; "" heisst gesamt.
+// ---------------------------------------------------------------------------
+func (q *Queries) CountPageView(ctx context.Context, day string) error {
+	_, err := q.db.ExecContext(ctx, countPageView, day)
+	return err
+}
+
 const countPublishedPostsByTopic = `-- name: CountPublishedPostsByTopic :many
 SELECT pt.topic_id, COUNT(*) AS post_count
 FROM post_topics pt
@@ -45,6 +59,17 @@ func (q *Queries) CountPublishedPostsByTopic(ctx context.Context) ([]CountPublis
 		return nil, err
 	}
 	return items, nil
+}
+
+const countReadinessResults = `-- name: CountReadinessResults :one
+SELECT COUNT(*) FROM readiness_results WHERE submitted_at >= ?
+`
+
+func (q *Queries) CountReadinessResults(ctx context.Context, submittedAt string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countReadinessResults, submittedAt)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const createMedia = `-- name: CreateMedia :execlastid
@@ -85,6 +110,24 @@ type CreatePostParams struct {
 
 func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, createPost, arg.Slug, arg.Featured, arg.UpdatedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.LastInsertId()
+}
+
+const createReadinessResult = `-- name: CreateReadinessResult :execlastid
+INSERT INTO readiness_results (key_hash, lang, submitted_at) VALUES (?, ?, ?)
+`
+
+type CreateReadinessResultParams struct {
+	KeyHash     string
+	Lang        string
+	SubmittedAt string
+}
+
+func (q *Queries) CreateReadinessResult(ctx context.Context, arg CreateReadinessResultParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createReadinessResult, arg.KeyHash, arg.Lang, arg.SubmittedAt)
 	if err != nil {
 		return 0, err
 	}
@@ -205,6 +248,24 @@ func (q *Queries) DeletePostTranslations(ctx context.Context, postID int64) erro
 	return err
 }
 
+const deleteReadinessRatings = `-- name: DeleteReadinessRatings :exec
+DELETE FROM readiness_result_ratings WHERE result_id = ?
+`
+
+func (q *Queries) DeleteReadinessRatings(ctx context.Context, resultID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteReadinessRatings, resultID)
+	return err
+}
+
+const deleteReadinessResultByKey = `-- name: DeleteReadinessResultByKey :exec
+DELETE FROM readiness_results WHERE key_hash = ?
+`
+
+func (q *Queries) DeleteReadinessResultByKey(ctx context.Context, keyHash string) error {
+	_, err := q.db.ExecContext(ctx, deleteReadinessResultByKey, keyHash)
+	return err
+}
+
 const deleteSession = `-- name: DeleteSession :exec
 DELETE FROM sessions WHERE id = ?
 `
@@ -298,6 +359,22 @@ func (q *Queries) GetPublishedPostBySlug(ctx context.Context, slug string) (Post
 		&i.UpdatedAt,
 		&i.ScheduledAt,
 	)
+	return i, err
+}
+
+const getReadinessResultByKey = `-- name: GetReadinessResultByKey :one
+SELECT id, lang FROM readiness_results WHERE key_hash = ?
+`
+
+type GetReadinessResultByKeyRow struct {
+	ID   int64
+	Lang string
+}
+
+func (q *Queries) GetReadinessResultByKey(ctx context.Context, keyHash string) (GetReadinessResultByKeyRow, error) {
+	row := q.db.QueryRowContext(ctx, getReadinessResultByKey, keyHash)
+	var i GetReadinessResultByKeyRow
+	err := row.Scan(&i.ID, &i.Lang)
 	return i, err
 }
 
@@ -429,6 +506,21 @@ func (q *Queries) InsertPostTranslation(ctx context.Context, arg InsertPostTrans
 		arg.Summary,
 		arg.BodyMarkdown,
 	)
+	return err
+}
+
+const insertReadinessRating = `-- name: InsertReadinessRating :exec
+INSERT INTO readiness_result_ratings (result_id, dimension, level) VALUES (?, ?, ?)
+`
+
+type InsertReadinessRatingParams struct {
+	ResultID  int64
+	Dimension string
+	Level     int64
+}
+
+func (q *Queries) InsertReadinessRating(ctx context.Context, arg InsertReadinessRatingParams) error {
+	_, err := q.db.ExecContext(ctx, insertReadinessRating, arg.ResultID, arg.Dimension, arg.Level)
 	return err
 }
 
@@ -585,6 +677,33 @@ func (q *Queries) ListMediaTranslations(ctx context.Context, mediaIds []int64) (
 	for rows.Next() {
 		var i MediaTranslation
 		if err := rows.Scan(&i.MediaID, &i.Lang, &i.AltText); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPageViews = `-- name: ListPageViews :many
+SELECT day, views FROM page_views WHERE day >= ? ORDER BY day DESC
+`
+
+func (q *Queries) ListPageViews(ctx context.Context, day string) ([]PageView, error) {
+	rows, err := q.db.QueryContext(ctx, listPageViews, day)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PageView{}
+	for rows.Next() {
+		var i PageView
+		if err := rows.Scan(&i.Day, &i.Views); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -793,6 +912,87 @@ func (q *Queries) ListPublishedPostsByTopic(ctx context.Context, topicID int64) 
 			&i.UpdatedAt,
 			&i.ScheduledAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReadinessRatings = `-- name: ListReadinessRatings :many
+SELECT result_id, dimension, level FROM readiness_result_ratings
+WHERE result_id IN (/*SLICE:result_ids*/?)
+ORDER BY result_id, dimension
+`
+
+func (q *Queries) ListReadinessRatings(ctx context.Context, resultIds []int64) ([]ReadinessResultRating, error) {
+	query := listReadinessRatings
+	var queryParams []interface{}
+	if len(resultIds) > 0 {
+		for _, v := range resultIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:result_ids*/?", strings.Repeat(",?", len(resultIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:result_ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReadinessResultRating{}
+	for rows.Next() {
+		var i ReadinessResultRating
+		if err := rows.Scan(&i.ResultID, &i.Dimension, &i.Level); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReadinessResults = `-- name: ListReadinessResults :many
+SELECT id, lang, submitted_at FROM readiness_results
+WHERE submitted_at >= ?1
+ORDER BY submitted_at DESC, id DESC
+LIMIT ?3 OFFSET ?2
+`
+
+type ListReadinessResultsParams struct {
+	Since    string
+	Skip     int64
+	PageSize int64
+}
+
+type ListReadinessResultsRow struct {
+	ID          int64
+	Lang        string
+	SubmittedAt string
+}
+
+func (q *Queries) ListReadinessResults(ctx context.Context, arg ListReadinessResultsParams) ([]ListReadinessResultsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listReadinessResults, arg.Since, arg.Skip, arg.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListReadinessResultsRow{}
+	for rows.Next() {
+		var i ListReadinessResultsRow
+		if err := rows.Scan(&i.ID, &i.Lang, &i.SubmittedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1096,4 +1296,19 @@ func (q *Queries) UpdatePost(ctx context.Context, arg UpdatePostParams) (int64, 
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const updateReadinessResult = `-- name: UpdateReadinessResult :exec
+UPDATE readiness_results SET lang = ?, submitted_at = ? WHERE id = ?
+`
+
+type UpdateReadinessResultParams struct {
+	Lang        string
+	SubmittedAt string
+	ID          int64
+}
+
+func (q *Queries) UpdateReadinessResult(ctx context.Context, arg UpdateReadinessResultParams) error {
+	_, err := q.db.ExecContext(ctx, updateReadinessResult, arg.Lang, arg.SubmittedAt, arg.ID)
+	return err
 }

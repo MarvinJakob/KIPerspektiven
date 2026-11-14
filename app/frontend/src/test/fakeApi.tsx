@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import { createMemoryRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { vi } from 'vitest';
-import type { AuditDimension, AuditOverview, AuditQuestion, Post, PostSummary, Topic, TopicDetail } from '../api/client';
+import type { AuditDimension, AuditOverview, AuditQuestion, Post, PostSummary, ReadinessResultInput, Topic, TopicDetail } from '../api/client';
 import { Providers, createQueryClient, routes } from '../App';
 
 type L = 'de' | 'en';
@@ -143,12 +143,34 @@ function auditOverview(): AuditOverview {
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+/** Aufruf von /api/readiness-results (Ticket #130) */
+export interface ReadinessCall {
+  method: string;
+  path: string;
+  body?: ReadinessResultInput;
+}
+
+/** Alle Aufrufe zum Speichern und Löschen von Ergebnissen seit dem letzten installFakeApi. */
+export const readinessCalls: ReadinessCall[] = [];
+let readinessFails = false;
+/** Lässt Speichern und Löschen von Ergebnissen mit 500 scheitern. */
+export const failReadiness = (fail = true) => {
+  readinessFails = fail;
+};
+
 /** Ersetzt fetch durch eine kleine Nachbildung der öffentlichen API. */
 export function installFakeApi(posts: FakePost[] = POSTS) {
+  readinessCalls.length = 0;
+  readinessFails = false;
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     const lang = (url.searchParams.get('lang') ?? 'de') as L;
     const parts = url.pathname.split('/').filter(Boolean); // api, posts|topics, slug?
+    if (parts[1] === 'readiness-results' && input instanceof Request) {
+      const body = input.method === 'POST' ? (JSON.parse(await input.text()) as ReadinessResultInput) : undefined;
+      readinessCalls.push({ method: input.method, path: url.pathname, body });
+      return readinessFails ? json(500, { message: 'Interner Fehler.' }) : new Response(null, { status: 204 });
+    }
     if (parts[1] === 'topics' && parts.length === 2) {
       return json(200, { items: Object.keys(topicData).map((s) => topic(s, lang, posts)) });
     }

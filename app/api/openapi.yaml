@@ -118,7 +118,8 @@ paths:
       description: |
         Inhalte eines Schritts der Selbsteinschätzung (Anforderung 9, Ticket #113). Für unbekannte und
         fachlich nicht freigegebene Dimensionen antwortet das Backend mit `404`. Die gewählten
-        Reifegrade bleiben im Browser; sie werden nicht an das Backend gesendet.
+        Reifegrade bleiben im Browser. Nur mit Einwilligung sendet das Frontend das vollständige Ergebnis
+        an `POST /api/readiness-results` (Ticket #130).
       parameters:
         - $ref: '#/components/parameters/Slug'
         - $ref: '#/components/parameters/Lang'
@@ -133,6 +134,54 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/readiness-results:
+    post:
+      operationId: saveReadinessResult
+      summary: Ergebnis der Selbsteinschätzung anonym speichern oder aktualisieren
+      description: |
+        Ticket #130. Das Frontend sendet das Ergebnis nur, wenn Nutzer der anonymen Speicherung vorher
+        zugestimmt haben. Gespeichert werden nur Reifegrad je Dimension, Sprache und Zeitpunkt.
+        `key` ist eine zufällige Kennung, die nur im Arbeitsspeicher des Browserfensters liegt. Mit derselben
+        Kennung aktualisiert das Backend das bestehende Ergebnis, statt ein weiteres anzulegen; ein
+        unverändertes Ergebnis ändert nichts. Die Kennung steht bewusst im Anfragetext und nicht in der URL,
+        damit sie nicht im Zugriffsprotokoll erscheint. Anfragen von fremder Herkunft lehnt das Backend
+        mit `403` ab, zu große Anfragetexte mit `413`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadinessResultInput'
+      responses:
+        '204':
+          description: Gespeichert, aktualisiert oder unverändert
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/readiness-results/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        description: Kennung aus `ReadinessResultInput`
+        schema:
+          type: string
+    delete:
+      operationId: deleteReadinessResult
+      summary: Gespeichertes Ergebnis löschen, wenn Nutzer ihre Einwilligung zurücknehmen
+      description: |
+        Antwortet auch dann mit `204`, wenn es zu der Kennung kein Ergebnis gibt. Nach dem Schließen des
+        Browserfensters ist die Kennung verloren; das Ergebnis lässt sich dann niemandem mehr zuordnen.
+      responses:
+        '204':
+          description: Gelöscht oder nicht vorhanden
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
   /api/health:
     get:
       operationId: getHealth
@@ -586,6 +635,62 @@ paths:
           $ref: '#/components/responses/NotFound'
         '422':
           $ref: '#/components/responses/Unprocessable'
+  /api/admin/statistics/page-views:
+    get:
+      operationId: adminGetPageViews
+      summary: Seitenaufrufe je Tag im gewählten Zeitraum
+      description: |
+        Ticket #130. Der Server zählt jede ausgelieferte öffentliche Seite (Direktaufruf, Link, Neuladen)
+        als Tageszähler. Seitenwechsel innerhalb der Anwendung lösen keinen Abruf aus und zählen nicht.
+        Besucher werden nicht unterschieden. Für begrenzte Zeiträume enthält `days` jeden Tag, auch ohne
+        Aufrufe; für `all` nur Tage mit Aufrufen. Neueste Tage zuerst.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Period'
+      responses:
+        '200':
+          description: Summe und Aufrufe je Tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageViewStats'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/statistics/readiness-results:
+    get:
+      operationId: adminListReadinessResults
+      summary: Gespeicherte Ergebnisse der Selbsteinschätzung, neueste zuerst
+      description: Ticket #130. Je Seite höchstens `pageSize` Ergebnisse.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - name: page
+          in: query
+          required: false
+          description: Seite ab 1
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        '200':
+          description: Anzahl im Zeitraum und eine Seite der Ergebnisse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResultPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 components:
   securitySchemes:
     sessionCookie:
@@ -617,6 +722,13 @@ components:
       required: true
       schema:
         type: string
+    Period:
+      name: period
+      in: query
+      required: false
+      description: Zeitraum der Statistik, ohne Angabe die letzten 30 Tage
+      schema:
+        $ref: '#/components/schemas/StatisticsPeriod'
   responses:
     BadRequest:
       description: Ungültige Anfrage
@@ -1129,3 +1241,115 @@ components:
             aus den Prüffragen und keinen Reifegrad 0 (Ticket #113).
           items:
             $ref: '#/components/schemas/AuditLevel'
+    StatisticsPeriod:
+      type: string
+      description: Letzte 7 Tage, letzte 30 Tage (jeweils einschließlich heute, Kalendertage in Europe/Berlin) oder gesamt
+      enum: [7d, 30d, all]
+      default: 30d
+    ReadinessRating:
+      type: object
+      required: [dimension, level]
+      properties:
+        dimension:
+          type: string
+          description: Slug einer freigegebenen Dimension
+        level:
+          type: integer
+          minimum: 1
+          maximum: 3
+    ReadinessResultInput:
+      type: object
+      description: |
+        Vollständiges Ergebnis: jede freigegebene Dimension genau einmal mit Reifegrad 1 bis 3.
+        Unvollständige oder ungültige Ergebnisse lehnt das Backend mit `422` ab.
+      required: [key, lang, ratings]
+      properties:
+        key:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+          description: Zufällige Kennung (128 Bit, hexadezimal) aus dem Arbeitsspeicher des Browserfensters
+        lang:
+          $ref: '#/components/schemas/Lang'
+        ratings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReadinessRating'
+    PageViewDay:
+      type: object
+      required: [date, views]
+      properties:
+        date:
+          type: string
+          description: Kalendertag in Europe/Berlin (JJJJ-MM-TT)
+        views:
+          type: integer
+          format: int64
+    PageViewStats:
+      type: object
+      required: [period, total, days]
+      properties:
+        period:
+          $ref: '#/components/schemas/StatisticsPeriod'
+        total:
+          type: integer
+          format: int64
+          description: Seitenaufrufe im Zeitraum
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/PageViewDay'
+    ReadinessDimensionName:
+      type: object
+      required: [slug, title]
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+    ReadinessResult:
+      type: object
+      required: [id, lang, submittedAt, ratings]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Laufende Nummer in der Datenbank, nicht die Kennung aus dem Browser
+        lang:
+          $ref: '#/components/schemas/Lang'
+        submittedAt:
+          type: string
+          format: date-time
+          description: Zeitpunkt der letzten Speicherung
+        ratings:
+          type: array
+          description: Reifegrade in Ablaufreihenfolge der Dimensionen
+          items:
+            $ref: '#/components/schemas/ReadinessRating'
+    ReadinessResultPage:
+      type: object
+      required: [period, total, page, pageSize, dimensions, levels, items]
+      properties:
+        period:
+          $ref: '#/components/schemas/StatisticsPeriod'
+        total:
+          type: integer
+          format: int64
+          description: Gespeicherte Ergebnisse im Zeitraum
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        dimensions:
+          type: array
+          description: Freigegebene Dimensionen mit deutschem Titel, in Ablaufreihenfolge
+          items:
+            $ref: '#/components/schemas/ReadinessDimensionName'
+        levels:
+          type: array
+          description: Namen der Reifegrade, z. B. Strukturiert
+          items:
+            $ref: '#/components/schemas/AuditLevelInfo'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReadinessResult'

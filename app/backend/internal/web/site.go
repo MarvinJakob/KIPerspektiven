@@ -3,6 +3,7 @@
 package web
 
 import (
+	"context"
 	"embed"
 	"errors"
 	"io/fs"
@@ -21,10 +22,16 @@ import (
 //go:embed all:dist
 var dist embed.FS
 
+// PageViewCounter zählt ausgelieferte öffentliche Seiten (Ticket #130).
+type PageViewCounter interface {
+	CountPageView(ctx context.Context) error
+}
+
 // Site liefert die öffentliche Webseite aus.
 type Site struct {
 	svc     *service.Public
 	audit   *audit.Catalog
+	views   PageViewCounter // optional
 	baseURL string
 	files   fs.FS
 	index   []byte
@@ -32,7 +39,8 @@ type Site struct {
 }
 
 // New erzeugt die Auslieferung. files ist optional (Tests); ohne Angabe gilt der eingebettete Build.
-func New(svc *service.Public, catalog *audit.Catalog, baseURL string, files fs.FS, log *slog.Logger) *Site {
+// views ist optional; ohne Zähler werden keine Seitenaufrufe gezählt.
+func New(svc *service.Public, catalog *audit.Catalog, views PageViewCounter, baseURL string, files fs.FS, log *slog.Logger) *Site {
 	if files == nil {
 		files, _ = fs.Sub(dist, "dist/public")
 	}
@@ -41,7 +49,7 @@ func New(svc *service.Public, catalog *audit.Catalog, baseURL string, files fs.F
 		log.Warn("frontend-build fehlt, es wird eine Platzhalterseite ausgeliefert", "fehler", err)
 		index = []byte(fallbackIndex)
 	}
-	return &Site{svc: svc, audit: catalog, baseURL: strings.TrimRight(baseURL, "/"), files: files, index: index, log: log}
+	return &Site{svc: svc, audit: catalog, views: views, baseURL: strings.TrimRight(baseURL, "/"), files: files, index: index, log: log}
 }
 
 const fallbackIndex = `<!doctype html><html lang="de"><head><meta charset="utf-8"><!--app-head--><title>KI Perspektiven</title><!--/app-head--></head>
@@ -98,6 +106,31 @@ func (s *Site) page(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodHead {
 		_, _ = w.Write(body)
 	}
+	s.countView(r, status)
+}
+
+// countView zählt eine ausgelieferte öffentliche Seite (Ticket #130, ADR 0010). Gezählt wird nur der Abruf,
+// den der Browser ohnehin schickt: kein Skript, kein Cookie, keine Kennung, nur der Tageszähler steigt.
+// Seitenwechsel innerhalb der Anwendung erreichen den Server nicht und zählen deshalb nicht. Nicht gezählt
+// werden HEAD-Anfragen, Fehlerseiten und Vorab-Abrufe (Prefetch), die niemand sieht. Scheitert das Zählen,
+// bleibt die Seite unberührt.
+func (s *Site) countView(r *http.Request, status int) {
+	if s.views == nil || r.Method != http.MethodGet || status != http.StatusOK || isPrefetch(r) {
+		return
+	}
+	if err := s.views.CountPageView(r.Context()); err != nil {
+		s.log.Error("seitenaufruf zählen", "fehler", err)
+	}
+}
+
+// isPrefetch erkennt Vorab-Abrufe des Browsers (Sec-Purpose bzw. älter Purpose oder X-Moz).
+func isPrefetch(r *http.Request) bool {
+	for _, h := range []string{"Sec-Purpose", "Purpose", "X-Moz"} {
+		if strings.Contains(strings.ToLower(r.Header.Get(h)), "prefetch") {
+			return true
+		}
+	}
+	return false
 }
 
 // resolve ordnet einen Pfad einer Ansicht zu (Routen aus ARCHITECTURE.md, Abschnitt 3).
