@@ -30,15 +30,16 @@ import (
 //
 // Der Test braucht viel Speicher und Rechenzeit und läuft deshalb nur auf Anforderung, nie im Produktivsystem:
 //
-//	LOGIN_LASTTEST=1 go test -run TestLoginLoad -v -cpu 1 ./internal/http/
+//	LOGIN_LASTTEST=1 go test -run TestLoginLoad -v ./internal/http/
 //
 // LOGIN_LASTTEST_STUFEN legt die Parallelität je Stufe fest (Standard 10,20,40,80), LOGIN_LASTTEST_DAUER die
 // Dauer je Stufe (Standard 3s). Überschreitet der Speicher LOGIN_LASTTEST_BUDGET_MIB (Standard 1024), entfallen
 // die weiteren Stufen.
 //
-// Mit LOGIN_LASTTEST_URL richtet sich der Test gegen einen separat gestarteten lokalen Server (etwa mit
-// GOMAXPROCS=1, DEV_SEED=true und TRUST_PROXY=true wie ein Server mit einem Kern). Speicher und Prozessorzeit
-// misst dann das aufrufende Skript am Serverprozess; der Test meldet nur Antworten und Healthcheck.
+// Im Testprozess teilt sich der Server die Prozessoren mit dem Lastgenerator. Für eine Messung wie auf einem
+// Server mit einem Kern startet scripts/login-lasttest.ps1 den Server als eigenen Prozess (GOMAXPROCS=1,
+// DEV_SEED=true, TRUST_PROXY=true) und setzt LOGIN_LASTTEST_URL. Speicher und Prozessorzeit misst dann das
+// Skript am Serverprozess; der Test meldet nur Antworten und Healthcheck.
 func TestLoginLoad(t *testing.T) {
 	if os.Getenv("LOGIN_LASTTEST") != "1" {
 		t.Skip("Lasttest nur mit LOGIN_LASTTEST=1 (docs/login-begrenzung.md)")

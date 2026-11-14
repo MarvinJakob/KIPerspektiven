@@ -65,6 +65,7 @@ Noch nicht enthalten: eine eigene Medienverwaltung (`/redaktion/medien`). Titelb
 | [114 KI Readiness: Gesamtauswertung als Netzdiagramm](https://github.com/MarvinJakob/aiboard/issues/114) | Nach vollständiger Bewertung zeigt `/{lang}/themen/ai-audit/auswertung` die Selbsteinschätzung als Netzdiagramm (`components/ReadinessRadar.tsx`, Geometrie in `lib/radar.ts`). Es hat eine Achse je Dimension in Ablaufreihenfolge, beschriftete Ringe für 1 Einfach, 2 Strukturiert und 3 Intelligent, einen Tooltip und eine Beschreibung aller Werte für Screenreader. Unter 520 px tragen die Achsen nur ihre Nummer. Darunter folgen die Tabelle mit „Ändern“ je Dimension und die Einordnung „Nicht überall auf der höchsten Stufe“ aus #111 (`classification` in `GET /api/audit`). Es gibt keine Gesamtnote. Prüffälle und Screenshots: [docs/audit-abnahme.md](docs/audit-abnahme.md#gesamtauswertung-als-netzdiagramm-ticket-114), [docs/screenshots/114](docs/screenshots/114/). |
 | [110 KI Readiness: Navigation umbenennen](https://github.com/MarvinJakob/aiboard/issues/110) | Der Navigationseintrag aus #21 heißt „KI Readiness“ (englisch „AI Readiness“, `nav.audit` in `frontend/src/i18n/`). Der Startseitenlink heißt wie in der Vorlage `content/Landingpage_v03.md` exakt „KI Reifegrad einschätzen“. Beide führen weiter zur Übersicht unter `/{lang}/themen/ai-audit`; dort sowie auf den Dimensionsseiten mit Selbsteinschätzung und Auswertung ist der Eintrag aktiv. URLs und Dimensionslinks bleiben unverändert. |
 | [130 Statistik in der Redaktion](https://github.com/MarvinJakob/aiboard/issues/130) | Unter `/redaktion/statistik` (Navigation „Statistik“, Rollen `editor` und `admin`) zeigt die Redaktion für „Letzte 7 Tage“, „Letzte 30 Tage“ (Vorauswahl) und „Gesamt“ die Seitenaufrufe als Summe und je Tag sowie die gespeicherten Ergebnisse der Selbsteinschätzung, neueste zuerst und 50 je Seite. Seitenaufrufe zählt das Backend beim Ausliefern öffentlicher Seiten als Tageszähler (`page_views`, Europe/Berlin); das Frontend meldet nichts, Seitenwechsel innerhalb der Anwendung zählen daher nicht. Ergebnisse speichert es nur mit Einwilligung: Kontrollkästchen „Ergebnis anonym für die Statistik speichern“ im letzten Schritt und auf der Auswertung (`components/ShareConsent.tsx`, Zustand in `lib/assessment.tsx`). Begründung nach § 25 TDDDG in [ADR 0010](docs/adr/0010-statistik-ohne-kennung-und-einwilligung.md); Code in `backend/internal/service/statistics.go`, `backend/internal/http/statistics.go` und `frontend-redaktion/src/pages/Statistics.tsx`. |
+| [138 Parallele Login-Versuche begrenzen](https://github.com/MarvinJakob/aiboard/issues/138) | Laufende Anmeldeversuche einer IP-Adresse zählen bei der Zulassung mit (`auth.Limiter.Reserve`). So erreichen auch gleichzeitige Anfragen höchstens zehn Passwortprüfungen, bevor die Sperre für 15 Minuten greift. Über alle IP-Adressen läuft höchstens eine Argon2-Prüfung gleichzeitig (Produktionsserver mit 1 vCPU), acht Anfragen warten höchstens 3 s (`auth.Throttle`). Alle weiteren erhalten vor Argon2 `503` mit `Retry-After: 5`; das zählt nicht als Fehlversuch. Das Redaktionsfrontend erklärt `503`. Regeln für Erfolg, Fehler und Abbruch, Begründung der Grenzwerte und Lasttest: [docs/login-begrenzung.md](docs/login-begrenzung.md). |
 
 Die Down-Migration von `00010` stellt Prozessautomatisierung mit der ursprünglichen ID `4` wieder her, damit auch ein weiterer Rollback über Migration `00005` und ein anschließendes Up funktionieren (Bug #105). Ist ID `4` inzwischen durch ein anderes Thema belegt, bricht das Rollback ab, ohne dieses Thema zu überschreiben. Frühere Beitragszuordnungen werden nicht wiederhergestellt.
 
@@ -90,7 +91,7 @@ frontend-redaktion/     Redaktionsfrontend unter /redaktion, eigene Vite-Anwendu
   src/api/schema.d.ts   Aus openapi.yaml erzeugt (nicht von Hand ändern)
 backend/                Go-Modul
   cmd/server/           Einstiegspunkt: server, server healthcheck, server backup, server user create
-  internal/auth/        Passwort-Hashing (Argon2id), Sitzungs-Tokens, Begrenzung der Anmeldeversuche
+  internal/auth/        Passwort-Hashing (Argon2id), Sitzungs-Tokens, Begrenzung der Anmeldeversuche und Passwortprüfungen
   internal/api/         Aus openapi.yaml erzeugt (nicht von Hand ändern)
   internal/http/        Handler, Routing, Middleware
   internal/audit/       Inhalte des KI-Audits (content.json, eingebettet) und ihre Prüfung
@@ -187,6 +188,14 @@ cd frontend-redaktion && npm run typecheck && npm test
 ```
 
 Mit `make` stehen dieselben Schritte als `make generate`, `make test`, `make build` und `make run` bereit.
+
+Parallelitätstests der Anmeldung mit Race-Detector (Ticket #138; braucht CGO und einen C-Compiler, die CI führt sie bei jedem Pull Request aus):
+
+```bash
+cd backend && CGO_ENABLED=1 go test -race -count=1 -run 'Limiter|Throttle|TestParallelLogins|TestPasswordChecks|TestLoginOutcomes|TestLoginRateLimit' ./internal/auth ./internal/http
+```
+
+Der lokale Lasttest der Anmeldung läuft nur auf Anforderung und nie gegen das Produktivsystem. Im Ordner `backend` misst `./scripts/login-lasttest.ps1` (Windows PowerShell) einen eigenen Serverprozess mit einem Kern; plattformunabhängig läuft `LOGIN_LASTTEST=1 go test -run TestLoginLoad -v ./internal/http/` im Testprozess. Ablauf und Ergebnisse: [docs/login-begrenzung.md](docs/login-begrenzung.md).
 
 Hinweise:
 
