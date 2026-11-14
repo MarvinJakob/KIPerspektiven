@@ -24,6 +24,7 @@ type Querier interface {
 	// Konten und Sitzungen der Redaktion (Anforderungen 6 und 11)
 	// ---------------------------------------------------------------------------
 	CreateUser(ctx context.Context, arg CreateUserParams) (int64, error)
+	DeleteConsultationRequest(ctx context.Context, id int64) (int64, error)
 	DeleteExpiredSessions(ctx context.Context, expiresAt string) (int64, error)
 	DeleteMedia(ctx context.Context, id int64) error
 	DeleteMediaTranslations(ctx context.Context, mediaID int64) error
@@ -52,6 +53,7 @@ type Querier interface {
 	// Redaktion: Beitraege verwalten (Anforderung 5)
 	// ---------------------------------------------------------------------------
 	ListAllPosts(ctx context.Context) ([]Post, error)
+	ListConsultationRequests(ctx context.Context) ([]ConsultationRequest, error)
 	ListDuePosts(ctx context.Context, scheduledAt sql.NullString) ([]ListDuePostsRow, error)
 	ListMedia(ctx context.Context, mediaIds []int64) ([]ListMediaRow, error)
 	ListMediaTranslations(ctx context.Context, mediaIds []int64) ([]MediaTranslation, error)
@@ -81,6 +83,10 @@ type Querier interface {
 	UnschedulePost(ctx context.Context, arg UnschedulePostParams) (int64, error)
 	UpdatePost(ctx context.Context, arg UpdatePostParams) (int64, error)
 	UpdateReadinessResult(ctx context.Context, arg UpdateReadinessResultParams) error
+	// ---------------------------------------------------------------------------
+	// Anfragen fuer ein Beratungsgespraech (Ticket #136). Dieselbe Adresse ergibt keinen zweiten Eintrag.
+	// ---------------------------------------------------------------------------
+	UpsertConsultationRequest(ctx context.Context, arg UpsertConsultationRequestParams) error
 }
 
 var _ Querier = (*Queries)(nil)

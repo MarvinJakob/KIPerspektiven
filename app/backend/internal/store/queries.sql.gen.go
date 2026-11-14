@@ -187,6 +187,18 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (int64, 
 	return result.LastInsertId()
 }
 
+const deleteConsultationRequest = `-- name: DeleteConsultationRequest :execrows
+DELETE FROM consultation_requests WHERE id = ?
+`
+
+func (q *Queries) DeleteConsultationRequest(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteConsultationRequest, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteExpiredSessions = `-- name: DeleteExpiredSessions :execrows
 DELETE FROM sessions WHERE expires_at <= ?
 `
@@ -550,6 +562,38 @@ func (q *Queries) ListAllPosts(ctx context.Context) ([]Post, error) {
 			&i.CoverMediaID,
 			&i.UpdatedAt,
 			&i.ScheduledAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listConsultationRequests = `-- name: ListConsultationRequests :many
+SELECT id, email, lang, requested_at FROM consultation_requests ORDER BY requested_at DESC, id DESC
+`
+
+func (q *Queries) ListConsultationRequests(ctx context.Context) ([]ConsultationRequest, error) {
+	rows, err := q.db.QueryContext(ctx, listConsultationRequests)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ConsultationRequest{}
+	for rows.Next() {
+		var i ConsultationRequest
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.Lang,
+			&i.RequestedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1310,5 +1354,25 @@ type UpdateReadinessResultParams struct {
 
 func (q *Queries) UpdateReadinessResult(ctx context.Context, arg UpdateReadinessResultParams) error {
 	_, err := q.db.ExecContext(ctx, updateReadinessResult, arg.Lang, arg.SubmittedAt, arg.ID)
+	return err
+}
+
+const upsertConsultationRequest = `-- name: UpsertConsultationRequest :exec
+
+INSERT INTO consultation_requests (email, lang, requested_at) VALUES (?, ?, ?)
+ON CONFLICT (email) DO UPDATE SET lang = excluded.lang, requested_at = excluded.requested_at
+`
+
+type UpsertConsultationRequestParams struct {
+	Email       string
+	Lang        string
+	RequestedAt string
+}
+
+// ---------------------------------------------------------------------------
+// Anfragen fuer ein Beratungsgespraech (Ticket #136). Dieselbe Adresse ergibt keinen zweiten Eintrag.
+// ---------------------------------------------------------------------------
+func (q *Queries) UpsertConsultationRequest(ctx context.Context, arg UpsertConsultationRequestParams) error {
+	_, err := q.db.ExecContext(ctx, upsertConsultationRequest, arg.Email, arg.Lang, arg.RequestedAt)
 	return err
 }

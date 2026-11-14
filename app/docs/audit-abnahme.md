@@ -62,9 +62,25 @@ Die Auswertung unter `/{lang}/themen/ai-audit/auswertung` erscheint nur, wenn al
 
 Screenshots: [screenshots/114](screenshots/114/), jeweils 320 und 1280 px, hell und dunkel, ohne horizontalen Seitenscroll.
 
+## Beratungsgespräch anfragen (Ticket #136)
+
+Unter der Einordnung steht auf der vollständigen Auswertung die hervorgehobene Fläche „Kostenloses Beratungsgespräch anfragen“ (`components/ConsultationOffer.tsx`). Einziges Feld ist die E-Mail-Adresse; Konto, Name oder weitere Angaben gibt es nicht. Übertragen werden erst beim Absenden die Adresse und die Sprache der Seite, nicht das Ergebnis. Ablage und Übermittlungsweg: [ADR 0011](adr/0011-beratungsanfragen-in-der-redaktion.md).
+
+| Fall | Erwartung |
+|---|---|
+| Absenden ohne Eingabe oder nur mit Leerzeichen | kein Aufruf; am Feld „Bitte geben Sie Ihre E-Mail-Adresse ein.“, Fokus im Feld |
+| Formal ungültige Adresse, z. B. `kundin@beispiel` | kein Aufruf; am Feld „Bitte geben Sie eine gültige E-Mail-Adresse ein, zum Beispiel name@beispiel.de.“ |
+| Backend lehnt die Adresse ab (`422`), z. B. `kun..din@beispiel.de` | derselbe Hinweis am Feld |
+| Gültige Adresse | `POST /api/consultation-requests`; erst nach `204` erscheint „Vielen Dank für Ihre Anfrage“ mit dem Hinweis, dass die Terminabstimmung per E-Mail erfolgt |
+| Serverfehler oder keine Verbindung | „Ihre Anfrage konnte nicht gesendet werden. Bitte versuchen Sie es erneut.“; die Eingabe bleibt, erneutes Senden ist möglich |
+| Mehr als fünf angenommene Anfragen je IP-Adresse und Stunde (`429`) | Hinweis, es in einer Stunde erneut zu versuchen |
+| Kein Absenden | keine Anfrage; Diagramm, Tabelle und Einordnung bleiben vollständig nutzbar |
+
+**Eingang nachweisen:** Mit `DEV_SEED=true` die Selbsteinschätzung durchlaufen, auf der Auswertung eine Adresse absenden, dann unter `/redaktion/anmelden` mit einem Redaktionskonto anmelden und „Beratungsanfragen“ öffnen. Die Anfrage steht dort mit Eingang, Adresse (als `mailto:`-Link) und Sprache. „Löschen“ entfernt sie nach Bestätigung.
+
 ## Automatische Prüfung
 
-`frontend/src/app.test.tsx` (Abschnitt „Ticket #113“) prüft Einstieg, Schrittliste, fehlende Vorauswahl, Prüffragen ohne Antwortfelder, gesperrtes „Weiter“ samt Hinweis, Zurück und Rücksprung mit erhaltenen Bewertungen, die gesperrte und die vollständige Auswertung sowie die Tastaturbedienung. `lib/audit.test.ts` prüft die Fortschrittsberechnung. Für #114 prüfen `lib/radar.test.ts` die Diagrammwerte („alle Einfach“, „alle Intelligent“, gemischt, Achsenreihenfolge, kein Reifegrad 0) und der Abschnitt „Ticket #114“ in `app.test.tsx` Achsen, Skala, Beschreibung, Tabelle, Einordnung, Korrektur und das fehlende Diagramm bei unvollständiger Bewertung. Die API-Tests stellen sicher, dass Reifegrad 0 und „conditional“ nicht mehr ausgeliefert werden. Ausführen mit `cd frontend && npm test` und `cd backend && go test ./...`.
+`frontend/src/app.test.tsx` (Abschnitt „Ticket #113“) prüft Einstieg, Schrittliste, fehlende Vorauswahl, Prüffragen ohne Antwortfelder, gesperrtes „Weiter“ samt Hinweis, Zurück und Rücksprung mit erhaltenen Bewertungen, die gesperrte und die vollständige Auswertung sowie die Tastaturbedienung. `lib/audit.test.ts` prüft die Fortschrittsberechnung. Für #114 prüfen `lib/radar.test.ts` die Diagrammwerte („alle Einfach“, „alle Intelligent“, gemischt, Achsenreihenfolge, kein Reifegrad 0) und der Abschnitt „Ticket #114“ in `app.test.tsx` Achsen, Skala, Beschreibung, Tabelle, Einordnung, Korrektur und das fehlende Diagramm bei unvollständiger Bewertung. Die API-Tests stellen sicher, dass Reifegrad 0 und „conditional“ nicht mehr ausgeliefert werden. Für #136 prüfen `frontend/src/consultation.test.tsx` die Fälle der Tabelle oben, `frontend-redaktion/src/consultations.test.tsx` Liste und Löschen in der Redaktion und `backend/internal/http/consultations_test.go` Speichern, Normalisieren, Prüfung, Herkunft, Größe, Begrenzung je IP-Adresse und Zugriffsschutz. Ausführen mit `cd frontend && npm test` und `cd backend && go test ./...`.
 
 ## Abgleich für den Review-Rücklauf von Ticket 10
 

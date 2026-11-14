@@ -8,6 +8,13 @@ import (
 	"database/sql"
 )
 
+type ConsultationRequest struct {
+	ID          int64
+	Email       string
+	Lang        string
+	RequestedAt string
+}
+
 type MediaTranslation struct {
 	MediaID int64
 	Lang    string

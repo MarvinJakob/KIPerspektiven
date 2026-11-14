@@ -3,6 +3,7 @@ import Markdown from 'react-markdown';
 import { Link } from 'react-router';
 import { useAudit, useTopics } from '../api/client';
 import { AssessmentSteps } from '../components/AssessmentSteps';
+import { ConsultationOffer } from '../components/ConsultationOffer';
 import { Icon } from '../components/Icon';
 import { ReadinessRadar } from '../components/ReadinessRadar';
 import { ShareConsent } from '../components/ShareConsent';
@@ -17,7 +18,7 @@ import { useHead, usePageFocus } from '../lib/page';
  * „Ändern“-Links und die fachliche Einordnung aus #111. Ein Ergebnis erscheint erst, wenn alle freigegebenen
  * Dimensionen bewertet sind; sonst nennt die Seite die offenen Dimensionen. Es gibt keine Gesamtnote.
  * Mit Einwilligung speichert sie das Ergebnis anonym (Ticket #130); scheitert das, bleibt die Auswertung
- * vollständig sichtbar.
+ * vollständig sichtbar. Am Ende steht das freiwillige Angebot eines kostenlosen Beratungsgesprächs (Ticket #136).
  */
 export function AuditResultPage() {
   const { lang, t } = useLang();
@@ -148,6 +149,7 @@ export function AuditResultPage() {
                   {o.classification}
                 </Markdown>
               </section>
+              <ConsultationOffer />
               <p className="actions">
                 <Link className="back-link" to={auditPath(lang)}>
                   <Icon name="chevLeft" /> {t('assess.toOverview')}

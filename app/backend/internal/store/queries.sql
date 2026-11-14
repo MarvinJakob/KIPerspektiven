@@ -242,3 +242,17 @@ LIMIT sqlc.arg(page_size) OFFSET sqlc.arg(skip);
 SELECT result_id, dimension, level FROM readiness_result_ratings
 WHERE result_id IN (sqlc.slice('result_ids'))
 ORDER BY result_id, dimension;
+
+-- ---------------------------------------------------------------------------
+-- Anfragen fuer ein Beratungsgespraech (Ticket #136). Dieselbe Adresse ergibt keinen zweiten Eintrag.
+-- ---------------------------------------------------------------------------
+
+-- name: UpsertConsultationRequest :exec
+INSERT INTO consultation_requests (email, lang, requested_at) VALUES (?, ?, ?)
+ON CONFLICT (email) DO UPDATE SET lang = excluded.lang, requested_at = excluded.requested_at;
+
+-- name: ListConsultationRequests :many
+SELECT id, email, lang, requested_at FROM consultation_requests ORDER BY requested_at DESC, id DESC;
+
+-- name: DeleteConsultationRequest :execrows
+DELETE FROM consultation_requests WHERE id = ?;

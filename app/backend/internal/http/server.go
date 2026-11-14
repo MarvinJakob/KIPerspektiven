@@ -22,7 +22,8 @@ type Config struct {
 	Audit         *audit.Catalog
 	Accounts      *service.Accounts
 	Editorial     *service.Editorial
-	Statistics    *service.Statistics // Seitenaufrufe und Ergebnisse der Selbsteinschätzung (Ticket #130)
+	Statistics    *service.Statistics    // Seitenaufrufe und Ergebnisse der Selbsteinschätzung (Ticket #130)
+	Consultations *service.Consultations // Anfragen für ein Beratungsgespräch (Ticket #136)
 	Site          *web.Site
 	EditorialSite *web.Editorial
 	MediaPath     string // optional: liefert /media/* lokal aus (in Produktion übernimmt das Caddy)
@@ -43,15 +44,17 @@ type Config struct {
 func New(cfg Config) http.Handler {
 	mux := http.NewServeMux()
 	registerAPI(mux, &apiServer{
-		svc:           cfg.Public,
-		audit:         cfg.Audit,
-		accounts:      cfg.Accounts,
-		editorial:     cfg.Editorial,
-		stats:         cfg.Statistics,
-		media:         cfg.Media,
-		limiter:       auth.NewLimiter(loginMaxFailures, loginWindow),
-		secureCookies: cfg.SecureCookies,
-		log:           cfg.Log,
+		svc:                 cfg.Public,
+		audit:               cfg.Audit,
+		accounts:            cfg.Accounts,
+		editorial:           cfg.Editorial,
+		stats:               cfg.Statistics,
+		consultations:       cfg.Consultations,
+		media:               cfg.Media,
+		limiter:             auth.NewLimiter(loginMaxFailures, loginWindow),
+		consultationLimiter: auth.NewLimiter(consultationMaxRequests, consultationWindow),
+		secureCookies:       cfg.SecureCookies,
+		log:                 cfg.Log,
 	}, cfg.Log)
 	if cfg.MediaPath != "" {
 		mux.Handle("GET /media/", mediaHandler(cfg.MediaPath))
@@ -70,16 +73,21 @@ func New(cfg Config) http.Handler {
 // samt Multipart-Rahmen und schützt JSON-Endpunkte vor überlangen Anfragen.
 const maxRequestBytes = media.MaxUploadBytes + 1<<20
 
-// maxPublicWriteBytes begrenzt öffentliche Schreibzugriffe ohne Anmeldung (Ticket #130). Ein vollständiges
-// Ergebnis der Selbsteinschätzung braucht weniger als 1 KiB.
+// maxPublicWriteBytes begrenzt öffentliche Schreibzugriffe ohne Anmeldung (Tickets #130, #136). Ein
+// vollständiges Ergebnis der Selbsteinschätzung braucht weniger als 1 KiB, eine Beratungsanfrage noch weniger.
 const maxPublicWriteBytes = 4 << 10
+
+// publicWrite meldet die Pfade der öffentlichen Schreibzugriffe ohne Anmeldung.
+func publicWrite(p string) bool {
+	return p == "/api/readiness-results" || strings.HasPrefix(p, "/api/readiness-results/") || p == "/api/consultation-requests"
+}
 
 // limitBody lässt höchstens maxRequestBytes aus dem Anfragetext lesen, bei öffentlichen Schreibzugriffen
 // höchstens maxPublicWriteBytes. Größere Anfragen scheitern beim Lesen (413).
 func limitBody(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limit := int64(maxRequestBytes)
-		if r.URL.Path == "/api/readiness-results" || strings.HasPrefix(r.URL.Path, "/api/readiness-results/") {
+		if publicWrite(r.URL.Path) {
 			limit = maxPublicWriteBytes
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, limit)
