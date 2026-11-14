@@ -129,7 +129,7 @@ describe('Ticket 124: Profilseite nach content/Persona.md', () => {
   ])('führt die Kontaktlinks in %s zu LinkedIn und zur Impressumsadresse', async (lang, locale, mail) => {
     renderApp(`/${lang}/profil`);
     const contact = await screen.findByRole('region', { name: lang === 'de' ? 'Kontakt' : 'Contact' });
-    expect(within(contact).getByRole('link', { name: 'LinkedIn' }))
+    expect(within(contact).getByRole('link', { name: /^LinkedIn/ }))
       .toHaveAttribute('href', `https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=${locale}`);
     expect(within(contact).getByRole('link', { name: mail })).toHaveAttribute('href', 'mailto:mail@marvinjakob.de');
   });
@@ -146,32 +146,44 @@ describe('Ticket 124: Profilseite nach content/Persona.md', () => {
     renderApp(`/${lang}/profil`);
     const article = await screen.findByRole('article');
     const { linkedinUrl } = profile[lang as 'de' | 'en'];
-    // LinkedIn erscheint zweimal: als Icon neben dem Namen (#123) und im Kontaktbereich laut Persona.md.
     expect(within(article).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
-      `/${lang}`, linkedinUrl, '#offers-title', linkedinUrl, 'mailto:mail@marvinjakob.de',
+      `/${lang}`, '#offers-title', linkedinUrl, 'mailto:mail@marvinjakob.de',
     ]);
     expect(article.querySelector('details')).toBeNull();
     expect(article).not.toHaveTextContent(/AWS|IT Service Owner|Product Owner|2020 – 2022/);
   });
 });
 
-describe('Ticket 123: LinkedIn-Icon neben dem Namen', () => {
+describe('Ticket 129: Aufgeräumter Profilkopf und LinkedIn in neuem Tab', () => {
   const linkedin = {
-    de: { name: 'Marvin Jakob auf LinkedIn', href: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=de-DE' },
-    en: { name: 'Marvin Jakob on LinkedIn', href: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=en-US' },
+    de: { name: 'LinkedIn (öffnet in neuem Tab)', href: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=de-DE' },
+    en: { name: 'LinkedIn (opens in new tab)', href: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=en-US' },
   } as const;
 
-  it.each(['de', 'en'] as const)('verlinkt in %s neben dem Namen auf das passende LinkedIn-Profil und ist per Tastatur erreichbar', async (lang) => {
+  it.each(['de', 'en'] as const)('zeigt in %s den Namen ohne Punkt und Icon und kündigt den neuen LinkedIn-Tab an', async (lang) => {
     const user = userEvent.setup();
     renderApp(`/${lang}/profil`);
     const name = await screen.findByRole('heading', { level: 1, name: 'Marvin Jakob' });
-    const link = screen.getByRole('link', { name: linkedin[lang].name });
+    expect(name.textContent).toBe('Marvin Jakob');
+    const hero = name.closest('header')!;
+    expect(within(hero).queryByRole('link', { name: /LinkedIn/ })).not.toBeInTheDocument();
+    expect(hero.querySelector('svg')).toBeNull();
+    const contact = screen.getByRole('region', { name: lang === 'de' ? 'Kontakt' : 'Contact' });
+    const link = within(contact).getByRole('link', { name: linkedin[lang].name });
     expect(link).toHaveAttribute('href', linkedin[lang].href);
-    expect(link.parentElement).toBe(name.parentElement);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(link).toHaveTextContent('LinkedIn');
     expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
     act(() => name.focus());
     await user.tab();
+    expect(document.activeElement).toHaveAttribute('href', '#offers-title');
+    await user.tab();
     expect(link).toHaveFocus();
+    const article = screen.getByRole('article');
+    for (const other of within(article).getAllByRole('link').filter((a) => a !== link)) {
+      expect(other).not.toHaveAttribute('target');
+    }
   });
 
   it('aktualisiert die Zieladresse beim Sprachwechsel', async () => {
