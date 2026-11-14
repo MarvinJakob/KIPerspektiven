@@ -109,8 +109,9 @@ func EqualTokens(a, b string) bool {
 	return a != "" && subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 
-// Limiter begrenzt fehlgeschlagene Anmeldeversuche je Schlüssel (IP-Adresse) in einem Zeitfenster.
-// Die Zähler liegen nur im Arbeitsspeicher (ARCHITECTURE.md, Abschnitt 11).
+// Limiter begrenzt Ereignisse je Schlüssel (IP-Adresse) in einem Zeitfenster: fehlgeschlagene
+// Anmeldeversuche und angenommene Beratungsanfragen (Ticket #136). Die Zähler liegen nur im Arbeitsspeicher
+// (ARCHITECTURE.md, Abschnitt 11).
 type Limiter struct {
 	mu     sync.Mutex
 	max    int
@@ -144,8 +145,11 @@ func (l *Limiter) Allowed(key string) bool {
 	return w.count < l.max
 }
 
-// Fail zählt einen Fehlversuch.
-func (l *Limiter) Fail(key string) {
+// Fail zählt einen fehlgeschlagenen Anmeldeversuch.
+func (l *Limiter) Fail(key string) { l.Hit(key) }
+
+// Hit zählt ein Ereignis für key.
+func (l *Limiter) Hit(key string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := l.now()

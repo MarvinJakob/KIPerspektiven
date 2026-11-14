@@ -102,6 +102,17 @@ export async function deleteReadinessResult(key: string) {
   if (!response.ok) throw new ApiError(response.status, response.statusText);
 }
 
+export type ConsultationRequestInput = components['schemas']['ConsultationRequestInput'];
+
+/**
+ * Fragt ein kostenloses Beratungsgespräch an (Ticket #136). Bewusst ohne unwrap: Ein Fehler führt nicht zur
+ * Anmeldung, sondern zu einer Meldung im Formular, das sich erneut senden lässt.
+ */
+export async function requestConsultation(body: ConsultationRequestInput) {
+  const { response } = await client.POST('/api/consultation-requests', { body });
+  if (!response.ok) throw new ApiError(response.status, response.statusText);
+}
+
 export const useAuditDimension = (slug: string, lang: Lang) =>
   useQuery({
     queryKey: ['auditDimension', slug, lang],

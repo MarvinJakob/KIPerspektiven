@@ -614,6 +614,27 @@ svg { display: block; }
 .share-status:empty { display: none; }
 .share-status[data-status="saveFailed"], .share-status[data-status="deleteFailed"] { color: var(--accent); }
 
+/* Beratungsanfrage (Ticket #136): warme, hervorgehobene Fläche am Ende der Auswertung. Fehler stehen immer als
+   Text am Feld bzw. unter dem Button; die Farbe ist nur ein zusätzlicher Hinweis. Der Feldrand nutzt den
+   Sekundärtext, damit er sich mit mindestens 3:1 von der Fläche abhebt. */
+.consult { max-width: 720px; margin-top: clamp(40px, 5vw, 64px); padding: 28px; border: 1px solid var(--border); border-top: 3px solid var(--brand); border-radius: var(--radius); background: var(--note-bg); box-shadow: var(--shadow); }
+.consult .section-title { font-size: clamp(1.5rem, 2.4vw, 2rem); overflow-wrap: break-word; }
+.consult-text { margin-top: 12px; max-width: 620px; line-height: 1.65; overflow-wrap: break-word; }
+.consult-form { display: grid; gap: 8px; margin-top: 24px; }
+.consult-form label { font-weight: 650; }
+.consult-form input {
+  width: 100%; max-width: 440px; min-height: 52px; padding: 0 16px; border: 1px solid var(--text-2); border-radius: var(--radius-small);
+  background: var(--surface); color: var(--text); font: inherit;
+}
+.consult-form input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.consult-form input[aria-invalid="true"] { border: 2px solid var(--accent); }
+.consult-error { color: var(--accent); font-size: .9375rem; font-weight: 650; overflow-wrap: break-word; }
+.consult-status:empty { display: none; }
+.consult-hint { max-width: 620px; color: var(--text-2); font-size: .9375rem; line-height: 1.55; overflow-wrap: break-word; }
+.consult-hint a { color: var(--accent); font-weight: 650; }
+.consult-actions { margin-top: 8px; }
+@media (max-width: 520px) { .consult { padding: 22px 18px; } }
+
 /* aria-disabled statt disabled: Der Button bleibt fokussierbar und erklärt per aria-describedby, was fehlt. */
 .btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 .btn-primary[aria-disabled="true"]:hover { background: var(--accent-fill); transform: none; }

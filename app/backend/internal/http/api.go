@@ -21,10 +21,13 @@ type apiServer struct {
 	accounts      *service.Accounts
 	editorial     *service.Editorial
 	stats         *service.Statistics
+	consultations *service.Consultations
 	media         *media.Store
-	limiter       *auth.Limiter
-	secureCookies bool
-	log           *slog.Logger
+	limiter       *auth.Limiter // fehlgeschlagene Anmeldeversuche je IP-Adresse
+	// consultationLimiter begrenzt angenommene Beratungsanfragen je IP-Adresse (Ticket #136).
+	consultationLimiter *auth.Limiter
+	secureCookies       bool
+	log                 *slog.Logger
 }
 
 var _ api.StrictServerInterface = (*apiServer)(nil)
