@@ -117,6 +117,8 @@ function message(err: Error): string {
       return 'E-Mail-Adresse oder Passwort ist falsch, oder das Konto ist deaktiviert. Bitte Eingaben prüfen oder an die Administration wenden.';
     }
     if (err.status === 429) return 'Zu viele Fehlversuche. Bitte in 15 Minuten erneut versuchen.';
+    // Zu viele gleichzeitige Passwortprüfungen auf dem Server (Ticket #138); zählt nicht als Fehlversuch.
+    if (err.status === 503) return 'Die Anmeldung ist gerade ausgelastet. Bitte in einigen Sekunden erneut versuchen.';
     if (err.status < 500) return err.message;
   }
   return 'Die Anmeldung ist gerade nicht möglich. Bitte später erneut versuchen.';

@@ -19,15 +19,17 @@ type apiServer struct {
 	svc           *service.Public
 	audit         *audit.Catalog
 	accounts      *service.Accounts
-	// login prüft die Zugangsdaten samt Argon2-Passwortprüfung (sonst accounts.Login). Tests halten die
-	// Prüfung hier an, um parallele Anmeldeversuche deterministisch zu prüfen (Ticket #138).
-	login         func(ctx context.Context, email, password string) (service.Session, error)
 	editorial     *service.Editorial
 	stats         *service.Statistics
 	media         *media.Store
-	limiter       *auth.Limiter
 	secureCookies bool
 	log           *slog.Logger
+
+	// Anmeldung (Ticket #138). login prüft die Zugangsdaten samt Argon2-Passwortprüfung (accounts.Login).
+	// Tests im Paket halten die Prüfung dort an, um parallele Anmeldeversuche deterministisch zu zählen.
+	login          func(ctx context.Context, email, password string) (service.Session, error)
+	limiter        *auth.Limiter  // Fehlversuche je IP-Adresse
+	passwordChecks *auth.Throttle // gleichzeitige Passwortprüfungen über alle IP-Adressen
 }
 
 var _ api.StrictServerInterface = (*apiServer)(nil)

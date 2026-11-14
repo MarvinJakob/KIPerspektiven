@@ -1,8 +1,9 @@
-// Package auth enthält Passwort-Hashing, Sitzungs-Tokens und die Begrenzung von Anmeldeversuchen
-// (ARCHITECTURE.md, Abschnitt 4, Sicherheit).
+// Package auth enthält Passwort-Hashing, Sitzungs-Tokens und die Begrenzung von Anmeldeversuchen und
+// gleichzeitigen Passwortprüfungen (ARCHITECTURE.md, Abschnitt 4, Sicherheit; Ticket #138).
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -12,6 +13,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/crypto/argon2"
@@ -109,65 +111,185 @@ func EqualTokens(a, b string) bool {
 	return a != "" && subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 
-// Limiter begrenzt fehlgeschlagene Anmeldeversuche je Schlüssel (IP-Adresse) in einem Zeitfenster.
+// Limiter begrenzt Anmeldeversuche je Schlüssel (IP-Adresse) auf max Fehlversuche je Zeitfenster. Das
+// Zeitfenster beginnt mit dem ersten gezählten Fehlversuch.
+//
+// Zulassung und Ergebnis sind getrennt (Ticket #138): Reserve lässt einen Versuch nur zu, solange
+// Fehlversuche und laufende Versuche zusammen unter max liegen, und reserviert ihn in derselben Sperre.
+// Laufende Versuche zählen also mit, als wären sie bereits gescheitert. Parallele Anfragen können die Grenze
+// deshalb nicht überholen, während ihre Passwortprüfung noch läuft.
+//
 // Die Zähler liegen nur im Arbeitsspeicher (ARCHITECTURE.md, Abschnitt 11).
 type Limiter struct {
 	mu     sync.Mutex
 	max    int
 	window time.Duration
 	now    func() time.Time
-	hits   map[string]*window
+	keys   map[string]*attempts
 }
 
-type window struct {
-	start time.Time
-	count int
+// attempts sind die Versuche eines Schlüssels.
+type attempts struct {
+	start    time.Time // Beginn des Zeitfensters, gültig solange failures > 0
+	failures int       // gezählte Fehlversuche im Zeitfenster
+	pending  int       // zugelassene Versuche, deren Ergebnis noch aussteht
 }
+
+// expire setzt die Fehlversuche zurück, wenn ihr Zeitfenster abgelaufen ist.
+func (a *attempts) expire(now time.Time, window time.Duration) {
+	if a.failures > 0 && now.Sub(a.start) >= window {
+		a.failures = 0
+	}
+}
+
+// maxTrackedKeys löst das Aufräumen abgelaufener Einträge aus. Neue Einträge mit Fehlversuchen entstehen nur
+// nach einer Passwortprüfung, deren Zahl Throttle begrenzt; die Tabelle wächst daher nur langsam.
+const maxTrackedKeys = 10_000
 
 // NewLimiter erlaubt max Fehlversuche je Zeitfenster.
 func NewLimiter(max int, w time.Duration) *Limiter {
-	return &Limiter{max: max, window: w, now: time.Now, hits: map[string]*window{}}
+	return &Limiter{max: max, window: w, now: time.Now, keys: map[string]*attempts{}}
 }
 
-// Allowed meldet, ob für key noch ein Versuch erlaubt ist.
-func (l *Limiter) Allowed(key string) bool {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	w, ok := l.hits[key]
-	if !ok {
-		return true
-	}
-	if l.now().Sub(w.start) >= l.window {
-		delete(l.hits, key)
-		return true
-	}
-	return w.count < l.max
-}
-
-// Fail zählt einen Fehlversuch.
-func (l *Limiter) Fail(key string) {
+// Reserve lässt einen Anmeldeversuch für key zu und reserviert ihn, wenn Fehlversuche und laufende Versuche
+// zusammen unter max liegen. Andernfalls ist ok false und es wurde nichts reserviert.
+//
+// Der Aufrufer meldet das Ergebnis eines zugelassenen Versuchs mit Attempt.Failed, Attempt.Succeeded oder
+// Attempt.Cancel. Nur der erste dieser Aufrufe wirkt; ein abschließendes „defer attempt.Cancel()“ gibt die
+// Reservierung deshalb in jedem Fall frei, auch nach einem Panic.
+func (l *Limiter) Reserve(key string) (attempt *Attempt, ok bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := l.now()
-	w, ok := l.hits[key]
-	if !ok || now.Sub(w.start) >= l.window {
-		w = &window{start: now}
-		l.hits[key] = w
+	a := l.keys[key]
+	if a == nil {
+		if len(l.keys) >= maxTrackedKeys {
+			l.prune(now)
+		}
+		a = &attempts{}
+		l.keys[key] = a
 	}
-	w.count++
-	// Alte Einträge gelegentlich entfernen, damit der Speicher nicht wächst.
-	if len(l.hits) > 10_000 {
-		for k, v := range l.hits {
-			if now.Sub(v.start) >= l.window {
-				delete(l.hits, k)
-			}
+	a.expire(now, l.window)
+	if a.failures+a.pending >= l.max {
+		return nil, false
+	}
+	a.pending++
+	return &Attempt{l: l, key: key}, true
+}
+
+// prune entfernt Einträge ohne laufende Versuche, deren Fehlversuche abgelaufen sind. Aufruf nur unter l.mu.
+func (l *Limiter) prune(now time.Time) {
+	for k, a := range l.keys {
+		a.expire(now, l.window)
+		if a.failures == 0 && a.pending == 0 {
+			delete(l.keys, k)
 		}
 	}
 }
 
-// Reset setzt den Zähler nach einer erfolgreichen Anmeldung zurück.
-func (l *Limiter) Reset(key string) {
+// Attempt ist ein zugelassener Anmeldeversuch, dessen Ergebnis noch aussteht.
+type Attempt struct {
+	l    *Limiter
+	key  string
+	done bool // geschützt durch l.mu
+}
+
+// Failed zählt den Versuch als Fehlversuch: Die Passwortprüfung hat falsche Zugangsdaten ergeben.
+func (a *Attempt) Failed() {
+	a.finish(func(s *attempts, now time.Time) {
+		if s.failures == 0 {
+			s.start = now
+		}
+		s.failures++
+	})
+}
+
+// Succeeded setzt die Fehlversuche nach einer erfolgreichen Anmeldung zurück. Andere laufende Versuche
+// desselben Schlüssels bleiben reserviert und melden ihr Ergebnis selbst.
+func (a *Attempt) Succeeded() {
+	a.finish(func(s *attempts, _ time.Time) { s.failures = 0 })
+}
+
+// Cancel gibt die Reservierung frei, ohne etwas zu zählen. Das gilt, wenn die Passwortprüfung kein Ergebnis
+// geliefert hat: ungültige Anfrage, Überlast, Abbruch durch den Client vor der Prüfung oder ein interner
+// Fehler. Bereits gezählte Fehlversuche bleiben erhalten; Cancel hebt die Sperre also nicht auf.
+func (a *Attempt) Cancel() {
+	a.finish(func(*attempts, time.Time) {})
+}
+
+// finish beendet die Reservierung einmalig und wendet das Ergebnis an.
+func (a *Attempt) finish(apply func(s *attempts, now time.Time)) {
+	l := a.l
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	delete(l.hits, key)
+	if a.done {
+		return
+	}
+	a.done = true
+	// Der Eintrag existiert noch: Einträge mit laufenden Versuchen werden nie entfernt.
+	s := l.keys[a.key]
+	s.pending--
+	now := l.now()
+	s.expire(now, l.window)
+	apply(s, now)
+	if s.failures == 0 && s.pending == 0 {
+		delete(l.keys, a.key)
+	}
+}
+
+// ErrBusy meldet, dass Throttle keinen Platz für eine Passwortprüfung vergeben kann: Alle Plätze sind belegt
+// und die Warteschlange ist voll, oder die Wartezeit ist abgelaufen.
+var ErrBusy = errors.New("zu viele gleichzeitige passwortprüfungen")
+
+// Throttle begrenzt gleichzeitig laufende Passwortprüfungen über alle IP-Adressen (Ticket #138). Jede
+// Argon2id-Prüfung belegt argonMemory (64 MiB) und einen Prozessorkern, auch für unbekannte Konten
+// (SpendTime). Das Limit je IP-Adresse schützt davor nicht, wenn Anfragen von vielen Adressen kommen.
+//
+// Höchstens active Prüfungen laufen gleichzeitig. Höchstens waiting weitere Anfragen warten je höchstens
+// maxWait auf einen freien Platz. Alle übrigen lehnt Acquire sofort mit ErrBusy ab, bevor Argon2 Speicher
+// belegt. Wartende erhalten frei werdende Plätze vor neu eintreffenden Anfragen.
+type Throttle struct {
+	slots      chan struct{} // ein Eintrag je laufender Prüfung
+	waiting    atomic.Int64  // Anfragen, die gerade auf einen Platz warten
+	maxWaiting int64
+	maxWait    time.Duration
+}
+
+// NewThrottle erlaubt active gleichzeitige Prüfungen und waiting Wartende mit höchstens maxWait Wartezeit.
+func NewThrottle(active, waiting int, maxWait time.Duration) *Throttle {
+	return &Throttle{slots: make(chan struct{}, active), maxWaiting: int64(waiting), maxWait: maxWait}
+}
+
+// Acquire belegt einen Platz für eine Passwortprüfung. Nach Erfolg muss der Aufrufer Release aufrufen.
+// Liefert ErrBusy bei Überlast oder ctx.Err(), wenn der Client während des Wartens abbricht.
+func (t *Throttle) Acquire(ctx context.Context) error {
+	select {
+	case t.slots <- struct{}{}:
+		return nil
+	default:
+	}
+	if t.waiting.Add(1) > t.maxWaiting {
+		t.waiting.Add(-1)
+		return ErrBusy
+	}
+	defer t.waiting.Add(-1)
+	timer := time.NewTimer(t.maxWait)
+	defer timer.Stop()
+	select {
+	case t.slots <- struct{}{}:
+		return nil
+	case <-timer.C:
+		return ErrBusy
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// Release gibt einen mit Acquire belegten Platz frei.
+func (t *Throttle) Release() {
+	select {
+	case <-t.slots:
+	default:
+		panic("auth: Throttle.Release ohne Acquire")
+	}
 }

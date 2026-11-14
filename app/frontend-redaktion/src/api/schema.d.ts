@@ -197,7 +197,9 @@ export interface paths {
         /**
          * Anmelden, setzt das Sitzungscookie
          * @description Unbekannte E-Mail-Adressen, falsche Passwörter und deaktivierte Konten liefern dieselbe Antwort `401`.
-         *     Nach zu vielen Fehlversuchen von derselben IP-Adresse antwortet das Backend mit `429`.
+         *     Nach zu vielen Fehlversuchen von derselben IP-Adresse antwortet das Backend mit `429`. Noch laufende
+         *     Versuche derselben IP-Adresse zählen dabei mit. Sind über alle IP-Adressen bereits zu viele
+         *     Passwortprüfungen in Arbeit, antwortet das Backend vor der Prüfung mit `503` (Ticket #138).
          */
         post: operations["login"];
         delete?: never;
@@ -1147,6 +1149,17 @@ export interface operations {
             /** @description Zu viele Fehlversuche, später erneut versuchen */
             429: {
                 headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Anmeldung ausgelastet. Zu viele gleichzeitige Passwortprüfungen, nach `Retry-After` Sekunden erneut versuchen. Zählt nicht als Fehlversuch. */
+            503: {
+                headers: {
+                    /** @description Wartezeit in Sekunden bis zum nächsten Versuch */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {

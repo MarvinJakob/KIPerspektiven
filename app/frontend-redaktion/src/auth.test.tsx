@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ADMIN, EDITOR, PASSWORD, fakeBackend, renderAt } from './test/fakeApi';
+import { ADMIN, EDITOR, PASSWORD, fakeBackend, json, renderAt } from './test/fakeApi';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -47,6 +47,24 @@ describe('Anforderung 6: Zugang zur Redaktion', () => {
     renderAt('/anmelden');
     await login('redaktion@example.test', 'falsch');
     expect(await screen.findByText(/falsch.*Administration/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Anmelden' })).toBeInTheDocument();
+  });
+
+  it.each([
+    [429, 'Zu viele Fehlversuche. Bitte in 15 Minuten erneut versuchen.'],
+    [503, 'Die Anmeldung ist gerade ausgelastet. Bitte in einigen Sekunden erneut versuchen.'],
+  ])('erklärt die Antwort %i der begrenzten Anmeldung (Ticket #138)', async (status, text) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (req: Request) =>
+        new URL(req.url).pathname === '/api/auth/login'
+          ? json(status, { message: 'Anmeldung begrenzt.' })
+          : json(401, { message: 'Anmeldung erforderlich.' }),
+      ),
+    );
+    renderAt('/anmelden');
+    await login('redaktion@example.test');
+    expect(await screen.findByText(text)).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Anmelden' })).toBeInTheDocument();
   });
 

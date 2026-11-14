@@ -50,13 +50,15 @@ func newAPIServer(cfg Config) *apiServer {
 		svc:           cfg.Public,
 		audit:         cfg.Audit,
 		accounts:      cfg.Accounts,
-		login:         cfg.Accounts.Login,
 		editorial:     cfg.Editorial,
 		stats:         cfg.Statistics,
 		media:         cfg.Media,
-		limiter:       auth.NewLimiter(loginMaxFailures, loginWindow),
 		secureCookies: cfg.SecureCookies,
 		log:           cfg.Log,
+
+		login:          cfg.Accounts.Login,
+		limiter:        auth.NewLimiter(loginMaxFailures, loginWindow),
+		passwordChecks: auth.NewThrottle(passwordChecksActive, passwordChecksWaiting, passwordChecksMaxWait),
 	}
 }
 

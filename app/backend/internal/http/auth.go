@@ -15,10 +15,29 @@ import (
 	"ki-web/backend/internal/service"
 )
 
-// Begrenzung der Anmeldeversuche je IP-Adresse (ARCHITECTURE.md, Abschnitt 4).
+// Begrenzung der Anmeldeversuche je IP-Adresse (ARCHITECTURE.md, Abschnitt 4). Laufende Versuche zählen bei
+// der Zulassung mit (Ticket #138).
 const (
 	loginMaxFailures = 10
 	loginWindow      = 15 * time.Minute
+)
+
+// Globale Begrenzung gleichzeitiger Passwortprüfungen über alle IP-Adressen (Ticket #138). Ausgelegt auf den
+// Produktionsserver mit 1 vCPU und 2 GB RAM (docs/betrieb.md); Begründung und Messwerte stehen in
+// docs/login-begrenzung.md:
+//   - Eine Argon2id-Prüfung belegt 64 MiB und rechnet lokal etwa 80 ms auf einem Kern. Mehr gleichzeitige
+//     Prüfungen als Kerne erhöhen den Durchsatz nicht, sondern nur Speicherbedarf und Wartezeit aller übrigen
+//     Anfragen. Im Lasttest mit einem Kern hielt ein Platz Speicher und Healthcheck-Zeiten niedriger als zwei.
+//     Bei mehr Kernen kann der Wert steigen.
+//   - Acht Wartende fangen gleichzeitige Anmeldungen des kleinen Redaktionsteams ab, ohne sie abzuweisen.
+//     Bei etwa 0,1–0,2 s je Prüfung wartet der letzte von ihnen rund 1–2 s; drei Sekunden lassen dafür
+//     Spielraum und begrenzen die Haltezeit unter Last.
+//   - Alle weiteren Anfragen erhalten sofort 503 mit Retry-After, ohne Argon2 zu starten.
+const (
+	passwordChecksActive  = 1
+	passwordChecksWaiting = 8
+	passwordChecksMaxWait = 3 * time.Second
+	loginRetryAfter       = 5 // Sekunden
 )
 
 type ctxKey int
@@ -174,34 +193,65 @@ func toMe(id service.Identity) api.Me {
 	return api.Me{Id: id.UserID, Email: id.Email, Role: api.Role(id.Role), CsrfToken: id.CSRFToken}
 }
 
-// Login meldet an, begrenzt Fehlversuche je IP-Adresse und ersetzt eine bestehende Sitzung des Browsers.
+// Login meldet an und ersetzt eine bestehende Sitzung des Browsers. Vor der teuren Argon2-Prüfung gelten zwei
+// Grenzen (Ticket #138):
+//  1. Je IP-Adresse höchstens loginMaxFailures Fehlversuche je loginWindow. Laufende Versuche zählen mit,
+//     sonst 429.
+//  2. Über alle IP-Adressen höchstens passwordChecksActive gleichzeitige Prüfungen und passwordChecksWaiting
+//     Wartende, sonst 503 mit Retry-After.
+//
+// Das Ergebnis bestimmt, was die Reservierung der IP-Adresse hinterlässt:
+//   - Falsche Zugangsdaten (unbekanntes Konto, falsches Passwort, deaktiviertes Konto) zählen als Fehlversuch.
+//   - Eine erfolgreiche Anmeldung setzt die Fehlversuche der IP-Adresse zurück.
+//   - Ohne Ergebnis der Passwortprüfung (ungültige Anfrage, 503, Abbruch durch den Client, interner Fehler)
+//     wird die Reservierung nur freigegeben. Bereits gezählte Fehlversuche bleiben bestehen. Bricht der Client
+//     während der Prüfung ab, läuft sie zu Ende und ihr Ergebnis zählt.
 func (s *apiServer) Login(ctx context.Context, req api.LoginRequestObject) (api.LoginResponseObject, error) {
-	ip := clientIPFrom(ctx)
-	if !s.limiter.Allowed(ip) {
+	attempt, ok := s.limiter.Reserve(clientIPFrom(ctx))
+	if !ok {
 		return api.Login429JSONResponse{Message: "Zu viele Fehlversuche. Bitte in 15 Minuten erneut versuchen."}, nil
 	}
+	// Wirkt nur, wenn unten kein Ergebnis gemeldet wurde, und gibt die Reservierung auch nach einem Panic frei.
+	defer attempt.Cancel()
 	if req.Body == nil || strings.TrimSpace(req.Body.Email) == "" || req.Body.Password == "" {
 		return api.Login400JSONResponse{BadRequestJSONResponse: api.BadRequestJSONResponse{
 			Message: "Bitte E-Mail-Adresse und Passwort angeben.",
 		}}, nil
 	}
-	sess, err := s.login(ctx, req.Body.Email, req.Body.Password)
-	if errors.Is(err, service.ErrInvalidCredentials) {
-		s.limiter.Fail(ip)
+	sess, err := s.checkCredentials(ctx, req.Body.Email, req.Body.Password)
+	switch {
+	case errors.Is(err, service.ErrInvalidCredentials):
+		attempt.Failed()
 		return api.Login401JSONResponse{UnauthorizedJSONResponse: api.UnauthorizedJSONResponse{
 			Message: "E-Mail-Adresse oder Passwort ist falsch, oder das Konto ist deaktiviert.",
 		}}, nil
-	}
-	if err != nil {
+	case errors.Is(err, auth.ErrBusy), err != nil && ctx.Err() != nil:
+		// Überlast, oder der Client hat abgebrochen und erhält die Antwort ohnehin nicht mehr. Kein Fehlerprotokoll,
+		// damit abgebrochene Anfragen unter Last das Protokoll nicht füllen.
+		return api.Login503JSONResponse{
+			Body:    api.Error{Message: "Die Anmeldung ist gerade ausgelastet. Bitte in einigen Sekunden erneut versuchen."},
+			Headers: api.Login503ResponseHeaders{RetryAfter: loginRetryAfter},
+		}, nil
+	case err != nil:
 		return nil, err
 	}
-	s.limiter.Reset(ip)
+	attempt.Succeeded()
 	// Eine vorherige Sitzung desselben Browsers wird ersetzt.
 	if old, ok := ctx.Value(previousSessionKey{}).(string); ok && old != "" {
 		_ = s.accounts.Logout(ctx, auth.HashToken(old))
 	}
 	cookie := s.sessionCookie(sess.Token, int(service.SessionTTL.Seconds()), sess.ExpiresAt)
 	return api.Login200JSONResponse{Body: toMe(sess.Identity), Headers: api.Login200ResponseHeaders{SetCookie: &cookie}}, nil
+}
+
+// checkCredentials prüft die Zugangsdaten auf einem der global begrenzten Plätze für Passwortprüfungen.
+// Liefert auth.ErrBusy, ohne Argon2 zu starten, wenn kein Platz frei wird.
+func (s *apiServer) checkCredentials(ctx context.Context, email, password string) (service.Session, error) {
+	if err := s.passwordChecks.Acquire(ctx); err != nil {
+		return service.Session{}, err
+	}
+	defer s.passwordChecks.Release()
+	return s.login(ctx, email, password)
 }
 
 // previousSessionKey trägt das Cookie einer bestehenden Sitzung zum Login-Handler.
