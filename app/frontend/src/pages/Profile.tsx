@@ -24,7 +24,13 @@ export function Profile() {
       <header className="profile-hero">
         <div>
           <p className="eyebrow">{content.label}</p>
-          <h1 className="page-title" tabIndex={-1} ref={h1}>Marvin Jakob<span aria-hidden="true">.</span></h1>
+          {/* Der Link steht neben, nicht in der Überschrift: Ihr zugänglicher Name bleibt "Marvin Jakob". */}
+          <div className="profile-name">
+            <h1 className="page-title" tabIndex={-1} ref={h1}>Marvin Jakob<span aria-hidden="true">.</span></h1>
+            <a className="profile-linkedin press" href={content.linkedinUrl} aria-label={content.linkedinLabel}>
+              <Icon name="linkedin" />
+            </a>
+          </div>
           <p className="profile-headline">{content.headline}<br /><span>{content.headlineAccent}</span></p>
           <p className="profile-motto">{content.motto}</p>
           <ul className="profile-tags" aria-label={content.focusLabel}>

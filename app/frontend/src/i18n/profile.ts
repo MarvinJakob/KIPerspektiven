@@ -12,6 +12,7 @@ interface ProfileContent {
   description: string;
   home: string;
   label: string;
+  linkedinLabel: string;
   linkedinUrl: string;
   headline: string;
   headlineAccent: string;
@@ -46,6 +47,7 @@ export const profile: Record<Lang, ProfileContent> = {
     description: 'Marvin Jakob, Creative IT Specialist: Technologie verstehen. KI in der Praxis nutzen. Beratung zu KI-Einsatz, Datenstrategie und Agentic AI.',
     home: 'Startseite',
     label: 'Die Person hinter der Perspektive',
+    linkedinLabel: 'Marvin Jakob auf LinkedIn',
     linkedinUrl: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=de-DE',
     headline: 'Technologie verstehen.',
     headlineAccent: 'KI in der Praxis nutzen.',
@@ -99,6 +101,7 @@ export const profile: Record<Lang, ProfileContent> = {
     description: 'Marvin Jakob, Creative IT Specialist: understand technology. Use AI in practice. Consulting on AI adoption, data strategy and agentic AI.',
     home: 'Home',
     label: 'The person behind the perspective',
+    linkedinLabel: 'Marvin Jakob on LinkedIn',
     linkedinUrl: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=en-US',
     headline: 'Understand technology.',
     headlineAccent: 'Use AI in practice.',
