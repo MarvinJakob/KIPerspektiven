@@ -1,8 +1,15 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Period, ReadinessResult } from './api/statistics';
 import { ADMIN, EDITOR, fakeBackend, json, renderAt, type FakeState, type Handler } from './test/fakeApi';
+
+beforeEach(() => {
+  vi.stubGlobal('ResizeObserver', class {
+    observe() {}
+    disconnect() {}
+  });
+});
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -169,11 +176,79 @@ describe('Ticket #130: Statistik der Redaktion', () => {
   });
 
   it('zeigt ohne Daten verständliche Hinweise statt leerer Tabellen', async () => {
+    const user = userEvent.setup();
     fakeBackend(EDITOR, statsBackend({ viewsPerDay: 0, results: 0 }).handler);
     await openStatistics();
     expect(await screen.findByText('Im gewählten Zeitraum wurden noch keine Seitenaufrufe gezählt.')).toBeInTheDocument();
     expect(await screen.findByText('Im gewählten Zeitraum wurden noch keine Ergebnisse gespeichert.')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /Verlauf der Seitenaufrufe/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: 'Gesamt' }));
+    await waitFor(() => expect(statValue('Seitenaufrufe')).toHaveTextContent('0 insgesamt'));
+    expect(screen.queryByRole('img', { name: /Verlauf der Seitenaufrufe/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('Ticket #139: Verlauf der Seitenaufrufe', () => {
+  const chart = () => screen.getByRole('img', { name: /Verlauf der Seitenaufrufe/ });
+
+  it('ordnet Tageswerte chronologisch zu und übernimmt beim Zeitraumwechsel dieselben Werte wie die Tabelle', async () => {
+    const user = userEvent.setup();
+    fakeBackend(EDITOR, (r, url) => {
+      if (r.path !== '/api/admin/statistics/page-views') return undefined;
+      const period = (url.searchParams.get('period') ?? '30d') as Period;
+      const days = Array.from({ length: LENGTH[period] }, (_, i) => ({ date: day(i), views: i === 1 ? 0 : i + 1 }));
+      return json(200, { period, total: days.reduce((sum, d) => sum + d.views, 0), days });
+    }, statsBackend({ results: 0 }).handler);
+    await openStatistics();
+    await screen.findByRole('img', { name: /Verlauf der Seitenaufrufe/ });
+    for (const [label, length] of [['Letzte 30 Tage', 30], ['Letzte 7 Tage', 7], ['Gesamt', 3]] as const) {
+      await user.click(screen.getByRole('radio', { name: label }));
+      await waitFor(() => expect(chart().querySelectorAll('circle')).toHaveLength(length));
+      const dots = [...chart().querySelectorAll('circle')];
+      const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1).reverse();
+      expect(rows).toHaveLength(length);
+      dots.forEach((dot, i) => {
+        const date = day(length - 1 - i);
+        const views = length - 1 - i === 1 ? 0 : length - i;
+        const formatted = date.split('-').reverse().join('.');
+        expect(dot).toHaveTextContent(`${formatted}: ${views} Seitenaufrufe`);
+        expect(rows[i]).toHaveTextContent(formatted);
+        expect(within(rows[i]).getAllByRole('cell')[1]).toHaveTextContent(String(views));
+        if (i > 0) expect(Number(dot.getAttribute('cx'))).toBeGreaterThan(Number(dots[i - 1].getAttribute('cx')));
+      });
+      expect(Number(dots[length - 2].getAttribute('cy'))).toBeGreaterThan(Number(dots[length - 1].getAttribute('cy')));
+      expect(Number(dots[0].getAttribute('cy'))).toBeLessThan(Number(dots[length - 1].getAttribute('cy')));
+      expect(statValue('Seitenaufrufe')).toHaveTextContent(String(length * (length + 1) / 2 - 2));
+    }
+  });
+
+  it('zeigt beim Laden und nach einem Fehler keine alten Daten und erlaubt einen neuen Versuch', async () => {
+    const user = userEvent.setup();
+    let resolveRequest: (response: Response) => void = () => {};
+    fakeBackend(EDITOR, statsBackend({ results: 0 }).handler);
+    const fallback = globalThis.fetch;
+    vi.stubGlobal('fetch', (req: Request) => {
+      const url = new URL(req.url);
+      if (url.pathname === '/api/admin/statistics/page-views' && url.searchParams.get('period') === '7d') {
+        return new Promise<Response>((resolve) => { resolveRequest = resolve; });
+      }
+      return fallback(req);
+    });
+    await openStatistics();
+    await screen.findByRole('img', { name: /Verlauf der Seitenaufrufe/ });
+    await user.click(screen.getByRole('radio', { name: 'Letzte 7 Tage' }));
+    expect(screen.queryByRole('img', { name: /Verlauf der Seitenaufrufe/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.queryByText('Seitenaufrufe', { selector: 'dt' })).not.toBeInTheDocument();
+    resolveRequest(json(400, { message: 'Testfehler' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Die Seitenaufrufe konnten nicht geladen werden');
+    expect(screen.queryByRole('img', { name: /Verlauf der Seitenaufrufe/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    resolveRequest(json(200, { period: '7d', total: 1, days: [{ date: day(0), views: 1 }] }));
+    await screen.findByRole('img', { name: /Verlauf der Seitenaufrufe/ });
+    expect(chart().querySelectorAll('circle')).toHaveLength(1);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { usePageViews, useReadinessResults, type Period, type ReadinessResultPage } from '../api/statistics';
 import { Loading, Page } from '../components/Layout';
+import { PageViewsChart } from '../components/PageViewsChart';
 
 const PERIODS: { value: Period; label: string; text: string }[] = [
   { value: '7d', label: 'Letzte 7 Tage', text: 'in den letzten 7 Tagen' },
@@ -90,7 +91,7 @@ function Stat({ label, value, context }: { label: string; value: number; context
 }
 
 function PageViews({ period, periodText }: { period: Period; periodText: string }) {
-  const { data, isPending, isError, refetch } = usePageViews(period);
+  const { data, isFetching, isError, refetch } = usePageViews(period);
   const heading = useId();
   return (
     <section className="stats-section" aria-labelledby={heading}>
@@ -103,37 +104,40 @@ function PageViews({ period, periodText }: { period: Period; periodText: string 
         Seitenwechsel innerhalb der geöffneten Webseite zählen nicht, automatische Abrufe etwa durch Suchmaschinen
         zählen mit.
       </p>
-      {isPending && <Loading />}
+      {isFetching && <Loading />}
       {isError && <LoadError what="Die Seitenaufrufe" onRetry={() => void refetch()} />}
-      {data && (
+      {data && !isFetching && !isError && (
         <>
           <Stat label="Seitenaufrufe" value={data.total} context={periodText} />
           {data.total === 0 ? (
             <p className="empty-state card">Im gewählten Zeitraum wurden noch keine Seitenaufrufe gezählt.</p>
           ) : (
-            <div className="table-wrap">
-              <table className="table">
-                <caption className="visually-hidden">Seitenaufrufe je Tag, neueste zuerst</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Tag</th>
-                    <th scope="col" className="num-col">
-                      Seitenaufrufe
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.days.map((d) => (
-                    <tr key={d.date}>
-                      <td>
-                        <time dateTime={d.date}>{formatDay(d.date)}</time>
-                      </td>
-                      <td className="num-col">{numberFormat.format(d.views)}</td>
+            <>
+              <PageViewsChart days={data.days} />
+              <div className="table-wrap">
+                <table className="table">
+                  <caption className="visually-hidden">Seitenaufrufe je Tag, neueste zuerst</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Tag</th>
+                      <th scope="col" className="num-col">
+                        Seitenaufrufe
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {data.days.map((d) => (
+                      <tr key={d.date}>
+                        <td>
+                          <time dateTime={d.date}>{formatDay(d.date)}</time>
+                        </td>
+                        <td className="num-col">{numberFormat.format(d.views)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </>
       )}
