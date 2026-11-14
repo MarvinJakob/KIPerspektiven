@@ -6,6 +6,12 @@ const PATHS = {
   arrowDown: <path d="M12 5v14M6 13l6 6 6-6" />,
   arrowUpRight: <path d="M7 17 17 7M8 7h9v9" />,
   mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 6 9 7 9-7" /></>,
+  linkedin: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="4" />
+      <path d="M8 11v6M8 7.5h.01M12 17v-6M12 13.5a2.5 2.5 0 0 1 5 0V17" />
+    </>
+  ),
   ticket: <path d="M3 5h18v5a2 2 0 0 0 0 4v5H3v-5a2 2 0 0 0 0-4V5Zm12 0v14" />,
   file: <path d="M5 3h9l5 5v13H5V3Zm9 0v5h5M9 12h6m-6 4h6" />,
   alert: <path d="M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />,
