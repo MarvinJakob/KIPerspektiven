@@ -117,6 +117,8 @@ Die öffentliche Webseite und das Redaktionsfrontend sind eigenständige React-A
 | `/redaktion/beitraege/:id` | Beitrag bearbeiten | 5 |
 | `/redaktion/medien` | Medienverwaltung | 5 |
 | `/redaktion/benutzer` | Benutzerverwaltung für Admin-Konten | 11 |
+| `/redaktion/statistik` | Seitenaufrufe und Ergebnisse der Selbsteinschätzung für `editor` und `admin` | #130 |
+| `/redaktion/beratungsanfragen` | Anfragen für ein kostenloses Beratungsgespräch für `editor` und `admin` | #136 |
 
 - Die Kopfzeile mit Themenmenü, Bloglink, Sprachwahl und Kontoeinstieg ist eine gemeinsame Layout-Komponente aller öffentlichen Seiten (Anforderungen 2 und 7). Die Fußzeile verlinkt Impressum und Datenschutz.
 - Impressum und Datenschutzerklärung liegen als Markdown-Dateien je Sprache im Repository. Änderungen laufen über einen Pull Request.
@@ -196,6 +198,11 @@ Die folgenden Tabellen geben einen Überblick. Alle Endpunkte liegen unter `/api
 | GET | `/api/posts?lang=de&featured=true` | Veröffentlichte Beiträge, neueste zuerst |
 | GET | `/api/posts/{slug}?lang=de` | Ein veröffentlichter Beitrag, sonst `404` |
 | GET | `/api/health` | Zustand der Anwendung und der Datenbank |
+| POST | `/api/readiness-results` | Ergebnis der Selbsteinschätzung nach Einwilligung anonym speichern oder aktualisieren (#130) |
+| DELETE | `/api/readiness-results/{key}` | Gespeichertes Ergebnis löschen, wenn die Einwilligung zurückgenommen wird (#130) |
+| POST | `/api/consultation-requests` | Kostenloses Beratungsgespräch mit E-Mail-Adresse anfragen (#136, ADR 0011) |
+
+Die öffentlichen Schreibzugriffe prüfen die Herkunft wie alle schreibenden Aufrufe und nehmen höchstens 4 KiB an. Beratungsanfragen nimmt das Backend je IP-Adresse höchstens fünfmal pro Stunde an (`429`); die Zähler liegen nur im Arbeitsspeicher.
 
 **Anmeldung**
 
@@ -220,6 +227,20 @@ Die API bietet keinen Endpunkt zur Selbstregistrierung.
 | GET | `/api/admin/media` | Hochgeladene Bilder auflisten |
 | POST | `/api/admin/media` | Bild hochladen (`multipart/form-data`) |
 | PUT | `/api/admin/media/{id}` | Alternativtexte je Sprache ändern |
+
+**Statistik (Rolle `editor` oder `admin`, #130)**
+
+| Methode | Pfad | Zweck |
+|---|---|---|
+| GET | `/api/admin/statistics/page-views?period=30d` | Seitenaufrufe je Tag für `7d`, `30d` (Vorauswahl) oder `all` |
+| GET | `/api/admin/statistics/readiness-results?period=30d&page=1` | Gespeicherte Ergebnisse, neueste zuerst, 50 je Seite |
+
+**Beratungsanfragen (Rolle `editor` oder `admin`, #136)**
+
+| Methode | Pfad | Zweck |
+|---|---|---|
+| GET | `/api/admin/consultation-requests` | Offene Anfragen, neueste zuerst |
+| DELETE | `/api/admin/consultation-requests/{id}` | Anfrage nach der Terminabstimmung löschen |
 
 Ein Beitrag lässt sich nur veröffentlichen, wenn Titel, Kurztext und Beitragstext gefüllt sind (Anforderung 5). Hat er ein Titelbild, braucht es einen Alternativtext in der Sprache des Beitrags. Für Entwürfe liefern die öffentlichen Endpunkte `404`, damit ihre Existenz nicht erkennbar ist (Anforderung 4).
 
@@ -249,7 +270,7 @@ Das Go-Backend liefert beide Frontends aus. Für die öffentliche Webseite ergä
    - `<link rel="canonical">`
    - `<link rel="alternate" hreflang="…">` für jede vorhandene Übersetzung sowie `x-default` (Deutsch)
    - `<html lang="…">`
-4. Die öffentliche `index.html` erhält `Cache-Control: no-cache`.
+4. Die öffentliche `index.html` erhält `Cache-Control: no-cache`. Jede so ausgelieferte Seite mit Status `200` erhöht den Seitenaufrufzähler des Tages (GET ohne Prefetch, #130, ADR 0010).
 5. Für bekannte Redaktionsrouten liefert das Backend die separate `index.html` des Redaktionsfrontends nach der jeweiligen Zugriffskontrolle aus. Die Anmeldeseite ist öffentlich erreichbar. Redaktionsseiten erhalten `Cache-Control: no-store`.
 
 ### Statuscodes
@@ -350,6 +371,20 @@ erDiagram
     media_translations { int media_id FK
                          text lang
                          text alt_text }
+    page_views { text day PK "JJJJ-MM-TT, Europe/Berlin"
+                 int views }
+    readiness_results ||--|{ readiness_result_ratings : "Reifegrad je Dimension"
+    readiness_results { int id PK
+                        text key_hash UK
+                        text lang
+                        datetime submitted_at }
+    readiness_result_ratings { int result_id FK
+                               text dimension
+                               int level "1 bis 3" }
+    consultation_requests { int id PK
+                            text email UK
+                            text lang
+                            datetime requested_at }
 ```
 
 - Die drei Startthemen legt eine Migration als Startdaten an (Anforderung 3).
@@ -357,6 +392,8 @@ erDiagram
 - `status` und `published_at` steuern die Sichtbarkeit. Zurücknehmen setzt `status` wieder auf `draft` (Anforderung 5).
 - Übersetzungen sind eigene Zeilen je Sprache (`lang` = `de` oder `en`). Weitere Sprachen brauchen keine Schemaänderung (Anforderung 7).
 - Die Bilddateien selbst liegen nicht in der Datenbank, sondern im Medien-Volume.
+- Die Statistik (#130) speichert keine Einzelereignisse und keine Kennungen von Personen: `page_views` ist ein Tageszähler, `readiness_results` enthält nur Sprache, Zeitpunkt und den SHA-256-Hash einer zufälligen Kennung aus dem Arbeitsspeicher des Browserfensters. Mit ihr aktualisiert das Backend dasselbe Ergebnis, statt es zu verdoppeln.
+- `consultation_requests` (#136) enthält je Anfrage nur die normalisierte E-Mail-Adresse, die Sprache für die Antwort und den Zeitpunkt, ohne Ergebnis der Selbsteinschätzung und ohne Verknüpfung zu `readiness_results`. Eine erneute Anfrage mit derselben Adresse aktualisiert den Eintrag. Die Redaktion löscht ihn nach der Terminabstimmung.
 
 ### Späterer Wechsel zu PostgreSQL
 
@@ -539,8 +576,10 @@ Eine Wiederherstellung wird mindestens einmal pro Quartal auf einem frischen Ser
 | Auftragsverarbeitung | Auftragsverarbeitungsvertrag mit Hetzner für Server und Object Storage abschließen (in der Hetzner-Konsole verfügbar). Ebenso mit dem externen Überwachungsdienst, falls er personenbezogene Daten verarbeitet. |
 | Keine Daten an Dritte | Schriften selbst gehostet, keine CDNs, keine eingebetteten Inhalte fremder Anbieter. Die Content-Security-Policy erzwingt das. |
 | Cookies | Nur das Sitzungs-Cookie der Redaktion. Es ist technisch notwendig, für Besucherinnen und Besucher gibt es keine Cookies und kein Einwilligungsbanner. |
-| Reichweitenmessung | Zunächst keine. Falls gewünscht, nur ein cookieloses Werkzeug auf dem eigenen Server (z. B. [Umami](https://umami.is/)). Das wird vorher als Architekturentscheidung festgehalten. |
-| IP-Adressen | Im Zugriffslog gekürzt, nach 7 Tagen gelöscht. Die Begrenzung der Anmeldeversuche hält IP-Adressen nur im Arbeitsspeicher. |
+| Reichweitenmessung | Seit #130 zählt das Backend Seitenaufrufe: Jede ausgelieferte öffentliche Seite erhöht einen Tageszähler (Datum und Anzahl). Zweck: Reichweite der Webseite einschätzen. Es gibt kein Messskript, kein Cookie, keinen Web-Storage-Eintrag und keine Kennung; IP-Adresse und User-Agent werden nicht gespeichert. Seitenwechsel innerhalb der Anwendung zählen nicht, weil eine Meldung per JavaScript als Zugriff nach § 25 TDDDG eine Einwilligung bräuchte (ADR 0010). Besucher werden nicht unterschieden. |
+| Ergebnisse der Selbsteinschätzung | Nur mit Einwilligung (Kontrollkästchen vor der Auswertung, nicht vorausgewählt) speichert das Backend das Ergebnis: Reifegrad je Dimension, Sprache und Zeitpunkt. Zweck: Bedarf der Zielgruppe einschätzen. Keine Namen, IP-Adressen oder User-Agents. Die zufällige Kennung des Ergebnisses liegt nur im Arbeitsspeicher des Browserfensters, in der Datenbank nur ihr Hash; solange das Fenster offen ist, löscht das Entfernen des Hakens das Ergebnis. Danach lässt es sich niemandem mehr zuordnen. |
+| Beratungsanfragen | Erst beim Absenden des Formulars auf der Auswertung (#136) speichert das Backend E-Mail-Adresse, Sprache und Zeitpunkt. Zweck: Terminabstimmung per E-Mail. Kein Ergebnis, keine weiteren Angaben. Sichtbar nur für Redaktionskonten, die die Anfrage nach der Terminabstimmung löschen. Das Protokoll enthält keine Adressen (ADR 0011). |
+| IP-Adressen | Im Zugriffslog gekürzt, nach 7 Tagen gelöscht. Die Begrenzung der Anmeldeversuche und der Beratungsanfragen hält IP-Adressen nur im Arbeitsspeicher. |
 | Bilder | Metadaten wie GPS-Position werden beim Hochladen entfernt. |
 | Konten der Redaktion | Gespeichert werden E-Mail-Adresse, Passwort-Hash, Rolle und Kontostatus. Abgelaufene Sitzungen werden täglich gelöscht. |
 | Sicherungen | Verschlüsselt mit restic, Aufbewahrung 30 Tage, Speicherort in Deutschland |
@@ -601,3 +640,5 @@ Wichtige Entscheidungen werden als kurze Architecture Decision Records im Ordner
 | 6 Zugang zur Redaktion | Anmeldeseite, Schutz der Routen | Sitzungen, Rollenprüfung, Middleware |
 | 7 Sprachwechsel | URL-Präfix, i18next, Hinweis bei fehlender Übersetzung | `lang`-Parameter, Rückfall auf vorhandene Sprache, `hreflang` |
 | 11 Benutzerverwaltung der Redaktion | `/redaktion/benutzer` | Admin-Rollenprüfung, `/api/admin/users…`, Kontostatus und Sitzungsentzug |
+| #130 Statistik der Redaktion | `/redaktion/statistik`, Einwilligung in der Selbsteinschätzung | Tageszähler beim Ausliefern, `/api/readiness-results…`, `/api/admin/statistics/…` |
+| #136 Beratungsgespräch anfragen | Formular auf der Auswertung, `/redaktion/beratungsanfragen` | `/api/consultation-requests`, `/api/admin/consultation-requests…`, Begrenzung je IP-Adresse |

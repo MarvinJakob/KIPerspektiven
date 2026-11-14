@@ -53,6 +53,7 @@ func newServer(t *testing.T, devSeed bool, opts ...func(*httpserver.Config)) (*h
 		"assets/app-abc.js": {Data: []byte("console.log(1)")},
 	}
 	accounts := service.NewAccounts(db)
+	stats := service.NewStatistics(db, catalog.Slugs(), audit.LevelCount)
 	editorialFiles := fstest.MapFS{
 		"index.html":            {Data: []byte(testEditorialIndex)},
 		"favicon.svg":           {Data: []byte("<svg/>")},
@@ -62,8 +63,10 @@ func newServer(t *testing.T, devSeed bool, opts ...func(*httpserver.Config)) (*h
 		Public:        public,
 		Audit:         catalog,
 		Accounts:      accounts,
-		Site:          web.New(public, catalog, "https://example.test", files, log),
+		Site:          web.New(public, catalog, stats, "https://example.test", files, log),
 		Editorial:     service.NewEditorial(db),
+		Statistics:    stats,
+		Consultations: service.NewConsultations(db),
 		EditorialSite: web.NewEditorial(accounts, editorialFiles, log),
 		Media:         media.NewStore(mediaDir),
 		MediaPath:     mediaDir,

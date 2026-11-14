@@ -2,7 +2,10 @@
 
 ## In short
 
-- We do not use tracking cookies or analytics. There are no optional cookies or similar technologies.
+- We do not use tracking cookies or analytics tools. There are no optional cookies or similar technologies.
+- Our server counts how often public pages are requested, only as a daily total and without any identifier (see "Statistics").
+- We only store the result of the AI readiness self-assessment if you agree beforehand, and then anonymously.
+- If you request a free consultation on the results page, we store your email address until the appointment has been arranged (see "Consultation requests").
 - Fonts, scripts and images are served exclusively from our own server. No data is sent to third parties.
 - Your language and appearance choice and your cookie choice are stored only in your browser (local storage). They never leave your device. Via "Cookie settings" in the footer you can pick "Store no cookies" (nothing is stored), "Necessary cookies only", or withdraw your choice at any time.
 
@@ -18,6 +21,34 @@
 ## Server logs
 
 When you open the site, our server processes technically necessary data such as the requested address and the time. IP addresses are shortened in the access log and logs are deleted after seven days.
+
+## Statistics
+
+**Page views.** To gauge the reach of the website, our server increases a counter for the current day each time a public page is requested. Only the date and the number of requests are stored, no IP address, no browser details and no other identifier. Nothing is stored in or read from your browser for this: we count the request your browser sends anyway when it opens a page. Moving between pages within the open website is not counted. Visitors are neither told apart nor recognised. The counters contain no personal data.
+
+**Self-assessment results.** At the end of the AI readiness self-assessment you can choose to tick a box so that your result is stored anonymously. We use the results to understand what our audience needs and to improve the content. Only if the box is ticked does the page send, when your results are shown:
+
+| Stored | Not stored |
+| --- | --- |
+| the level you chose (1 to 3) for each dimension, the language of the page, the time it was stored | your name, email address, IP address, browser or any other identifier of you |
+
+So that a changed result is updated rather than stored twice, the page creates a random identifier. It is kept only in the memory of this browser window, not in cookies or local storage, and is lost when you reload or close the page. We only store an irreversible hash of it. If you untick the box while the window is open, we delete the result immediately. After that it can no longer be linked to anyone and therefore can no longer be deleted individually.
+
+The legal basis for sending the result is your consent (§ 25(1) TDDDG). If the box is not ticked, nothing is sent and you still see your full results.
+
+## Consultation requests
+
+On the results page of the AI readiness self-assessment you can choose to request a free consultation. The page only sends your request to our server when you submit the form. We use it solely to contact you by email and arrange an appointment.
+
+| Stored | Not stored |
+| --- | --- |
+| your email address, the language of the page (for our reply), the time of the request | your self-assessment result, name, IP address, browser or any other details |
+
+The request is kept in the database on our server and is visible only to signed-in editorial accounts. If you send another request with the same address, we update the existing entry. Once the appointment has been arranged, we delete the request. On request, we delete it earlier at any time.
+
+To prevent large numbers of other people's addresses from being entered, the server accepts at most five requests per IP address per hour. For this it keeps the IP address in memory for at most one hour; it is not stored and not linked to the request.
+
+The legal basis for the request is Art. 6(1)(b) GDPR (steps taken at your request prior to a possible contract); for the limit per IP address it is our legitimate interest in operating the service without abuse (Art. 6(1)(f) GDPR). Without a request nothing is sent, and your results remain fully accessible.
 
 ## Hosting
 

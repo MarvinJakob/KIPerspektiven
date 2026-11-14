@@ -8,6 +8,13 @@ import (
 	"database/sql"
 )
 
+type ConsultationRequest struct {
+	ID          int64
+	Email       string
+	Lang        string
+	RequestedAt string
+}
+
 type MediaTranslation struct {
 	MediaID int64
 	Lang    string
@@ -21,6 +28,11 @@ type Medium struct {
 	Width      int64
 	Height     int64
 	CreatedAt  string
+}
+
+type PageView struct {
+	Day   string
+	Views int64
 }
 
 type Post struct {
@@ -45,6 +57,19 @@ type PostTranslation struct {
 	Title        string
 	Summary      string
 	BodyMarkdown string
+}
+
+type ReadinessResult struct {
+	ID          int64
+	KeyHash     string
+	Lang        string
+	SubmittedAt string
+}
+
+type ReadinessResultRating struct {
+	ResultID  int64
+	Dimension string
+	Level     int64
 }
 
 type Session struct {

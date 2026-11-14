@@ -106,11 +106,87 @@ export interface paths {
          * Eine Audit-Dimension mit Vorteilen, Reifegraden und Prüffragen
          * @description Inhalte eines Schritts der Selbsteinschätzung (Anforderung 9, Ticket #113). Für unbekannte und
          *     fachlich nicht freigegebene Dimensionen antwortet das Backend mit `404`. Die gewählten
-         *     Reifegrade bleiben im Browser; sie werden nicht an das Backend gesendet.
+         *     Reifegrade bleiben im Browser. Nur mit Einwilligung sendet das Frontend das vollständige Ergebnis
+         *     an `POST /api/readiness-results` (Ticket #130).
          */
         get: operations["getAuditDimension"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/readiness-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ergebnis der Selbsteinschätzung anonym speichern oder aktualisieren
+         * @description Ticket #130. Das Frontend sendet das Ergebnis nur, wenn Nutzer der anonymen Speicherung vorher
+         *     zugestimmt haben. Gespeichert werden nur Reifegrad je Dimension, Sprache und Zeitpunkt.
+         *     `key` ist eine zufällige Kennung, die nur im Arbeitsspeicher des Browserfensters liegt. Mit derselben
+         *     Kennung aktualisiert das Backend das bestehende Ergebnis, statt ein weiteres anzulegen; ein
+         *     unverändertes Ergebnis ändert nichts. Die Kennung steht bewusst im Anfragetext und nicht in der URL,
+         *     damit sie nicht im Zugriffsprotokoll erscheint. Anfragen von fremder Herkunft lehnt das Backend
+         *     mit `403` ab, zu große Anfragetexte mit `413`.
+         */
+        post: operations["saveReadinessResult"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/readiness-results/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Kennung aus `ReadinessResultInput` */
+                key: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Gespeichertes Ergebnis löschen, wenn Nutzer ihre Einwilligung zurücknehmen
+         * @description Antwortet auch dann mit `204`, wenn es zu der Kennung kein Ergebnis gibt. Nach dem Schließen des
+         *     Browserfensters ist die Kennung verloren; das Ergebnis lässt sich dann niemandem mehr zuordnen.
+         */
+        delete: operations["deleteReadinessResult"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/consultation-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Kostenloses Beratungsgespräch nach der Selbsteinschätzung anfragen
+         * @description Ticket #136, ADR 0011. Das Formular auf der Auswertung sendet nur die E-Mail-Adresse und die Sprache
+         *     der Seite, kein Ergebnis der Selbsteinschätzung. Das Backend speichert die Anfrage für die Redaktion
+         *     (`GET /api/admin/consultation-requests`), die sich zur Terminabstimmung per E-Mail meldet. Eine erneute
+         *     Anfrage mit derselben Adresse aktualisiert den bestehenden Eintrag. Anfragen von fremder Herkunft lehnt
+         *     das Backend mit `403` ab, zu große Anfragetexte mit `413`, mehr als fünf angenommene Anfragen je
+         *     IP-Adresse und Stunde mit `429`.
+         */
+        post: operations["requestConsultation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -381,6 +457,91 @@ export interface paths {
         patch: operations["adminUpdateUser"];
         trace?: never;
     };
+    "/api/admin/statistics/page-views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Seitenaufrufe je Tag im gewählten Zeitraum
+         * @description Ticket #130. Der Server zählt jede ausgelieferte öffentliche Seite (Direktaufruf, Link, Neuladen)
+         *     als Tageszähler. Seitenwechsel innerhalb der Anwendung lösen keinen Abruf aus und zählen nicht.
+         *     Besucher werden nicht unterschieden. Für begrenzte Zeiträume enthält `days` jeden Tag, auch ohne
+         *     Aufrufe; für `all` nur Tage mit Aufrufen. Neueste Tage zuerst.
+         */
+        get: operations["adminGetPageViews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/statistics/readiness-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gespeicherte Ergebnisse der Selbsteinschätzung, neueste zuerst
+         * @description Ticket
+         */
+        get: operations["adminListReadinessResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/consultation-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Offene Anfragen für ein Beratungsgespräch, neueste zuerst
+         * @description Ticket
+         */
+        get: operations["adminListConsultationRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/consultation-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Erledigte Anfrage löschen
+         * @description Ticket
+         */
+        delete: operations["adminDeleteConsultationRequest"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -647,6 +808,100 @@ export interface components {
              */
             levels: components["schemas"]["AuditLevel"][];
         };
+        /**
+         * @description Letzte 7 Tage, letzte 30 Tage (jeweils einschließlich heute, Kalendertage in Europe/Berlin) oder gesamt
+         * @default 30d
+         * @enum {string}
+         */
+        StatisticsPeriod: "7d" | "30d" | "all";
+        ReadinessRating: {
+            /** @description Slug einer freigegebenen Dimension */
+            dimension: string;
+            level: number;
+        };
+        /**
+         * @description Vollständiges Ergebnis: jede freigegebene Dimension genau einmal mit Reifegrad 1 bis 3.
+         *     Unvollständige oder ungültige Ergebnisse lehnt das Backend mit `422` ab.
+         */
+        ReadinessResultInput: {
+            /** @description Zufällige Kennung (128 Bit, hexadezimal) aus dem Arbeitsspeicher des Browserfensters */
+            key: string;
+            lang: components["schemas"]["Lang"];
+            ratings: components["schemas"]["ReadinessRating"][];
+        };
+        PageViewDay: {
+            /** @description Kalendertag in Europe/Berlin (JJJJ-MM-TT) */
+            date: string;
+            /** Format: int64 */
+            views: number;
+        };
+        PageViewStats: {
+            period: components["schemas"]["StatisticsPeriod"];
+            /**
+             * Format: int64
+             * @description Seitenaufrufe im Zeitraum
+             */
+            total: number;
+            days: components["schemas"]["PageViewDay"][];
+        };
+        ReadinessDimensionName: {
+            slug: string;
+            title: string;
+        };
+        ReadinessResult: {
+            /**
+             * Format: int64
+             * @description Laufende Nummer in der Datenbank, nicht die Kennung aus dem Browser
+             */
+            id: number;
+            lang: components["schemas"]["Lang"];
+            /**
+             * Format: date-time
+             * @description Zeitpunkt der letzten Speicherung
+             */
+            submittedAt: string;
+            /** @description Reifegrade in Ablaufreihenfolge der Dimensionen */
+            ratings: components["schemas"]["ReadinessRating"][];
+        };
+        ReadinessResultPage: {
+            period: components["schemas"]["StatisticsPeriod"];
+            /**
+             * Format: int64
+             * @description Gespeicherte Ergebnisse im Zeitraum
+             */
+            total: number;
+            page: number;
+            pageSize: number;
+            /** @description Freigegebene Dimensionen mit deutschem Titel, in Ablaufreihenfolge */
+            dimensions: components["schemas"]["ReadinessDimensionName"][];
+            /** @description Namen der Reifegrade, z. B. Strukturiert */
+            levels: components["schemas"]["AuditLevelInfo"][];
+            items: components["schemas"]["ReadinessResult"][];
+        };
+        /**
+         * @description Anfrage für ein kostenloses Beratungsgespräch (Ticket #136). Die E-Mail-Adresse ist die einzige
+         *     Angabe der Person. Leere oder ungültige Adressen lehnt das Backend mit `422` ab.
+         */
+        ConsultationRequestInput: {
+            /** @description E-Mail-Adresse für die Terminabstimmung; Groß- und Kleinschreibung zählt nicht */
+            email: string;
+            lang: components["schemas"]["Lang"];
+        };
+        ConsultationRequest: {
+            /** Format: int64 */
+            id: number;
+            /** @description Normalisiert (ohne Leerzeichen, kleingeschrieben) */
+            email: string;
+            lang: components["schemas"]["Lang"];
+            /**
+             * Format: date-time
+             * @description Zeitpunkt der letzten Anfrage mit dieser Adresse
+             */
+            requestedAt: string;
+        };
+        ConsultationRequestList: {
+            items: components["schemas"]["ConsultationRequest"][];
+        };
     };
     responses: {
         /** @description Ungültige Anfrage */
@@ -709,6 +964,8 @@ export interface components {
         /** @description Gewünschte Sprache */
         Lang: components["schemas"]["Lang"];
         Slug: string;
+        /** @description Zeitraum der Statistik, ohne Angabe die letzten 30 Tage */
+        Period: components["schemas"]["StatisticsPeriod"];
     };
     requestBodies: never;
     headers: never;
@@ -873,6 +1130,88 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    saveReadinessResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadinessResultInput"];
+            };
+        };
+        responses: {
+            /** @description Gespeichert, aktualisiert oder unverändert */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    deleteReadinessResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Kennung aus `ReadinessResultInput` */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Gelöscht oder nicht vorhanden */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    requestConsultation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsultationRequestInput"];
+            };
+        };
+        responses: {
+            /** @description Anfrage eingegangen */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Unprocessable"];
+            /** @description Zu viele Anfragen, später erneut versuchen */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     getHealth: {
@@ -1361,6 +1700,105 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["Unprocessable"];
+        };
+    };
+    adminGetPageViews: {
+        parameters: {
+            query?: {
+                /** @description Zeitraum der Statistik, ohne Angabe die letzten 30 Tage */
+                period?: components["parameters"]["Period"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Summe und Aufrufe je Tag */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageViewStats"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminListReadinessResults: {
+        parameters: {
+            query?: {
+                /** @description Zeitraum der Statistik, ohne Angabe die letzten 30 Tage */
+                period?: components["parameters"]["Period"];
+                /** @description Seite ab 1 */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Anzahl im Zeitraum und eine Seite der Ergebnisse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessResultPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminListConsultationRequests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Alle offenen Anfragen */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationRequestList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminDeleteConsultationRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Gelöscht */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
 }
