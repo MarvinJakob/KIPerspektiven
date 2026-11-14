@@ -83,6 +83,44 @@ describe('Tickets 41 und 60: Profilseite nach dem Mock', () => {
   });
 });
 
+describe('Ticket 123: LinkedIn-Icon neben dem Namen', () => {
+  const linkedin = {
+    de: { name: 'Marvin Jakob auf LinkedIn', href: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=de-DE' },
+    en: { name: 'Marvin Jakob on LinkedIn', href: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=en-US' },
+  } as const;
+
+  it.each(['de', 'en'] as const)('verlinkt in %s neben dem Namen auf das passende LinkedIn-Profil und ist per Tastatur erreichbar', async (lang) => {
+    const user = userEvent.setup();
+    renderApp(`/${lang}/profil`);
+    const name = await screen.findByRole('heading', { level: 1, name: 'Marvin Jakob' });
+    const link = screen.getByRole('link', { name: linkedin[lang].name });
+    expect(link).toHaveAttribute('href', linkedin[lang].href);
+    expect(link.parentElement).toBe(name.parentElement);
+    expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    act(() => name.focus());
+    await user.tab();
+    expect(link).toHaveFocus();
+  });
+
+  it('aktualisiert die Zieladresse beim Sprachwechsel', async () => {
+    const user = userEvent.setup();
+    renderApp('/de/profil');
+    expect(await screen.findByRole('link', { name: linkedin.de.name })).toHaveAttribute('href', linkedin.de.href);
+    await user.click(screen.getByRole('button', { name: 'English' }));
+    expect(screen.getByRole('link', { name: linkedin.en.name })).toHaveAttribute('href', linkedin.en.href);
+    await user.click(screen.getByRole('button', { name: 'Deutsch' }));
+    expect(screen.getByRole('link', { name: linkedin.de.name })).toHaveAttribute('href', linkedin.de.href);
+  });
+
+  it('ergänzt in Kopfzeile und Footer keinen LinkedIn-Link', async () => {
+    renderApp('/de/profil');
+    await screen.findByRole('heading', { level: 1, name: 'Marvin Jakob' });
+    for (const region of [document.querySelector<HTMLElement>('.site-header')!, screen.getByRole('contentinfo')]) {
+      expect(within(region).queryAllByRole('link').filter((a) => a.getAttribute('href')?.includes('linkedin.com'))).toHaveLength(0);
+    }
+  });
+});
+
 describe('Ticket 42: Profil in der Hauptnavigation', () => {
   const paths = ['', '/blog', '/blog/neu', '/themen/softwareentwicklung', '/themen/ai-audit', '/themen/ai-audit/daten-und-wissen', '/impressum', '/datenschutz', '/gibt-es-nicht'];
 
