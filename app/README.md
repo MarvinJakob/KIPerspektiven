@@ -80,7 +80,7 @@ Vorlage und Seite: Die Vorlage nennt für den Kontakt nur „LinkedIn“ und „
 
 Die gemeinsame Hauptnavigation verlinkt die Profilseite als „Profil“ bzw. „Profile“ in der aktuellen Sprache ([Ticket #42](https://github.com/MarvinJakob/aiboard/issues/42)). Auf der Profilseite ist der Link visuell aktiv und mit `aria-current="page"` ausgezeichnet. Er nutzt den bestehenden Tastaturfokus und die zweizeilige Kopfzeile auf kleinen Bildschirmen.
 
-Neben dem Namen im Profilkopf steht ein LinkedIn-Icon ([Ticket #123](https://github.com/MarvinJakob/aiboard/issues/123)). Es ist ein einfacher externer Link ohne SDK oder Tracking; das Symbol `linkedin` ist ein lokales SVG in `components/Icon.tsx`. Zieladresse (`?locale=de-DE` bzw. `?locale=en-US`) und zugänglicher Name stehen je Sprache in `i18n/profile.ts`. Der Link liegt bewusst neben und nicht in der `h1`, damit deren Name „Marvin Jakob“ bleibt. Kopfzeile und Footer enthalten keinen LinkedIn-Link.
+Der Profilkopf zeigt „Marvin Jakob“ ohne Punkt oder LinkedIn-Icon ([Ticket #129](https://github.com/MarvinJakob/aiboard/issues/129)). Der LinkedIn-Button im Kontaktbereich öffnet das Profil in einem neuen Tab (`target="_blank"`, `rel="noopener noreferrer"`); sein zugänglicher Name kündigt dies in der jeweiligen Sprache an. Zieladresse (`?locale=de-DE` bzw. `?locale=en-US`) und zugänglicher Name stehen je Sprache in `i18n/profile.ts`. Das Symbol im Kontaktbutton ist ein lokales SVG in `components/Icon.tsx`, ohne SDK oder Tracking. Mail-Link und interne Links öffnen weiter im selben Tab. Kopfzeile und Footer enthalten keinen LinkedIn-Link.
 
 ```
 api/openapi.yaml        Verbindlicher Vertrag zwischen Frontend und Backend

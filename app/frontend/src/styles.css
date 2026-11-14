@@ -662,12 +662,7 @@ svg { display: block; }
 .profile-crumbs { margin-bottom: 20px; }
 .profile-crumbs a { min-width: 44px; }
 .profile-hero { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 64px; align-items: center; padding-bottom: 64px; }
-.profile-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 12px 0 24px; }
-.profile-name .page-title { margin: 0; }
-.profile-hero .page-title span { color: var(--brand); }
-.profile-linkedin { flex: none; display: inline-grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--border); border-radius: var(--radius-small); background: var(--fill); color: var(--accent); }
-.profile-linkedin:hover { border-color: var(--accent); }
-.profile-linkedin svg { width: 24px; height: 24px; }
+.profile-hero .page-title { margin-bottom: 24px; }
 .profile-headline { font-size: clamp(1.625rem, 3vw, 2.375rem); line-height: 1.2; letter-spacing: -.035em; font-weight: 650; margin-bottom: 24px; max-width: 520px; }
 .profile-headline span { color: var(--accent); }
 .profile-motto { color: var(--text-2); max-width: 515px; margin-bottom: 28px; font-size: 1.125rem; }

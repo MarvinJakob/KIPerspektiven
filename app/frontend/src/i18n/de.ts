@@ -114,6 +114,7 @@ export const de = {
     radarCaption: 'Selbsteinschätzung als Netzdiagramm: Jede Achse ist eine Dimension, nummeriert wie in der Tabelle darunter. Die Ringe zeigen die Reifegrade 1 {{one}} (innen), 2 {{two}} und 3 {{three}} (außen). Je weiter außen ein Punkt liegt, desto höher ist der gewählte Reifegrad.',
   },
   footer: {
+    aiNote: 'Diese Webseite wurde mit Unterstützung von KI erstellt. Marvin Jakob prüft alle Inhalte vor der Veröffentlichung und verantwortet sie.',
     tagline: 'Einordnungen und Erfahrungen rund um künstliche Intelligenz.',
     privacyNote: 'Wir setzen keine Tracking-Cookies ein. Sprache und Darstellung speichern wir nur auf Ihren Wunsch in Ihrem Browser; Sie können das in den Cookie-Einstellungen ausschalten.',
     site: 'Website',
