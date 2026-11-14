@@ -209,7 +209,35 @@ INSERT INTO page_views (day, views) VALUES (?, 1)
 ON CONFLICT (day) DO UPDATE SET views = views + 1;
 
 -- name: ListPageViews :many
-SELECT day, views FROM page_views WHERE day >= ? ORDER BY day DESC;
+SELECT day, views, identified_views, unique_views FROM page_views
+WHERE day >= sqlc.arg(since) AND day <= sqlc.arg(until) ORDER BY day DESC;
+
+-- name: GetPageViewSource :one
+SELECT last_day FROM page_view_sources WHERE ip_hash = ?;
+
+-- name: UpsertPageViewSource :exec
+INSERT INTO page_view_sources (ip_hash, last_day) VALUES (?, ?)
+ON CONFLICT(ip_hash) DO UPDATE SET last_day = MAX(last_day, excluded.last_day);
+
+-- name: CountIdentifiedPageView :exec
+UPDATE page_views SET identified_views = identified_views + 1,
+unique_views = unique_views + sqlc.arg(new_source) WHERE day = sqlc.arg(day);
+
+-- name: CountPageViewSources :one
+SELECT COUNT(*) FROM page_view_sources WHERE last_day >= ?;
+
+-- name: GetPageViewIdentity :one
+SELECT key_id, started_at FROM page_view_identity WHERE id = 1;
+
+-- name: SetPageViewIdentity :exec
+INSERT INTO page_view_identity (id, key_id, started_at) VALUES (1, ?, ?)
+ON CONFLICT(id) DO UPDATE SET key_id = excluded.key_id, started_at = excluded.started_at;
+
+-- name: DeletePageViewSources :exec
+DELETE FROM page_view_sources;
+
+-- name: InvalidatePageViewDay :exec
+UPDATE page_views SET identified_views = -1 WHERE day = ?;
 
 -- name: GetReadinessResultByKey :one
 SELECT id, lang FROM readiness_results WHERE key_hash = ?;

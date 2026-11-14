@@ -11,6 +11,21 @@ import (
 	"strings"
 )
 
+const countIdentifiedPageView = `-- name: CountIdentifiedPageView :exec
+UPDATE page_views SET identified_views = identified_views + 1,
+unique_views = unique_views + ?1 WHERE day = ?2
+`
+
+type CountIdentifiedPageViewParams struct {
+	NewSource int64
+	Day       string
+}
+
+func (q *Queries) CountIdentifiedPageView(ctx context.Context, arg CountIdentifiedPageViewParams) error {
+	_, err := q.db.ExecContext(ctx, countIdentifiedPageView, arg.NewSource, arg.Day)
+	return err
+}
+
 const countPageView = `-- name: CountPageView :exec
 
 INSERT INTO page_views (day, views) VALUES (?, 1)
@@ -23,6 +38,17 @@ ON CONFLICT (day) DO UPDATE SET views = views + 1
 func (q *Queries) CountPageView(ctx context.Context, day string) error {
 	_, err := q.db.ExecContext(ctx, countPageView, day)
 	return err
+}
+
+const countPageViewSources = `-- name: CountPageViewSources :one
+SELECT COUNT(*) FROM page_view_sources WHERE last_day >= ?
+`
+
+func (q *Queries) CountPageViewSources(ctx context.Context, lastDay string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countPageViewSources, lastDay)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const countPublishedPostsByTopic = `-- name: CountPublishedPostsByTopic :many
@@ -229,6 +255,15 @@ func (q *Queries) DeleteMediaTranslations(ctx context.Context, mediaID int64) er
 	return err
 }
 
+const deletePageViewSources = `-- name: DeletePageViewSources :exec
+DELETE FROM page_view_sources
+`
+
+func (q *Queries) DeletePageViewSources(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deletePageViewSources)
+	return err
+}
+
 const deletePost = `-- name: DeletePost :execrows
 DELETE FROM posts WHERE id = ?
 `
@@ -319,6 +354,33 @@ func (q *Queries) GetMedia(ctx context.Context, id int64) (GetMediaRow, error) {
 		&i.Height,
 	)
 	return i, err
+}
+
+const getPageViewIdentity = `-- name: GetPageViewIdentity :one
+SELECT key_id, started_at FROM page_view_identity WHERE id = 1
+`
+
+type GetPageViewIdentityRow struct {
+	KeyID     string
+	StartedAt string
+}
+
+func (q *Queries) GetPageViewIdentity(ctx context.Context) (GetPageViewIdentityRow, error) {
+	row := q.db.QueryRowContext(ctx, getPageViewIdentity)
+	var i GetPageViewIdentityRow
+	err := row.Scan(&i.KeyID, &i.StartedAt)
+	return i, err
+}
+
+const getPageViewSource = `-- name: GetPageViewSource :one
+SELECT last_day FROM page_view_sources WHERE ip_hash = ?
+`
+
+func (q *Queries) GetPageViewSource(ctx context.Context, ipHash string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getPageViewSource, ipHash)
+	var last_day string
+	err := row.Scan(&last_day)
+	return last_day, err
 }
 
 const getPostByID = `-- name: GetPostByID :one
@@ -536,6 +598,15 @@ func (q *Queries) InsertReadinessRating(ctx context.Context, arg InsertReadiness
 	return err
 }
 
+const invalidatePageViewDay = `-- name: InvalidatePageViewDay :exec
+UPDATE page_views SET identified_views = -1 WHERE day = ?
+`
+
+func (q *Queries) InvalidatePageViewDay(ctx context.Context, day string) error {
+	_, err := q.db.ExecContext(ctx, invalidatePageViewDay, day)
+	return err
+}
+
 const listAllPosts = `-- name: ListAllPosts :many
 
 SELECT id, slug, status, published_at, featured, cover_media_id, updated_at, scheduled_at FROM posts ORDER BY updated_at DESC, id DESC
@@ -735,11 +806,17 @@ func (q *Queries) ListMediaTranslations(ctx context.Context, mediaIds []int64) (
 }
 
 const listPageViews = `-- name: ListPageViews :many
-SELECT day, views FROM page_views WHERE day >= ? ORDER BY day DESC
+SELECT day, views, identified_views, unique_views FROM page_views
+WHERE day >= ?1 AND day <= ?2 ORDER BY day DESC
 `
 
-func (q *Queries) ListPageViews(ctx context.Context, day string) ([]PageView, error) {
-	rows, err := q.db.QueryContext(ctx, listPageViews, day)
+type ListPageViewsParams struct {
+	Since string
+	Until string
+}
+
+func (q *Queries) ListPageViews(ctx context.Context, arg ListPageViewsParams) ([]PageView, error) {
+	rows, err := q.db.QueryContext(ctx, listPageViews, arg.Since, arg.Until)
 	if err != nil {
 		return nil, err
 	}
@@ -747,7 +824,12 @@ func (q *Queries) ListPageViews(ctx context.Context, day string) ([]PageView, er
 	items := []PageView{}
 	for rows.Next() {
 		var i PageView
-		if err := rows.Scan(&i.Day, &i.Views); err != nil {
+		if err := rows.Scan(
+			&i.Day,
+			&i.Views,
+			&i.IdentifiedViews,
+			&i.UniqueViews,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1230,6 +1312,21 @@ func (q *Queries) SchedulePost(ctx context.Context, arg SchedulePostParams) (int
 	return result.RowsAffected()
 }
 
+const setPageViewIdentity = `-- name: SetPageViewIdentity :exec
+INSERT INTO page_view_identity (id, key_id, started_at) VALUES (1, ?, ?)
+ON CONFLICT(id) DO UPDATE SET key_id = excluded.key_id, started_at = excluded.started_at
+`
+
+type SetPageViewIdentityParams struct {
+	KeyID     string
+	StartedAt string
+}
+
+func (q *Queries) SetPageViewIdentity(ctx context.Context, arg SetPageViewIdentityParams) error {
+	_, err := q.db.ExecContext(ctx, setPageViewIdentity, arg.KeyID, arg.StartedAt)
+	return err
+}
+
 const setPostCover = `-- name: SetPostCover :execrows
 UPDATE posts SET cover_media_id = ?, updated_at = ? WHERE id = ?
 `
@@ -1374,5 +1471,20 @@ type UpsertConsultationRequestParams struct {
 // ---------------------------------------------------------------------------
 func (q *Queries) UpsertConsultationRequest(ctx context.Context, arg UpsertConsultationRequestParams) error {
 	_, err := q.db.ExecContext(ctx, upsertConsultationRequest, arg.Email, arg.Lang, arg.RequestedAt)
+	return err
+}
+
+const upsertPageViewSource = `-- name: UpsertPageViewSource :exec
+INSERT INTO page_view_sources (ip_hash, last_day) VALUES (?, ?)
+ON CONFLICT(ip_hash) DO UPDATE SET last_day = MAX(last_day, excluded.last_day)
+`
+
+type UpsertPageViewSourceParams struct {
+	IpHash  string
+	LastDay string
+}
+
+func (q *Queries) UpsertPageViewSource(ctx context.Context, arg UpsertPageViewSourceParams) error {
+	_, err := q.db.ExecContext(ctx, upsertPageViewSource, arg.IpHash, arg.LastDay)
 	return err
 }

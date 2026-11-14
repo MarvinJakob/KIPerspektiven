@@ -105,7 +105,7 @@ describe('Ticket #130: Statistik der Redaktion', () => {
     await openStatistics();
     expect(screen.getByRole('radio', { name: 'Letzte 30 Tage' })).toBeChecked();
     expect(await screen.findByText('1.230')).toBeInTheDocument();
-    expect(statValue('Seitenaufrufe')).toHaveTextContent('1.230 in den letzten 30 Tagen');
+    expect(statValue('Absolute Anzahl')).toHaveTextContent('1.230 in den letzten 30 Tagen');
     expect(screen.getByText(/zählt keine eindeutigen Besucher/)).toBeInTheDocument();
     const table = screen.getByRole('table', { name: 'Seitenaufrufe je Tag, neueste zuerst' });
     const rows = within(table).getAllByRole('row').slice(1);
@@ -127,11 +127,11 @@ describe('Ticket #130: Statistik der Redaktion', () => {
     await user.keyboard('{ArrowLeft}');
     expect(screen.getByRole('radio', { name: 'Letzte 7 Tage' })).toBeChecked();
     expect(await screen.findByText('14')).toBeInTheDocument();
-    expect(statValue('Seitenaufrufe')).toHaveTextContent('in den letzten 7 Tagen');
+    expect(statValue('Absolute Anzahl')).toHaveTextContent('in den letzten 7 Tagen');
     expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(8);
 
     await user.click(screen.getByRole('radio', { name: 'Gesamt' }));
-    await waitFor(() => expect(statValue('Seitenaufrufe')).toHaveTextContent('6 insgesamt'));
+    await waitFor(() => expect(statValue('Absolute Anzahl')).toHaveTextContent('6 insgesamt'));
     expect(seen).toEqual(expect.arrayContaining(['page-views 7d', 'page-views all', 'readiness-results 7d 1', 'readiness-results all 1']));
     expect(statValue('Abgeschlossene Selbsteinschätzungen')).toHaveTextContent('insgesamt');
   });
@@ -185,7 +185,7 @@ describe('Ticket #130: Statistik der Redaktion', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
     await user.click(screen.getByRole('radio', { name: 'Gesamt' }));
-    await waitFor(() => expect(statValue('Seitenaufrufe')).toHaveTextContent('0 insgesamt'));
+    await waitFor(() => expect(statValue('Absolute Anzahl')).toHaveTextContent('0 insgesamt'));
     expect(screen.queryByRole('img', { name: /Verlauf der Seitenaufrufe/ })).not.toBeInTheDocument();
   });
 });
@@ -199,14 +199,14 @@ describe('Ticket #139: Verlauf der Seitenaufrufe', () => {
       if (r.path !== '/api/admin/statistics/page-views') return undefined;
       const period = (url.searchParams.get('period') ?? '30d') as Period;
       const days = Array.from({ length: LENGTH[period] }, (_, i) => ({ date: day(i), views: i === 1 ? 0 : i + 1 }));
-      return json(200, { period, total: days.reduce((sum, d) => sum + d.views, 0), days });
+      return json(200, { period, total: days.reduce((sum, d) => sum + d.views, 0), uniqueTotal: days.some(d => d.views > 0) ? 1 : 0, uniqueSince: "2026-10-01T00:00:00Z", days: days.map(d => ({ ...d, uniqueViews: Math.min(d.views, 1) })) });
     }, statsBackend({ results: 0 }).handler);
     await openStatistics();
     await screen.findByRole('img', { name: /Verlauf der Seitenaufrufe/ });
     for (const [label, length] of [['Letzte 30 Tage', 30], ['Letzte 7 Tage', 7], ['Gesamt', 3]] as const) {
       await user.click(screen.getByRole('radio', { name: label }));
-      await waitFor(() => expect(chart().querySelectorAll('circle')).toHaveLength(length));
-      const dots = [...chart().querySelectorAll('circle')];
+      await waitFor(() => expect(chart().querySelectorAll('.chart-point')).toHaveLength(length));
+      const dots = [...chart().querySelectorAll('.chart-point')];
       const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1).reverse();
       expect(rows).toHaveLength(length);
       dots.forEach((dot, i) => {
@@ -220,7 +220,7 @@ describe('Ticket #139: Verlauf der Seitenaufrufe', () => {
       });
       expect(Number(dots[length - 2].getAttribute('cy'))).toBeGreaterThan(Number(dots[length - 1].getAttribute('cy')));
       expect(Number(dots[0].getAttribute('cy'))).toBeLessThan(Number(dots[length - 1].getAttribute('cy')));
-      expect(statValue('Seitenaufrufe')).toHaveTextContent(String(length * (length + 1) / 2 - 2));
+      expect(statValue('Absolute Anzahl')).toHaveTextContent(String(length * (length + 1) / 2 - 2));
     }
   });
 
@@ -241,14 +241,83 @@ describe('Ticket #139: Verlauf der Seitenaufrufe', () => {
     await user.click(screen.getByRole('radio', { name: 'Letzte 7 Tage' }));
     expect(screen.queryByRole('img', { name: /Verlauf der Seitenaufrufe/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
-    expect(screen.queryByText('Seitenaufrufe', { selector: 'dt' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Absolute Anzahl', { selector: 'dt' })).not.toBeInTheDocument();
     resolveRequest(json(400, { message: 'Testfehler' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Die Seitenaufrufe konnten nicht geladen werden');
     expect(screen.queryByRole('img', { name: /Verlauf der Seitenaufrufe/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
-    resolveRequest(json(200, { period: '7d', total: 1, days: [{ date: day(0), views: 1 }] }));
+    resolveRequest(json(200, { period: '7d', total: 1, uniqueTotal: 1, uniqueSince: '2026-10-01T00:00:00Z', days: [{ date: day(0), views: 1, uniqueViews: 1 }] }));
     await screen.findByRole('img', { name: /Verlauf der Seitenaufrufe/ });
-    expect(chart().querySelectorAll('circle')).toHaveLength(1);
+    expect(chart().querySelectorAll('.chart-point')).toHaveLength(1);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
+
+describe('Ticket #142: IP-bereinigte Seitenaufrufe', () => {
+  it('zeigt 5 absolute Abrufe und 2 IPs, schaltet nur die zweite Kurve per Tastatur und behaelt die Wahl beim Zeitraumwechsel', async () => {
+    const user = userEvent.setup();
+    const seen: string[] = [];
+    fakeBackend(EDITOR, (r, url) => {
+      if (r.path !== '/api/admin/statistics/page-views') return undefined;
+      const period = url.searchParams.get('period'); seen.push(period!);
+      return json(200, { period, total: 5, uniqueTotal: 2, uniqueSince: '2026-11-13T00:00:00Z', days: [
+        { date: day(0), views: 2, uniqueViews: 2 }, { date: day(1), views: 3, uniqueViews: 1 },
+      ] });
+    }, statsBackend({ results: 0 }).handler);
+    await openStatistics();
+    await waitFor(() => expect(statValue('Bereinigte Anzahl')).toHaveTextContent('2 in den letzten 30 Tagen'));
+    expect(statValue('Absolute Anzahl')).toHaveTextContent('5 in den letzten 30 Tagen');
+    const toggle = screen.getByRole('checkbox', { name: 'Bereinigte Anzahl anzeigen' });
+    const chart = () => screen.getByRole('img', { name: /Verlauf der Seitenaufrufe/ });
+    expect(toggle).toBeChecked();
+    expect(chart().querySelector('.chart-unique-line')).not.toBeNull();
+    expect([...chart().querySelectorAll('.chart-unique-point')].map(p => p.textContent)).toEqual(['13.11.2026: 1 bereinigt', '14.11.2026: 2 bereinigt']);
+    const absoluteToday = chart().querySelectorAll('.chart-point')[1];
+    const uniqueToday = chart().querySelectorAll('.chart-unique-point')[1];
+    expect(uniqueToday.getAttribute('cx')).toBe(absoluteToday.getAttribute('cx'));
+    expect(uniqueToday.getAttribute('cy')).toBe(absoluteToday.getAttribute('cy'));
+    const rows = within(screen.getByRole('table')).getAllByRole('row');
+    expect(within(rows[1]).getAllByRole('cell').map(c => c.textContent)).toEqual(['Sa., 14.11.2026', '2', '2']);
+    expect(within(rows[2]).getAllByRole('cell').map(c => c.textContent)).toEqual(['Fr., 13.11.2026', '3', '1']);
+    const table = screen.getByRole('table').textContent;
+    toggle.focus(); await user.keyboard(' ');
+    expect(toggle).not.toBeChecked();
+    expect(chart().querySelector('.chart-unique-line')).toBeNull();
+    expect(chart().querySelector('.chart-line')).not.toBeNull();
+    expect(screen.getByRole('table')).toHaveTextContent(table!);
+    expect(statValue('Bereinigte Anzahl')).toHaveTextContent('2');
+    for (const label of ['Letzte 7 Tage', 'Gesamt']) {
+      await user.click(screen.getByRole('radio', { name: label }));
+      await waitFor(() => expect(chart().querySelector('.chart-line')).not.toBeNull());
+      expect(screen.getByRole('checkbox', { name: 'Bereinigte Anzahl anzeigen' })).not.toBeChecked();
+      expect(chart().querySelector('.chart-unique-line')).toBeNull();
+    }
+    await user.click(screen.getByRole('checkbox', { name: 'Bereinigte Anzahl anzeigen' }));
+    expect(chart().querySelector('.chart-unique-line')).not.toBeNull();
+    expect(seen).toEqual(['30d', '7d', 'all']);
+  });
+
+  it('zeigt fehlende Historie als nicht verfuegbar und unterbricht die Kurve an Datenluecken', async () => {
+    fakeBackend(EDITOR, (r) => r.path === '/api/admin/statistics/page-views' ? json(200, {
+      period: '30d', total: 8, uniqueTotal: null, uniqueSince: '2026-11-14T08:00:00Z', days: [
+        { date: day(0), views: 1, uniqueViews: 1 },
+        { date: day(1), views: 5, uniqueViews: null },
+        { date: day(2), views: 2, uniqueViews: 1 },
+        { date: day(3), views: 0, uniqueViews: 0 },
+      ],
+    }) : undefined, statsBackend({ results: 0 }).handler);
+    await openStatistics();
+    await screen.findByRole('note');
+    expect(statValue('Bereinigte Anzahl')).toHaveTextContent('Nicht verfügbar');
+    expect(statValue('Absolute Anzahl')).toHaveTextContent('8');
+    expect(screen.getByRole('note')).toHaveTextContent('14.11.2026 um 09:00 Uhr');
+    const chart = screen.getByRole('img', { name: /Verlauf der Seitenaufrufe/ });
+    const path = chart.querySelector('.chart-unique-line')!.getAttribute('d')!;
+    expect(path.match(/M/g)).toHaveLength(2);
+    expect(chart.querySelectorAll('.chart-unique-point')).toHaveLength(3);
+    const rows = within(screen.getByRole('table')).getAllByRole('row');
+    expect(within(rows[2]).getAllByRole('cell')[2]).toHaveTextContent('Nicht verfügbar');
+    expect(within(rows[4]).getAllByRole('cell')[2]).toHaveTextContent('0');
   });
 });

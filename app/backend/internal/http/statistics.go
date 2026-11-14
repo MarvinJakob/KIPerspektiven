@@ -3,6 +3,7 @@ package httpserver
 import (
 	"context"
 	"errors"
+	"time"
 
 	"ki-web/backend/internal/api"
 	"ki-web/backend/internal/service"
@@ -63,9 +64,14 @@ func (s *apiServer) AdminGetPageViews(ctx context.Context, req api.AdminGetPageV
 	}
 	days := make([]api.PageViewDay, 0, len(st.Days))
 	for _, d := range st.Days {
-		days = append(days, api.PageViewDay{Date: d.Day, Views: d.Views})
+		days = append(days, api.PageViewDay{Date: d.Day, Views: d.Views, UniqueViews: d.UniqueViews})
 	}
-	return api.AdminGetPageViews200JSONResponse{Period: api.StatisticsPeriod(period), Total: st.Total, Days: days}, nil
+	var since *string
+	if !st.IdentitySince.IsZero() {
+		value := st.IdentitySince.UTC().Format(time.RFC3339)
+		since = &value
+	}
+	return api.AdminGetPageViews200JSONResponse{Period: api.StatisticsPeriod(period), Total: st.Total, UniqueTotal: st.UniqueTotal, UniqueSince: since, Days: days}, nil
 }
 
 func (s *apiServer) AdminListReadinessResults(ctx context.Context, req api.AdminListReadinessResultsRequestObject) (api.AdminListReadinessResultsResponseObject, error) {

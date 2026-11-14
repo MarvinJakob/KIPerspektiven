@@ -18,6 +18,9 @@ services:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - app_media:/srv/media:ro
+    networks:
+      proxy:
+        ipv4_address: 172.30.142.2
     depends_on:
       backend: { condition: service_healthy }
     restart: unless-stopped
@@ -29,11 +32,12 @@ services:
       DATABASE_PATH: /data/db/app.db
       MEDIA_PATH: /data/media
       PUBLIC_BASE_URL: https://${DOMAIN}
-      # Caddy setzt X-Forwarded-For; daraus liest das Backend die IP für die Begrenzung der Anmeldeversuche.
-      TRUST_PROXY: "true"
+      # Nur die feste Caddy-IP darf Client-IP-Header für Statistik und Ratenbegrenzung liefern.
+      TRUSTED_PROXIES: "172.30.142.2/32"
       # Die Webseite ist öffentlich (Ticket #108); die Redaktion prüft Sitzung und Rolle unabhängig davon.
       # REQUIRE_LOGIN=true in der .env schaltet den optionalen Zugangsschutz aus Ticket #49 wieder ein.
       REQUIRE_LOGIN: ${REQUIRE_LOGIN:-false}
+    networks: [proxy]
     volumes:
       - app_db:/data/db
       - app_media:/data/media
@@ -47,6 +51,12 @@ services:
       start_interval: 2s
     restart: unless-stopped
     logging: *logging
+
+networks:
+  proxy:
+    ipam:
+      config:
+        - subnet: 172.30.142.0/24
 
 volumes:
   caddy_data:

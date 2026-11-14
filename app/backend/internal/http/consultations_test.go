@@ -3,6 +3,7 @@ package httpserver_test
 import (
 	"fmt"
 	"net/http"
+	"net/netip"
 	"slices"
 	"strings"
 	"testing"
@@ -159,7 +160,9 @@ func TestConsultationRequestChecksOriginAndSize(t *testing.T) {
 // Mehr als fünf angenommene Anfragen je IP-Adresse und Stunde lehnt das Backend ab. Ungültige Eingaben zählen
 // nicht mit, und andere IP-Adressen sind nicht betroffen.
 func TestConsultationRequestsAreLimitedPerIP(t *testing.T) {
-	srv, db := newServer(t, false, func(c *httpserver.Config) { c.TrustProxy = true })
+	srv, db := newServer(t, false, func(c *httpserver.Config) {
+		c.TrustedProxies = []netip.Prefix{netip.MustParsePrefix("127.0.0.0/8"), netip.MustParsePrefix("::1/128")}
+	})
 	b := newBrowser(t, srv)
 	send := func(email, ip string) int {
 		t.Helper()

@@ -3,7 +3,7 @@
 ## Kurz gesagt
 
 - Wir setzen keine Tracking-Cookies und keine Analysewerkzeuge ein. Es gibt keine optionalen Cookies oder vergleichbaren Technologien.
-- Unser Server zählt, wie oft öffentliche Seiten abgerufen werden, nur als Summe je Tag und ohne Kennung (siehe „Statistik“).
+- Unser Server zählt, wie oft öffentliche Seiten abgerufen werden, als Summe je Tag und zusätzlich bereinigt je IP-Adresse mit einer geschützten Ableitung (siehe „Statistik“).
 - Das Ergebnis der KI-Readiness-Selbsteinschätzung speichern wir nur, wenn Sie vorher zustimmen, und dann anonym.
 - Fragen Sie auf der Auswertung ein kostenloses Beratungsgespräch an, speichern wir Ihre E-Mail-Adresse, bis der Termin abgestimmt ist (siehe „Anfrage für ein Beratungsgespräch“).
 - Schriften, Skripte und Bilder kommen ausschließlich von unserem eigenen Server. Es werden keine Daten an Dritte übertragen.
@@ -24,7 +24,11 @@ Beim Aufruf der Seite verarbeitet unser Server technisch notwendige Daten wie di
 
 ## Statistik
 
-**Seitenaufrufe.** Um die Reichweite der Webseite einzuschätzen, erhöht unser Server bei jedem Abruf einer öffentlichen Seite einen Zähler für den jeweiligen Tag. Gespeichert werden nur das Datum und die Anzahl der Abrufe, keine IP-Adresse, kein Browser und keine andere Kennung. Dafür wird nichts in Ihrem Browser gespeichert oder ausgelesen: Gezählt wird der Abruf, den Ihr Browser beim Öffnen einer Seite ohnehin schickt. Wechsel zwischen Seiten innerhalb der geöffneten Webseite zählen wir nicht. Besucherinnen und Besucher werden nicht unterschieden oder wiedererkannt. Die Zähler enthalten keine personenbezogenen Daten.
+**Seitenaufrufe.** Um die Reichweite der Webseite und wiederholte Abrufe einzuschätzen, zählt unser Server jeden Abruf einer öffentlichen Seite. Die absolute Anzahl wird als Summe je Kalendertag gespeichert. Für die bereinigte Anzahl wird die IP-Adresse aus der ohnehin notwendigen Verbindung normalisiert und sofort mit einem geheimen Schlüssel abgeleitet (HMAC-SHA-256). Wir speichern für diese Statistik keine IP-Adresse im Klartext. Je Ableitung bleibt nur der letzte Aufruftag erhalten, kein Verlauf besuchter Seiten, kein genauer Zeitpunkt und keine Browserdaten. Die Ableitungen werden nicht mit Konten, Ergebnissen oder Beratungsanfragen verbunden und nicht an Dritte weitergegeben. Nur angemeldete Redaktionskonten sehen die zusammengefassten Zahlen.
+
+Die Ableitung ist ein personenbezogenes Pseudonym, keine anonyme Kennung. Sie und der getrennt geschützte Schlüssel bleiben für die Laufzeit des Statistikbestands erhalten, damit auch lange nicht verwendete IP-Adressen in der Gesamtzahl nur einmal zählen. Bei Abschaltung oder Zurücksetzen der IP-Statistik werden Ableitungen und Schlüssel gelöscht; für Sicherungen gilt deren Rotation. Die Notwendigkeit dieser Aufbewahrung prüfen wir jährlich. Reine Tageszähler können bestehen bleiben. Mehrere Personen können dieselbe IP nutzen, eine Person kann verschiedene IPs nutzen; die bereinigte Zahl misst deshalb keine eindeutigen Personen.
+
+Dafür wird nichts zusätzlich in Ihrem Browser gespeichert oder ausgelesen. Gezählt wird die ohnehin gesendete Seitenanfrage. Wechsel innerhalb der geöffneten Webseite zählen nicht; automatische Abrufe zählen mit. Rechtsgrundlage der serverseitigen IP-Bereinigung ist unser berechtigtes Interesse an einer aussagekräftigen Reichweitenstatistik (Art. 6 Abs. 1 lit. f DSGVO). Sie können aus Gründen Ihrer besonderen Situation nach Art. 21 DSGVO widersprechen und uns dazu über die Kontaktdaten im Impressum erreichen.
 
 **Ergebnisse der Selbsteinschätzung.** Am Ende der KI-Readiness-Selbsteinschätzung können Sie freiwillig ankreuzen, dass Ihr Ergebnis anonym gespeichert wird. Wir nutzen die Ergebnisse, um den Bedarf unserer Zielgruppe einzuschätzen und die Inhalte weiterzuentwickeln. Nur mit Haken überträgt die Seite beim Anzeigen der Auswertung:
 

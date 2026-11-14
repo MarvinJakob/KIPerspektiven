@@ -366,7 +366,7 @@ fieldset.field { margin: 0; padding: 0; border: 0; }
 @media (max-width: 600px) {
   /* Zwei Zeilen: oben Marke und Konto, unten die Bereiche (Ticket #20: Platz für den Darstellungsschalter). */
   .ed-bar { height: auto; flex-wrap: wrap; border-radius: var(--radius-l); }
-  .ed-bar .nav-main { order: 3; flex: 1 0 100%; justify-content: center; margin-inline: 0; }
+  .ed-bar .nav-main { order: 3; flex: 1 0 100%; min-width: 0; flex-wrap: wrap; justify-content: center; margin-inline: 0; }
   .ed-bar .nav-actions { margin-left: auto; }
 }
 
@@ -400,3 +400,28 @@ fieldset.field { margin: 0; padding: 0; border: 0; }
 .list-notice { margin-top: 16px; }
 .list-notice:empty { display: none; }
 .list-notice:focus { outline: none; }
+
+/* IP-Bereinigung (#142): gleiche Achsen, zweite Farbe und Strichelung, echte Checkbox. */
+.stats-totals { display: flex; flex-wrap: wrap; gap: 16px; }
+.stats-totals .stat { min-width: 0; max-width: 100%; }
+.stat-unavailable { font-size: 1.25rem; font-weight: 650; }
+.chart-toggle { margin: 0 16px 12px; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 8px 24px; padding: 0 16px; font-size: .8125rem; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 8px; }
+.chart-legend i { width: 24px; border-top: 3px solid var(--accent); }
+.chart-legend .legend-unique { border-top: 3px dashed #9c4288; }
+.chart-unique-line { fill: none; stroke: #9c4288; stroke-width: 2; stroke-dasharray: 6 4; stroke-linejoin: round; }
+.chart-unique-point { fill: #9c4288; }
+:root[data-theme="dark"] .chart-unique-line { stroke: #ed9bda; }
+:root[data-theme="dark"] .chart-unique-point { fill: #ed9bda; }
+:root[data-theme="dark"] .chart-legend .legend-unique { border-color: #ed9bda; }
+.views-table { table-layout: fixed; }
+.views-table th, .views-table td { overflow-wrap: anywhere; }
+@media (max-width: 450px) {
+  .views-table th, .views-table td { padding: 12px 8px; }
+}
+@media (forced-colors: active) {
+  .chart-unique-line { stroke: CanvasText; }
+  .chart-unique-point { fill: CanvasText; }
+  .chart-legend i, .chart-legend .legend-unique { border-color: CanvasText; }
+}

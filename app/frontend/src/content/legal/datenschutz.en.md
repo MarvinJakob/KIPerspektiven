@@ -3,7 +3,7 @@
 ## In short
 
 - We do not use tracking cookies or analytics tools. There are no optional cookies or similar technologies.
-- Our server counts how often public pages are requested, only as a daily total and without any identifier (see "Statistics").
+- Our server counts how often public pages are requested, as a daily total and additionally deduplicated per IP address using a protected derivation (see "Statistics").
 - We only store the result of the AI readiness self-assessment if you agree beforehand, and then anonymously.
 - If you request a free consultation on the results page, we store your email address until the appointment has been arranged (see "Consultation requests").
 - Fonts, scripts and images are served exclusively from our own server. No data is sent to third parties.
@@ -24,7 +24,11 @@ When you open the site, our server processes technically necessary data such as 
 
 ## Statistics
 
-**Page views.** To gauge the reach of the website, our server increases a counter for the current day each time a public page is requested. Only the date and the number of requests are stored, no IP address, no browser details and no other identifier. Nothing is stored in or read from your browser for this: we count the request your browser sends anyway when it opens a page. Moving between pages within the open website is not counted. Visitors are neither told apart nor recognised. The counters contain no personal data.
+**Page views.** To understand the reach of the website and repeated requests, our server counts each request for a public page. Absolute counts are stored as daily totals. For the deduplicated count, the IP address from the connection already needed to serve the page is normalised and immediately derived using a secret key (HMAC-SHA-256). No plain IP address is stored for these statistics. Each derivation has only its most recent request date, with no history of pages visited, exact times or browser details. Derivations are not linked to accounts, results or consultation requests and are not passed to third parties. Only signed-in editorial accounts see aggregate counts.
+
+The derivation is a personal-data pseudonym, not an anonymous identifier. It and the separately protected key are retained for the lifetime of the statistics dataset so that an IP returning after a long absence is counted only once in the all-time total. When IP statistics are discontinued or reset, derivations and the key are deleted; backups follow their rotation. We review the need for this retention annually. Daily aggregate counts may remain. Several people can share one IP, and one person can use different IPs; the deduplicated count therefore does not measure unique people.
+
+Nothing additional is stored in or read from your browser. We count the page request sent anyway. Navigation within the open website is not counted; automated requests are included. The legal basis for server-side IP deduplication is our legitimate interest in meaningful reach statistics (Art. 6(1)(f) GDPR). You may object on grounds relating to your particular situation under Art. 21 GDPR by contacting us using the details in the legal notice.
 
 **Self-assessment results.** At the end of the AI readiness self-assessment you can choose to tick a box so that your result is stored anonymously. We use the results to understand what our audience needs and to improve the content. Only if the box is ticked does the page send, when your results are shown:
 

@@ -54,6 +54,9 @@ func newServer(t *testing.T, devSeed bool, opts ...func(*httpserver.Config)) (*h
 	}
 	accounts := service.NewAccounts(db)
 	stats := service.NewStatistics(db, catalog.Slugs(), audit.LevelCount)
+	if err := stats.ConfigurePageViewCounting(context.Background(), []byte("01234567890123456789012345678901")); err != nil {
+		t.Fatal(err)
+	}
 	editorialFiles := fstest.MapFS{
 		"index.html":            {Data: []byte(testEditorialIndex)},
 		"favicon.svg":           {Data: []byte("<svg/>")},
