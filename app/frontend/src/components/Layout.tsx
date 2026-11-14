@@ -60,6 +60,7 @@ function Footer() {
             </div>
             <p className="footer-note">{t('footer.tagline')}</p>
             <p className="footer-note">{t('footer.privacyNote')}</p>
+            <p className="footer-note">{t('footer.aiNote')}</p>
           </div>
           <div>
             <h2 className="footer-head">{t('nav.topics')}</h2>

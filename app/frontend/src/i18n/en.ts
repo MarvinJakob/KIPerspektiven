@@ -105,6 +105,7 @@ export const en: Messages = {
     radarCaption: 'Self-assessment as a radar chart: each axis is one dimension, numbered as in the table below. The rings show maturity levels 1 {{one}} (inner), 2 {{two}} and 3 {{three}} (outer). The further out a point lies, the higher the chosen maturity level.',
   },
   footer: {
+    aiNote: 'This website was created with the help of AI. Marvin Jakob reviews all content before publication and is responsible for it.',
     tagline: 'Perspectives and experiences around artificial intelligence.',
     privacyNote: 'We do not use tracking cookies. We store language and appearance in your browser only at your request; you can switch this off in the cookie settings.',
     site: 'Website',
