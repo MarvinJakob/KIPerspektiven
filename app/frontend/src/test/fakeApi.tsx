@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import { createMemoryRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { vi } from 'vitest';
-import type { AuditDimension, AuditOverview, AuditQuestion, Post, PostSummary, Topic, TopicDetail } from '../api/client';
+import type { AuditDimension, AuditOverview, AuditQuestion, Post, PostSummary, ReadinessResultInput, Topic, TopicDetail } from '../api/client';
 import { Providers, createQueryClient, routes } from '../App';
 
 type L = 'de' | 'en';
@@ -143,12 +143,43 @@ function auditOverview(): AuditOverview {
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+/** Aufruf von /api/readiness-results (Ticket #130) */
+export interface ReadinessCall {
+  method: string;
+  path: string;
+  body?: ReadinessResultInput;
+}
+
+/** Alle Aufrufe zum Speichern und Löschen von Ergebnissen seit dem letzten installFakeApi. */
+export const readinessCalls: ReadinessCall[] = [];
+let readinessFails = false;
+/** Lässt Speichern und Löschen von Ergebnissen mit 500 scheitern. */
+export const failReadiness = (fail = true) => {
+  readinessFails = fail;
+};
+const heldReadiness: Promise<number>[] = [];
+/** Hält den nächsten noch nicht angehaltenen Aufruf zum Speichern oder Löschen an, bis er mit dem übergebenen Status beantwortet wird. */
+export function holdReadiness() {
+  let answer!: (status: number) => void;
+  heldReadiness.push(new Promise((resolve) => (answer = resolve)));
+  return answer;
+}
+
 /** Ersetzt fetch durch eine kleine Nachbildung der öffentlichen API. */
 export function installFakeApi(posts: FakePost[] = POSTS) {
+  readinessCalls.length = 0;
+  readinessFails = false;
+  heldReadiness.length = 0;
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     const lang = (url.searchParams.get('lang') ?? 'de') as L;
     const parts = url.pathname.split('/').filter(Boolean); // api, posts|topics, slug?
+    if (parts[1] === 'readiness-results' && input instanceof Request) {
+      const body = input.method === 'POST' ? (JSON.parse(await input.text()) as ReadinessResultInput) : undefined;
+      readinessCalls.push({ method: input.method, path: url.pathname, body });
+      const status = await (heldReadiness.shift() ?? (readinessFails ? 500 : 204));
+      return status === 204 ? new Response(null, { status }) : json(status, { message: 'Interner Fehler.' });
+    }
     if (parts[1] === 'topics' && parts.length === 2) {
       return json(200, { items: Object.keys(topicData).map((s) => topic(s, lang, posts)) });
     }

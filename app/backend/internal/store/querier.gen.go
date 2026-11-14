@@ -10,9 +10,15 @@ import (
 )
 
 type Querier interface {
+	// ---------------------------------------------------------------------------
+	// Statistik der Redaktion (Ticket #130). Zeitraeume beginnen bei einem Tag bzw. Zeitpunkt; "" heisst gesamt.
+	// ---------------------------------------------------------------------------
+	CountPageView(ctx context.Context, day string) error
 	CountPublishedPostsByTopic(ctx context.Context) ([]CountPublishedPostsByTopicRow, error)
+	CountReadinessResults(ctx context.Context, submittedAt string) (int64, error)
 	CreateMedia(ctx context.Context, arg CreateMediaParams) (int64, error)
 	CreatePost(ctx context.Context, arg CreatePostParams) (int64, error)
+	CreateReadinessResult(ctx context.Context, arg CreateReadinessResultParams) (int64, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	// ---------------------------------------------------------------------------
 	// Konten und Sitzungen der Redaktion (Anforderungen 6 und 11)
@@ -25,12 +31,15 @@ type Querier interface {
 	DeletePost(ctx context.Context, id int64) (int64, error)
 	DeletePostTopics(ctx context.Context, postID int64) error
 	DeletePostTranslations(ctx context.Context, postID int64) error
+	DeleteReadinessRatings(ctx context.Context, resultID int64) error
+	DeleteReadinessResultByKey(ctx context.Context, keyHash string) error
 	DeleteSession(ctx context.Context, id string) error
 	DeleteUserSessions(ctx context.Context, userID int64) error
 	GetMedia(ctx context.Context, id int64) (GetMediaRow, error)
 	GetPostByID(ctx context.Context, id int64) (Post, error)
 	GetPostIDBySlug(ctx context.Context, slug string) (int64, error)
 	GetPublishedPostBySlug(ctx context.Context, slug string) (Post, error)
+	GetReadinessResultByKey(ctx context.Context, keyHash string) (GetReadinessResultByKeyRow, error)
 	GetSession(ctx context.Context, id string) (GetSessionRow, error)
 	GetTopicBySlug(ctx context.Context, slug string) (Topic, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
@@ -38,6 +47,7 @@ type Querier interface {
 	InsertMediaTranslation(ctx context.Context, arg InsertMediaTranslationParams) error
 	InsertPostTopic(ctx context.Context, arg InsertPostTopicParams) error
 	InsertPostTranslation(ctx context.Context, arg InsertPostTranslationParams) error
+	InsertReadinessRating(ctx context.Context, arg InsertReadinessRatingParams) error
 	// ---------------------------------------------------------------------------
 	// Redaktion: Beitraege verwalten (Anforderung 5)
 	// ---------------------------------------------------------------------------
@@ -45,11 +55,14 @@ type Querier interface {
 	ListDuePosts(ctx context.Context, scheduledAt sql.NullString) ([]ListDuePostsRow, error)
 	ListMedia(ctx context.Context, mediaIds []int64) ([]ListMediaRow, error)
 	ListMediaTranslations(ctx context.Context, mediaIds []int64) ([]MediaTranslation, error)
+	ListPageViews(ctx context.Context, day string) ([]PageView, error)
 	ListPostTopics(ctx context.Context, postIds []int64) ([]PostTopic, error)
 	ListPostTranslationSummaries(ctx context.Context, postIds []int64) ([]ListPostTranslationSummariesRow, error)
 	ListPostTranslations(ctx context.Context, postID int64) ([]PostTranslation, error)
 	ListPublishedPosts(ctx context.Context) ([]Post, error)
 	ListPublishedPostsByTopic(ctx context.Context, topicID int64) ([]Post, error)
+	ListReadinessRatings(ctx context.Context, resultIds []int64) ([]ReadinessResultRating, error)
+	ListReadinessResults(ctx context.Context, arg ListReadinessResultsParams) ([]ListReadinessResultsRow, error)
 	ListTopicTranslations(ctx context.Context) ([]TopicTranslation, error)
 	ListTopics(ctx context.Context) ([]Topic, error)
 	ListUsers(ctx context.Context) ([]User, error)
@@ -67,6 +80,7 @@ type Querier interface {
 	UnscheduleDuePost(ctx context.Context, arg UnscheduleDuePostParams) (int64, error)
 	UnschedulePost(ctx context.Context, arg UnschedulePostParams) (int64, error)
 	UpdatePost(ctx context.Context, arg UpdatePostParams) (int64, error)
+	UpdateReadinessResult(ctx context.Context, arg UpdateReadinessResultParams) error
 }
 
 var _ Querier = (*Queries)(nil)

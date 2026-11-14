@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"ki-web/backend/internal/audit"
@@ -21,6 +22,7 @@ type Config struct {
 	Audit         *audit.Catalog
 	Accounts      *service.Accounts
 	Editorial     *service.Editorial
+	Statistics    *service.Statistics // Seitenaufrufe und Ergebnisse der Selbsteinschätzung (Ticket #130)
 	Site          *web.Site
 	EditorialSite *web.Editorial
 	MediaPath     string // optional: liefert /media/* lokal aus (in Produktion übernimmt das Caddy)
@@ -45,6 +47,7 @@ func New(cfg Config) http.Handler {
 		audit:         cfg.Audit,
 		accounts:      cfg.Accounts,
 		editorial:     cfg.Editorial,
+		stats:         cfg.Statistics,
 		media:         cfg.Media,
 		limiter:       auth.NewLimiter(loginMaxFailures, loginWindow),
 		secureCookies: cfg.SecureCookies,
@@ -67,10 +70,19 @@ func New(cfg Config) http.Handler {
 // samt Multipart-Rahmen und schützt JSON-Endpunkte vor überlangen Anfragen.
 const maxRequestBytes = media.MaxUploadBytes + 1<<20
 
-// limitBody lässt höchstens maxRequestBytes aus dem Anfragetext lesen. Größere Anfragen scheitern beim Lesen.
+// maxPublicWriteBytes begrenzt öffentliche Schreibzugriffe ohne Anmeldung (Ticket #130). Ein vollständiges
+// Ergebnis der Selbsteinschätzung braucht weniger als 1 KiB.
+const maxPublicWriteBytes = 4 << 10
+
+// limitBody lässt höchstens maxRequestBytes aus dem Anfragetext lesen, bei öffentlichen Schreibzugriffen
+// höchstens maxPublicWriteBytes. Größere Anfragen scheitern beim Lesen (413).
 func limitBody(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBytes)
+		limit := int64(maxRequestBytes)
+		if r.URL.Path == "/api/readiness-results" || strings.HasPrefix(r.URL.Path, "/api/readiness-results/") {
+			limit = maxPublicWriteBytes
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, limit)
 		next.ServeHTTP(w, r)
 	})
 }

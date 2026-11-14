@@ -601,6 +601,19 @@ svg { display: block; }
 .assess-hint[data-blocked] { padding-left: 12px; border-left: 3px solid var(--brand); color: var(--text); font-weight: 650; }
 .assess-hint a { color: var(--accent); font-weight: 650; }
 .assess-nav-buttons { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+/* Einwilligung in die anonyme Speicherung des Ergebnisses (Ticket #130): natives Kontrollkästchen in
+   Markenfarbe, Hinweis und Statuszeile in Texttönen. Die Statuszeile bleibt leer, solange nichts passiert. */
+.share-consent { display: grid; gap: 8px; max-width: 720px; margin-top: 32px; padding: 18px 22px; border: 1px solid var(--border); border-left: 3px solid var(--brand); border-radius: var(--radius-small); background: var(--note-bg); }
+.share-check { display: flex; align-items: flex-start; gap: 12px; }
+.share-check input { flex: none; width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--accent-fill); cursor: pointer; }
+.share-check input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.share-check label { font-weight: 650; cursor: pointer; overflow-wrap: break-word; }
+.share-hint { padding-left: 34px; color: var(--text-2); font-size: .9375rem; line-height: 1.55; overflow-wrap: break-word; }
+.share-hint a { color: var(--accent); font-weight: 650; }
+.share-status { padding-left: 34px; font-size: .9375rem; font-weight: 650; }
+.share-status:empty { display: none; }
+.share-status[data-status="saveFailed"], .share-status[data-status="deleteFailed"] { color: var(--accent); }
+
 /* aria-disabled statt disabled: Der Button bleibt fokussierbar und erklärt per aria-describedby, was fehlt. */
 .btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 .btn-primary[aria-disabled="true"]:hover { background: var(--accent-fill); transform: none; }

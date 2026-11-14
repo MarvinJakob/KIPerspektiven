@@ -84,6 +84,24 @@ export const useAudit = (lang: Lang) =>
     queryFn: () => unwrap(client.GET('/api/audit', { params: { query: { lang } } })),
   });
 
+export type ReadinessResultInput = components['schemas']['ReadinessResultInput'];
+
+/**
+ * Speichert das Ergebnis der Selbsteinschätzung anonym oder aktualisiert es (Ticket #130). Nur nach
+ * Einwilligung aufrufen. Bewusst ohne unwrap: Ein Fehler darf weder zur Anmeldung führen noch die
+ * Auswertung stören.
+ */
+export async function saveReadinessResult(body: ReadinessResultInput) {
+  const { response } = await client.POST('/api/readiness-results', { body });
+  if (!response.ok) throw new ApiError(response.status, response.statusText);
+}
+
+/** Löscht das gespeicherte Ergebnis, wenn die Einwilligung zurückgenommen wird (Ticket #130). */
+export async function deleteReadinessResult(key: string) {
+  const { response } = await client.DELETE('/api/readiness-results/{key}', { params: { path: { key } } });
+  if (!response.ok) throw new ApiError(response.status, response.statusText);
+}
+
 export const useAuditDimension = (slug: string, lang: Lang) =>
   useQuery({
     queryKey: ['auditDimension', slug, lang],
