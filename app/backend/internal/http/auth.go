@@ -185,7 +185,7 @@ func (s *apiServer) Login(ctx context.Context, req api.LoginRequestObject) (api.
 			Message: "Bitte E-Mail-Adresse und Passwort angeben.",
 		}}, nil
 	}
-	sess, err := s.accounts.Login(ctx, req.Body.Email, req.Body.Password)
+	sess, err := s.login(ctx, req.Body.Email, req.Body.Password)
 	if errors.Is(err, service.ErrInvalidCredentials) {
 		s.limiter.Fail(ip)
 		return api.Login401JSONResponse{UnauthorizedJSONResponse: api.UnauthorizedJSONResponse{

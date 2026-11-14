@@ -19,6 +19,9 @@ type apiServer struct {
 	svc           *service.Public
 	audit         *audit.Catalog
 	accounts      *service.Accounts
+	// login prüft die Zugangsdaten samt Argon2-Passwortprüfung (sonst accounts.Login). Tests halten die
+	// Prüfung hier an, um parallele Anmeldeversuche deterministisch zu prüfen (Ticket #138).
+	login         func(ctx context.Context, email, password string) (service.Session, error)
 	editorial     *service.Editorial
 	stats         *service.Statistics
 	media         *media.Store
