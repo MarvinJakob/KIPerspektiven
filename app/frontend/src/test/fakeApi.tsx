@@ -157,11 +157,19 @@ let readinessFails = false;
 export const failReadiness = (fail = true) => {
   readinessFails = fail;
 };
+const heldReadiness: Promise<number>[] = [];
+/** Hält den nächsten noch nicht angehaltenen Aufruf zum Speichern oder Löschen an, bis er mit dem übergebenen Status beantwortet wird. */
+export function holdReadiness() {
+  let answer!: (status: number) => void;
+  heldReadiness.push(new Promise((resolve) => (answer = resolve)));
+  return answer;
+}
 
 /** Ersetzt fetch durch eine kleine Nachbildung der öffentlichen API. */
 export function installFakeApi(posts: FakePost[] = POSTS) {
   readinessCalls.length = 0;
   readinessFails = false;
+  heldReadiness.length = 0;
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     const lang = (url.searchParams.get('lang') ?? 'de') as L;
@@ -169,7 +177,8 @@ export function installFakeApi(posts: FakePost[] = POSTS) {
     if (parts[1] === 'readiness-results' && input instanceof Request) {
       const body = input.method === 'POST' ? (JSON.parse(await input.text()) as ReadinessResultInput) : undefined;
       readinessCalls.push({ method: input.method, path: url.pathname, body });
-      return readinessFails ? json(500, { message: 'Interner Fehler.' }) : new Response(null, { status: 204 });
+      const status = await (heldReadiness.shift() ?? (readinessFails ? 500 : 204));
+      return status === 204 ? new Response(null, { status }) : json(status, { message: 'Interner Fehler.' });
     }
     if (parts[1] === 'topics' && parts.length === 2) {
       return json(200, { items: Object.keys(topicData).map((s) => topic(s, lang, posts)) });

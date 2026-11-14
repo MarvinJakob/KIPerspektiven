@@ -45,8 +45,13 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
   const [share, setShareState] = useState(false);
   const [shareStatus, setShareStatus] = useState<ShareStatus>('idle');
   const key = useRef<string | null>(null);
-  /** Inhalt des zuletzt gespeicherten Ergebnisses, null wenn nichts gespeichert ist */
+  /** Inhalt des zuletzt gesendeten Ergebnisses, null wenn nichts gesendet ist; verhindert erneutes Senden ohne Änderung */
   const stored = useRef<string | null>(null);
+  /**
+   * Ob unter der Kennung ein Ergebnis gespeichert sein kann. Ein gescheiterter Aufruf klärt das nicht
+   * (ein früherer oder späterer kann gelungen sein), daher löscht das Abwählen im Zweifel; Löschen ist idempotent.
+   */
+  const mayBeStored = useRef(false);
   /** Aufrufe laufen nacheinander, damit ein späteres Speichern oder Löschen nie von einem früheren überholt wird. */
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const enqueue = useCallback((task: () => Promise<void>) => {
@@ -64,11 +69,13 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       const content = JSON.stringify([body.lang, body.ratings]);
       if (content === stored.current) return;
       stored.current = content;
+      mayBeStored.current = true;
       setShareStatus('saving');
       enqueue(() => saveReadinessResult(body)).then(
         () => setShareStatus('saved'),
         () => {
-          stored.current = null;
+          // Beim nächsten Anzeigen erneut senden, aber nicht den Stand eines inzwischen gesendeten neueren Ergebnisses vergessen.
+          if (stored.current === content) stored.current = null;
           setShareStatus('saveFailed');
         },
       );
@@ -85,17 +92,20 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
         setShareStatus(content === null ? 'idle' : 'saved');
         return;
       }
-      if (content === null || key.current === null) {
+      if (!mayBeStored.current || key.current === null) {
         setShareStatus('idle');
         return;
       }
       const k = key.current;
       stored.current = null;
+      mayBeStored.current = false;
       setShareStatus('idle');
       enqueue(() => deleteReadinessResult(k)).then(
         () => setShareStatus('deleted'),
         () => {
-          stored.current = content; // gilt weiter als gespeichert; erneutes Abwählen versucht es noch einmal
+          // Gilt weiter als gespeichert; erneutes Abwählen versucht es noch einmal.
+          mayBeStored.current = true;
+          stored.current ??= content;
           setShareStatus('deleteFailed');
         },
       );

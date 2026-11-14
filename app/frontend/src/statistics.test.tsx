@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { failReadiness, installFakeApi, readinessCalls, renderApp } from './test/fakeApi';
+import { failReadiness, holdReadiness, installFakeApi, readinessCalls, renderApp } from './test/fakeApi';
 
 // Ticket #130: Ergebnisse der Selbsteinschätzung nur mit Einwilligung anonym speichern. Seitenaufrufe zählt
 // der Server beim Ausliefern; das Frontend meldet dafür nichts.
@@ -113,6 +113,41 @@ describe('Ticket #130: Ergebnis der Selbsteinschätzung anonym speichern', () =>
     expect(await screen.findByText('Ihr gespeichertes Ergebnis wurde gelöscht.')).toBeInTheDocument();
     expect(readinessCalls.at(-1)).toEqual({ method: 'DELETE', path: `/api/readiness-results/${key}`, body: undefined });
     expect(shareBox()).not.toBeChecked();
+  });
+
+  // Bug #135: Ein gescheiterter Aufruf darf nicht vergessen lassen, dass ein anderer das Ergebnis gespeichert hat.
+  const lastIsDelete = (key: string) =>
+    waitFor(() => expect(readinessCalls.at(-1)).toEqual({ method: 'DELETE', path: `/api/readiness-results/${key}`, body: undefined }));
+
+  it('löscht beim Abwählen auch, wenn ein älteres Speichern nach einem neueren scheitert', async () => {
+    const user = userEvent.setup();
+    const answerFirst = holdReadiness();
+    await rateAll(user, { share: true });
+    await user.click(screen.getByRole('link', { name: 'Ändern: Betrieb' }));
+    await user.click(await screen.findByRole('radio', { name: 'Stufe 1 Einfach' }));
+    await user.click(screen.getByRole('button', { name: 'Auswertung anzeigen' }));
+    answerFirst(500);
+    await waitFor(() => expect(posts()).toHaveLength(2));
+    expect(await screen.findByText(SAVED)).toBeInTheDocument();
+    await user.click(shareBox());
+    await lastIsDelete(posts()[0].body!.key);
+  });
+
+  it('löscht beim Abwählen auch, wenn Löschen und erneutes Speichern scheitern', async () => {
+    const user = userEvent.setup();
+    await rateAll(user, { share: true });
+    await screen.findByText(SAVED);
+    const { key } = posts()[0].body!;
+    const answerDelete = holdReadiness();
+    const answerSave = holdReadiness();
+    await user.click(shareBox());
+    await user.click(shareBox());
+    answerDelete(500);
+    await waitFor(() => expect(posts()).toHaveLength(2));
+    answerSave(500);
+    expect(await screen.findByText(/Ihr Ergebnis konnte nicht gespeichert werden/)).toBeInTheDocument();
+    await user.click(shareBox());
+    await lastIsDelete(key);
   });
 
   it('zeigt die Auswertung vollständig, wenn das Speichern scheitert', async () => {
