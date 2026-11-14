@@ -5,6 +5,8 @@ interface ProfileContent {
   description: string;
   home: string;
   label: string;
+  linkedinLabel: string;
+  linkedinUrl: string;
   headline: string;
   headlineAccent: string;
   intro: string;
@@ -42,6 +44,8 @@ export const profile: Record<Lang, ProfileContent> = {
     description: 'Marvin Jakob: IT-Berater und Full-Stack-Entwickler. Mein Hintergrund und meine Fragen zu KI in Softwareentwicklung, Data Analytics und AI Audit.',
     home: 'Startseite',
     label: 'Die Person hinter der Perspektive',
+    linkedinLabel: 'Marvin Jakob auf LinkedIn',
+    linkedinUrl: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=de-DE',
     headline: 'Technologie verstehen.',
     headlineAccent: 'AI in die Praxis bringen.',
     intro: 'AI entfaltet ihren Wert dort, wo sie ein konkretes Problem löst. Marvin verbindet Softwareentwicklung, Cloud-Architektur und Business Analyse – mit einem klaren Blick dafür, was Unternehmen in der Praxis brauchen.',
@@ -122,6 +126,8 @@ export const profile: Record<Lang, ProfileContent> = {
     description: 'Marvin Jakob: IT consultant and full-stack developer. My background and questions about AI in software development, data analytics and AI audit.',
     home: 'Home',
     label: 'The person behind the perspective',
+    linkedinLabel: 'Marvin Jakob on LinkedIn',
+    linkedinUrl: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=en-US',
     headline: 'Understand technology.',
     headlineAccent: 'Put AI into practice.',
     intro: 'AI creates value when it solves a specific problem. Marvin combines software engineering, cloud architecture and business analysis – with a clear focus on what companies need in practice.',
