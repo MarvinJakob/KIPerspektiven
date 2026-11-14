@@ -10,6 +10,17 @@ beforeEach(() => {
   installFakeApi();
 });
 
+describe('Ticket #131: KI-Transparenzhinweis im gemeinsamen Footer', () => {
+  it.each([
+    ['de', 'Diese Webseite wurde mit Unterstützung von KI erstellt. Marvin Jakob prüft alle Inhalte vor der Veröffentlichung und verantwortet sie.'],
+    ['en', 'This website was created with the help of AI. Marvin Jakob reviews all content before publication and is responsible for it.'],
+  ])('zeigt in %s den vollständigen Hinweis ohne Interaktion im Footer', async (lang, note) => {
+    renderApp(`/${lang}`);
+    const footer = await screen.findByRole('contentinfo');
+    expect(within(footer).getByText(note, { exact: true })).toBeVisible();
+  });
+});
+
 // Ticket #101: Verbindliche Textvorlage der Startseite, Stand 10. November 2026.
 // Jede nicht leere Zeile eines Themas ist ein Absatz; „**…**“ ist die Leitfrage, „*…*“ eine Hervorhebung, „-> “ ein Link.
 const TEMPLATE = landingSource.replace(/\r\n/g, '\n');
