@@ -216,8 +216,6 @@ svg { display: block; }
   font-size: .75rem; font-weight: 650; letter-spacing: .12em; line-height: 1.5; text-transform: uppercase; color: var(--accent);
 }
 .eyebrow::before { content: ""; flex: none; width: 28px; height: 2px; background: var(--brand); }
-.display { margin-top: 16px; font-size: clamp(3rem, 5.65vw, 5rem); }
-.display span { color: var(--accent); }
 .page-title { margin-top: 12px; font-size: clamp(2.25rem, 3vw + 1rem, 3.5rem); hyphens: auto; overflow-wrap: break-word; }
 .lead { margin-top: 20px; max-width: 640px; font-size: clamp(1.0625rem, .35vw + 1rem, 1.25rem); line-height: 1.7; color: var(--text-2); }
 .intro { padding-block: 24px 48px; }
@@ -248,12 +246,12 @@ svg { display: block; }
 
 /* Opake Inhaltsflächen: gemeinsame Form aller Karten */
 .post-row, .empty, .level-item, .level-card, .dimension-card, .quiz-level, .quiz-result,
-.profile-card, .profile-about, .consent, .landing .topic, .landing .tasks, .landing .check, .landing .facts {
+.profile-card, .profile-about, .consent, .landing .tasks, .landing .facts {
   border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow);
 }
 /* Verlinkte Karten heben sich beim Überfahren an */
-.post-row, .dimension-card, .landing .topic { transition: border-color var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out); }
-.post-row:hover, .dimension-card:hover, .landing .topic:hover { border-color: var(--brand); transform: translateY(-3px); }
+.post-row, .dimension-card { transition: border-color var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out); }
+.post-row:hover, .dimension-card:hover { border-color: var(--brand); transform: translateY(-3px); }
 
 /* Themengrafik (Platzhalter für die Bildsprache) */
 .art { position: relative; overflow: hidden; }
@@ -290,55 +288,21 @@ svg { display: block; }
 .empty p { color: var(--text-2); max-width: 560px; }
 
 /* ==========================================================================
-   Startseite (Ticket #78) und Seite KI-Einsatzfelder. Alles unter .landing.
+   Seite KI-Einsatzfelder (aus der früheren Startseite, Ticket #78). Alles unter .landing.
    ========================================================================== */
 .landing p { margin: 0 0 1em; }
 .landing h2 { margin-bottom: 14px; font-size: clamp(2rem, 3.4vw, 3rem); }
 .landing h3 { margin-bottom: 8px; font-size: 1.25rem; }
 .landing .eyebrow { margin-bottom: 18px; }
-.landing .display { margin: 0 0 28px; }
 .landing .lead { margin: 0 0 32px; max-width: 520px; }
 .landing .section { margin-top: 0; padding-top: 104px; }
-.landing .landing-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 48px; margin-bottom: 40px; }
-.landing .landing-head > p { max-width: 400px; margin-bottom: 0; }
 .fn a { padding: 0 2px; color: var(--text-2); font-size: 11px; font-weight: 650; text-decoration: none; }
 .fn a:hover { color: var(--accent); }
 
-/* Hero: warme Fläche ohne dekorative Grafik. Der negative Abstand gleicht den Innenabstand von #main aus,
-   damit die Fläche direkt unter der Kopfzeile beginnt. */
-.hero-band { margin-top: -24px; padding-block: 48px 88px; background: var(--warm); }
-.hero-copy { max-width: 760px; padding-block: 20px; }
-.landing .hook { max-width: 560px; margin-bottom: 24px; font-size: clamp(1.0625rem, 1.2vw, 1.1875rem); font-weight: 650; line-height: 1.5; color: var(--text); }
-.landing .hook::before { content: ""; display: block; width: 28px; height: 2px; margin-bottom: 18px; background: var(--brand); }
 .landing-hero { padding-top: 24px; }
 .landing-hero .back-link { display: flex; width: fit-content; margin-bottom: 16px; }
 .landing-hero .page-title { margin-bottom: 16px; }
 
-/* Aktuell im Fokus: sechs Themenkarten (3, 2 oder 1 Spalte). Der Textlink deckt per ::after die ganze Karte ab. */
-.landing .topics { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; }
-.landing .topic { position: relative; display: flex; flex-direction: column; padding: 28px 24px 22px; background: var(--fill); }
-.landing .topic-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; color: var(--accent); font-size: .75rem; font-weight: 650; letter-spacing: .08em; }
-.landing .topic-top svg { width: 28px; height: 28px; }
-.landing .topic-body { flex: 1; display: flex; flex-direction: column; }
-.landing .topic-body h3 { font-size: clamp(1.25rem, 1.6vw, 1.5rem); letter-spacing: -.03em; hyphens: auto; overflow-wrap: anywhere; }
-.landing .topic-body p { font-size: .9375rem; color: var(--text-2); }
-.landing .topic-body .topic-hook { font-size: 1.0625rem; line-height: 1.45; color: var(--text); }
-.landing .topic-body p:last-of-type { flex: 1; }
-.landing .topic-link { align-self: start; padding-top: 12px; border-top: 1px solid var(--border); width: 100%; }
-.landing .topic-link::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius); }
-
-/* Grundlagen: Definition, Prüfbarkeit und drei Grenzen */
-.landing .basics { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 64px; align-items: start; }
-.landing .basics .lead { margin-bottom: 0; }
-.landing .check { padding: 32px; background: var(--fill); }
-.landing .check p:last-child { margin-bottom: 0; }
-.landing .limits-intro { max-width: 760px; margin-top: 72px; }
-.landing .limits { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 12px 0 0; padding: 0; }
-.landing .limit { padding: 24px; border: 1px dashed var(--border); border-radius: var(--radius); }
-.landing .limit p { margin: 0; font-size: .9375rem; color: var(--text-2); }
-.landing .limit strong { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 1.0625rem; letter-spacing: -.02em; line-height: 1.3; color: var(--text); }
-.landing .limit strong svg { flex: none; width: 20px; height: 20px; color: var(--accent); }
-.landing .more { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin: 40px 0 0; font-size: 1.0625rem; font-weight: 650; }
 .landing code { font-size: .9em; overflow-wrap: anywhere; }
 
 /* Kennzahlen (KI-Einsatzfelder) */
@@ -379,6 +343,73 @@ svg { display: block; }
 .landing .sources li { break-inside: avoid; margin-bottom: 8px; padding-left: 4px; border-radius: 6px; }
 .landing .sources li:focus { background: var(--fill); color: var(--text); }
 .landing .sources a, .topic-sources a { color: var(--accent); }
+
+/* ==========================================================================
+   Startseite nach mock/landing_v03/ (Ticket #101). Alles unter .home; die Farben kommen aus den Primitiven.
+   Der KI-Reifegrad-Banner bleibt auch dunkel auf --navy, damit seine hellen Akzente lesbar sind.
+   ========================================================================== */
+.home h2 { letter-spacing: -.04em; }
+.home .eyebrow { font-size: .6875rem; }
+.home [tabindex="-1"] { scroll-margin-top: calc(var(--header-h) + 16px); }
+
+/* Hero: zentriert auf warmer Fläche. Der negative Abstand gleicht den Innenabstand von #main aus. */
+.home-hero { margin-top: -24px; background: var(--warm); }
+.home-hero-inner { padding-block: 52px 76px; text-align: center; }
+.home-hook { margin-bottom: 20px; font-size: 1.0625rem; color: var(--text-2); text-wrap: balance; }
+.home-title { font-size: clamp(3rem, 6.3vw, 5.75rem); line-height: 1.06; letter-spacing: -.055em; }
+.home-title span { color: var(--accent); }
+.home-lead { max-width: 640px; margin: 26px auto 30px; font-size: 1.0625rem; line-height: 1.7; color: var(--text-2); }
+.home-actions { justify-content: center; gap: 8px 28px; }
+
+/* Nummerierter Themenindex unter dem Hero */
+.topic-index { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding-block: 25px; border-top: 1px solid var(--border); }
+.topic-index a { display: flex; align-items: center; gap: 18px; min-height: 60px; padding: 0 28px; text-decoration: none; }
+.topic-index a:first-child { padding-left: 0; }
+.topic-index a + a { border-left: 1px solid var(--border); }
+.topic-index a:hover { color: var(--accent); }
+.topic-index a > span:not(.index-number) { font-size: .9375rem; font-weight: 650; line-height: 1.45; }
+.topic-index small { display: block; margin-top: 4px; font-size: .75rem; font-weight: 400; color: var(--text-2); }
+.index-number { align-self: flex-start; padding-top: 4px; font-size: .75rem; color: var(--accent); }
+
+.topics-intro { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px 48px; padding-block: 96px 8px; }
+.topics-intro h2 { font-size: clamp(2.3rem, 3.4vw, 3.1rem); line-height: 1.1; }
+.topics-intro .eyebrow { margin-bottom: 16px; }
+.topics-intro > p { margin-bottom: 12px; font-size: .9375rem; color: var(--text-2); }
+
+/* Themenabschnitte ohne Grafikspalten: begrenzte Lesebreite, jeder zweite Abschnitt auf weicher Fläche. */
+.editorial-section { padding-block: 70px; }
+.section-soft { background: var(--soft); }
+.editorial-inner, .home-profile-inner { max-width: 760px; }
+.editorial-copy { min-width: 0; }
+.topic-eyebrow { gap: 14px; margin-bottom: 20px; }
+.topic-eyebrow::before { display: none; }
+.topic-number { padding-right: 14px; border-right: 1px solid var(--border); }
+.editorial-copy h2 { font-size: clamp(1.85rem, 2.55vw, 2.5rem); line-height: 1.19; letter-spacing: -.035em; text-wrap: pretty; overflow-wrap: break-word; hyphens: auto; }
+.editorial-text { margin-block: 23px 24px; }
+.editorial-text p { font-size: .9375rem; line-height: 1.85; color: var(--text-2); }
+.editorial-text p + p { margin-top: 18px; }
+.editorial-text em { color: var(--text); }
+.article-link { padding-top: 10px; border-top: 1px solid var(--border); }
+
+/* KI-Reifegrad-Banner */
+.audit-banner { display: grid; grid-template-columns: 1fr .8fr; gap: 90px; align-items: center; margin-block: 38px 90px; padding: 58px 64px; border-radius: 32px; background: var(--navy); color: #fff; }
+.audit-banner .eyebrow { margin-bottom: 16px; color: #f39b56; }
+.audit-banner h2 { font-size: clamp(2rem, 3.4vw, 3rem); line-height: 1.1; }
+.audit-banner h2 > span { color: #f39b56; }
+.audit-banner p:not(.eyebrow) { margin-top: 22px; font-size: .9375rem; color: #bdcbd7; }
+.audit-banner .btn { margin-top: 24px; }
+.audit-steps ol { list-style: none; margin: 0; padding: 0; }
+.audit-steps li { display: flex; align-items: center; gap: 23px; padding: 22px 0; border-bottom: 1px solid #405367; }
+.audit-steps li > span { font-size: .75rem; color: #f39b56; }
+.audit-steps strong { font-size: 1.4375rem; font-weight: 500; letter-spacing: -.025em; }
+.audit-banner .audit-steps > p { font-size: .8125rem; }
+
+/* Profil-Teaser */
+.home-profile { padding-block: 56px; background: var(--warm); }
+.home-profile .eyebrow { margin-bottom: 10px; }
+.home-profile h2 { margin-bottom: 14px; font-size: 2rem; }
+.home-profile p:not(.eyebrow) { font-size: .9375rem; color: var(--text-2); }
+.home-profile .text-link { margin-top: 6px; }
 
 /* ==========================================================================
    Blog: Beitragslisten und Beitragsseite
@@ -643,7 +674,6 @@ svg { display: block; }
   .header-inner { gap: 14px; }
   .nav-main { gap: 2px; }
   .nav-btn { padding-inline: 11px; }
-  .display { font-size: clamp(3rem, 6.5vw, 4.75rem); }
 }
 @media (max-width: 850px) {
   .container { width: calc(100% - 48px); }
@@ -654,11 +684,7 @@ svg { display: block; }
   .brand-name { display: none; }
   .nav-main { gap: 0; }
   .nav-btn { padding-inline: 10px; font-size: .8125rem; }
-  .hero-band { padding-block: 32px 64px; }
-  .display { font-size: 3.375rem; }
-  .landing .landing-head { gap: 32px; }
-  .landing .topics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .landing .what, .landing .basics { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  .landing .what { grid-template-columns: minmax(0, 1fr); gap: 40px; }
   .landing .definition { position: static; }
   .quiz-layout, .dim-about { grid-template-columns: minmax(0, 1fr); }
   .quiz-result, .benefits { position: static; }
@@ -710,18 +736,10 @@ svg { display: block; }
   .popover.is-open { display: block; }
   .lang-switch { align-self: flex-start; }
 
-  .hero-band { padding-block: 24px 56px; }
-  .hero-copy { padding-block: 12px 0; }
-  .display { font-size: clamp(2.5rem, 12.5vw, 3.375rem); }
-  .landing .landing-head { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 28px; }
-  .landing .topics, .landing .limits { grid-template-columns: minmax(0, 1fr); }
-  .landing .topic { padding: 22px 20px 18px; }
-  .landing .topic-top { margin-bottom: 22px; }
-  .landing .limits-intro { margin-top: 48px; }
   .landing .facts { grid-template-columns: minmax(0, 1fr); }
   .landing .fact + .fact { border-left: 0; border-top: 1px solid var(--border); }
   .landing .fact, .landing .facts-caption { padding-inline: 20px; }
-  .landing .taskpanel, .landing .check { padding: 22px; }
+  .landing .taskpanel { padding: 22px; }
   .landing .sources ol, .topic-sources ol { columns: 1; }
 
   .section-head { flex-wrap: wrap; align-items: flex-start; }
@@ -759,11 +777,51 @@ svg { display: block; }
   .header-inner { padding-left: 14px; gap: 6px; }
   .brand-mark { font-size: 36px; }
   .menu-toggle { padding-inline: 10px; gap: 8px; font-size: .8125rem; }
-  .display { font-size: clamp(2.25rem, 13vw, 2.75rem); }
   .page-title { font-size: 1.875rem; }
   .landing h2 { font-size: 1.75rem; }
   .btn { max-width: 100%; padding-inline: 18px; }
   .footer-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Startseite ohne Grafiken (Ticket #118): Navigation und KI-Reifegrad-Banner an schmale Ansichten anpassen. */
+@media (max-width: 1180px) {
+  .topic-index a { gap: 12px; padding-inline: 20px; }
+  .audit-banner { gap: 50px; padding-inline: 44px; }
+}
+@media (max-width: 850px) {
+  .home-hero-inner { padding-block: 38px 56px; }
+  .topic-index { padding-block: 18px; }
+  .topic-index small { display: none; }
+  .topic-index a > span:not(.index-number) { font-size: .8125rem; }
+  .topics-intro { padding-top: 70px; }
+  .editorial-copy h2 { font-size: 1.625rem; }
+  .editorial-text p { font-size: .875rem; }
+  .audit-banner { gap: 30px; margin-bottom: 70px; padding: 42px 30px; }
+  .audit-steps strong { font-size: 1.25rem; }
+}
+@media (max-width: 650px) {
+  .home-hero-inner { padding-block: 34px 44px; }
+  .home-hook { max-width: 290px; margin: 0 auto 22px; font-size: .9375rem; line-height: 1.6; }
+  .home-title { font-size: clamp(2.5rem, 11vw, 3.5rem); }
+  .home-lead { max-width: 340px; margin-block: 24px; font-size: .9375rem; }
+  .wide-break { display: none; }
+  .home-actions { flex-direction: column; gap: 4px; }
+  .topic-index { grid-template-columns: minmax(0, 1fr); padding-block: 10px; }
+  .topic-index a, .topic-index a:first-child { gap: 18px; min-height: 65px; padding: 13px 0; }
+  .topic-index a + a { border-left: 0; border-top: 1px solid var(--border); }
+  .topic-index small { display: block; }
+  .topics-intro { flex-direction: column; align-items: flex-start; padding-block: 56px 0; }
+  .topics-intro h2 { font-size: 2.25rem; }
+  .editorial-section { padding-block: 44px; }
+  .editorial-copy h2 { font-size: 1.75rem; }
+  .audit-banner { grid-template-columns: minmax(0, 1fr); gap: 26px; margin-block: 18px 56px; padding: 32px 24px; border-radius: 24px; }
+  .audit-banner h2 { font-size: 2.25rem; }
+  .audit-steps li { padding-block: 18px; }
+}
+@media (max-width: 359px) {
+  .editorial-copy h2 { font-size: 1.625rem; }
+  .audit-banner { padding-inline: 20px; }
+  .audit-banner h2 { font-size: 1.875rem; }
 }
 
 /* ==========================================================================
@@ -771,7 +829,7 @@ svg { display: block; }
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
-  .btn:hover, .post-row:hover, .dimension-card:hover, .landing .topic:hover, .press:active:not(:disabled) { transform: none; }
+  .btn:hover, .post-row:hover, .dimension-card:hover, .press:active:not(:disabled) { transform: none; }
 }
 /* Opake Navigation bei reduzierter Transparenz, erhöhtem Kontrast und erzwungenen Farben. Die explizite dunkle
    Variante verhindert, dass die spezifischere Glasregel für den Dark Mode den Fallback übersteuert. */
@@ -792,6 +850,6 @@ svg { display: block; }
   :root, :root[data-theme="dark"] { --navigation-bg: var(--paper); --navigation-filter: none; --navigation-sheen: none; }
   .site-header { position: static; }
   .menu-toggle, .nav-actions, .lang-switch, .popover, .consent-backdrop { display: none !important; }
-  .hero-band { margin-top: 0; }
-  .post-row, .landing .topic, .dimension-card, .level-card { break-inside: avoid; }
+  .home-hero { margin-top: 0; }
+  .post-row, .audit-banner, .dimension-card, .level-card { break-inside: avoid; }
 }
