@@ -599,7 +599,7 @@ func (q *Queries) InsertReadinessRating(ctx context.Context, arg InsertReadiness
 }
 
 const invalidatePageViewDay = `-- name: InvalidatePageViewDay :exec
-UPDATE page_views SET identified_views = -1 WHERE day = ?
+UPDATE page_views SET identified_views = -1 WHERE day = ? AND views > 0
 `
 
 func (q *Queries) InvalidatePageViewDay(ctx context.Context, day string) error {

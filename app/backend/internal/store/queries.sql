@@ -237,7 +237,7 @@ ON CONFLICT(id) DO UPDATE SET key_id = excluded.key_id, started_at = excluded.st
 DELETE FROM page_view_sources;
 
 -- name: InvalidatePageViewDay :exec
-UPDATE page_views SET identified_views = -1 WHERE day = ?;
+UPDATE page_views SET identified_views = -1 WHERE day = ? AND views > 0;
 
 -- name: GetReadinessResultByKey :one
 SELECT id, lang FROM readiness_results WHERE key_hash = ?;

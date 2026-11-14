@@ -52,11 +52,10 @@ func (s *Statistics) ConfigurePageViewCounting(ctx context.Context, key []byte) 
 			return err
 		}
 		now := s.now()
-		if old.KeyID != "" {
-			// Dieser Tag kann Abrufe mit beiden Schluesseln enthalten; die Vereinigung ist unbekannt.
-			if err := q.InvalidatePageViewDay(ctx, now.In(StatsZone).Format(dayLayout)); err != nil {
-				return err
-			}
+		// Auch nach manuellem Zuruecksetzen der Metadaten koennen alte Tageswerte bestehen.
+		// Deren Vereinigung mit dem neuen Bestand ist fuer diesen Tag nicht rekonstruierbar.
+		if err := q.InvalidatePageViewDay(ctx, now.In(StatsZone).Format(dayLayout)); err != nil {
+			return err
 		}
 		if err := q.SetPageViewIdentity(ctx, store.SetPageViewIdentityParams{KeyID: id, StartedAt: now.UTC().Format(time.RFC3339)}); err != nil {
 			return err

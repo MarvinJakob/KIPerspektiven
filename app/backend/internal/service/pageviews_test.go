@@ -196,3 +196,19 @@ func TestDelayedPageViewKeepsAbsoluteCount(t *testing.T) {
 		t.Fatalf("verspaeteter Abruf: %+v", got)
 	}
 }
+
+func TestIPCountingResetWithoutMetadataKeepsHistoryUnknown(t *testing.T) {
+	s, db, _ := statsForTest(t)
+	countIP(t, s, "192.0.2.1")
+	if _, err := db.Exec("DELETE FROM page_view_sources; DELETE FROM page_view_identity;"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ConfigurePageViewCounting(context.Background(), testStatsKey); err != nil {
+		t.Fatal(err)
+	}
+	countIP(t, s, "192.0.2.1")
+	got := getViews(t, s, AllTime)
+	if got.Total != 2 || got.UniqueTotal != nil || got.Days[0].UniqueViews != nil {
+		t.Fatalf("Reset darf alte und neue Tageswerte nicht vermischen: %+v", got)
+	}
+}
