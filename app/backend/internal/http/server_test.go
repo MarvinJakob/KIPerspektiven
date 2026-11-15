@@ -54,6 +54,9 @@ func newServer(t *testing.T, devSeed bool, opts ...func(*httpserver.Config)) (*h
 	}
 	accounts := service.NewAccounts(db)
 	stats := service.NewStatistics(db, catalog.Slugs(), audit.LevelCount)
+	if err := stats.ConfigurePageViewCounting(context.Background(), []byte("01234567890123456789012345678901")); err != nil {
+		t.Fatal(err)
+	}
 	editorialFiles := fstest.MapFS{
 		"index.html":            {Data: []byte(testEditorialIndex)},
 		"favicon.svg":           {Data: []byte("<svg/>")},
@@ -355,41 +358,41 @@ func TestTopicShowsAssignedPosts(t *testing.T) {
 	}
 }
 
-// Ticket #80: Metadaten stimmen mit der verbindlichen deutschen Textvorlage überein.
-func TestSoftwareGuardrailsMetadata(t *testing.T) {
+// Ticket #146: API- und HTML-Metadaten stimmen mit dem neuen Artikel überein.
+func TestSoftwareDevelopmentMetadata(t *testing.T) {
 	srv, _ := newServer(t, true)
-	source, err := os.ReadFile("../../../../content/KI in der Softwareentwicklung.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	d := getJSON[api.TopicDetail](t, srv, "/api/topics/softwareentwicklung?lang=de", 200)
-	for name, value := range map[string]string{"Titel": d.Title, "Label": d.Label, "Kurzbeschreibung": d.Summary, "Einführung": d.Intro} {
-		prefix := "- **" + name + ":** "
-		found := false
-		for _, line := range strings.Split(string(source), "\n") {
-			if !strings.HasPrefix(line, prefix) {
-				continue
+	for _, lang := range []string{"de", "en"} {
+		t.Run(lang, func(t *testing.T) {
+			source, err := os.ReadFile("../../../../app/frontend/src/content/topics/softwareentwicklung." + lang + ".md")
+			if err != nil {
+				t.Fatal(err)
 			}
-			expected := strings.TrimSpace(strings.TrimPrefix(line, prefix))
-			if name == "Titel" {
-				expected = strings.Split(expected, " (bisher:")[0]
+			d := getJSON[api.TopicDetail](t, srv, "/api/topics/softwareentwicklung?lang="+lang, 200)
+			if string(d.Lang) != lang {
+				t.Fatalf("Falsche Sprache: %s", d.Lang)
 			}
-			if value != expected {
-				t.Errorf("%s: %q, erwartet %q", name, value, expected)
+			for name, value := range map[string]string{"Titel": d.Title, "Label": d.Label, "Kurzbeschreibung": d.Summary, "Einführung": d.Intro} {
+				prefix := "- **" + name + ":** "
+				found := false
+				for _, line := range strings.Split(string(source), "\n") {
+					if !strings.HasPrefix(line, prefix) {
+						continue
+					}
+					expected := strings.TrimSpace(strings.TrimPrefix(line, prefix))
+					if value != expected {
+						t.Errorf("%s: %q, erwartet %q", name, value, expected)
+					}
+					found = true
+				}
+				if !found {
+					t.Fatalf("%s fehlt in der Veröffentlichungskopie", name)
+				}
 			}
-			found = true
-		}
-		if !found {
-			t.Fatalf("%s fehlt in der Vorlage", name)
-		}
-	}
-	en := getJSON[api.TopicDetail](t, srv, "/api/topics/softwareentwicklung?lang=en", 200)
-	if en.Lang != "en" || en.Summary != "How to guide AI assistants with Markdown rules, access permissions, tests and reviews." || !strings.Contains(en.Intro, "verifiable rules") {
-		t.Fatalf("Englische Metadaten: %+v", en)
-	}
-	resp, html := get(t, srv, "/de/themen/softwareentwicklung")
-	if resp.StatusCode != 200 || !strings.Contains(html, "<title>KI in der Softwareentwicklung · KI Perspektiven</title>") {
-		t.Fatalf("Metadaten bei Direktaufruf: %d, %s", resp.StatusCode, html)
+			resp, html := get(t, srv, "/"+lang+"/themen/softwareentwicklung")
+			if resp.StatusCode != 200 || !strings.Contains(html, "<title>"+d.Title+" · KI Perspektiven</title>") {
+				t.Fatalf("Metadaten bei Direktaufruf: %d, %s", resp.StatusCode, html)
+			}
+		})
 	}
 }
 

@@ -24,22 +24,25 @@ import (
 	"time"
 
 	"ki-web/backend/internal/audit"
+	"ki-web/backend/internal/clientip"
 	httpserver "ki-web/backend/internal/http"
 	"ki-web/backend/internal/media"
 	"ki-web/backend/internal/service"
+	"ki-web/backend/internal/statisticskey"
 	"ki-web/backend/internal/store"
 	"ki-web/backend/internal/web"
 )
 
 type config struct {
-	addr         string
-	databasePath string
-	mediaPath    string
-	baseURL      string
-	devSeed      bool
-	serveMedia   bool
-	trustProxy   bool
-	requireLogin bool
+	addr              string
+	databasePath      string
+	mediaPath         string
+	baseURL           string
+	devSeed           bool
+	serveMedia        bool
+	trustedProxies    string
+	statisticsKeyPath string
+	requireLogin      bool
 }
 
 func env(key, def string) string {
@@ -59,14 +62,15 @@ func envBool(key string) bool {
 
 func loadConfig() config {
 	return config{
-		addr:         env("ADDR", ":8080"),
-		databasePath: env("DATABASE_PATH", filepath.Join("data", "app.db")),
-		mediaPath:    env("MEDIA_PATH", filepath.Join("data", "media")),
-		baseURL:      env("PUBLIC_BASE_URL", "http://localhost:8080"),
-		devSeed:      envBool("DEV_SEED"),
-		serveMedia:   envBool("SERVE_MEDIA"),
-		trustProxy:   envBool("TRUST_PROXY"),
-		requireLogin: envBool("REQUIRE_LOGIN"),
+		addr:              env("ADDR", ":8080"),
+		databasePath:      env("DATABASE_PATH", filepath.Join("data", "app.db")),
+		mediaPath:         env("MEDIA_PATH", filepath.Join("data", "media")),
+		baseURL:           env("PUBLIC_BASE_URL", "http://localhost:8080"),
+		devSeed:           envBool("DEV_SEED"),
+		serveMedia:        envBool("SERVE_MEDIA"),
+		trustedProxies:    env("TRUSTED_PROXIES", ""),
+		statisticsKeyPath: env("STATISTICS_KEY_PATH", ""),
+		requireLogin:      envBool("REQUIRE_LOGIN"),
 	}
 }
 
@@ -124,21 +128,36 @@ func runServer(cfg config, log *slog.Logger) error {
 	go cleanupSessions(ctx, accounts, log)
 	editorial := service.NewEditorial(db)
 	go publishScheduled(ctx, editorial, log)
+	proxies, err := clientip.ParseProxies(cfg.trustedProxies)
+	if err != nil {
+		return err
+	}
+	keyPath := cfg.statisticsKeyPath
+	if keyPath == "" {
+		keyPath = filepath.Join(filepath.Dir(cfg.databasePath), "statistics-ip.key")
+	}
+	key, err := statisticskey.LoadOrCreate(keyPath)
+	if err != nil {
+		return fmt.Errorf("Statistikschluessel laden: %w", err)
+	}
 	stats := service.NewStatistics(db, catalog.Slugs(), audit.LevelCount)
+	if err := stats.ConfigurePageViewCounting(ctx, key); err != nil {
+		return err
+	}
 	hcfg := httpserver.Config{
-		Public:        public,
-		Audit:         catalog,
-		Accounts:      accounts,
-		Site:          web.New(public, catalog, stats, cfg.baseURL, nil, log),
-		Editorial:     editorial,
-		Statistics:    stats,
-		Consultations: service.NewConsultations(db),
-		Media:         media.NewStore(cfg.mediaPath),
-		EditorialSite: web.NewEditorial(accounts, nil, log),
-		SecureCookies: strings.HasPrefix(cfg.baseURL, "https://"),
-		TrustProxy:    cfg.trustProxy,
-		RequireLogin:  cfg.requireLogin,
-		Log:           log,
+		Public:         public,
+		Audit:          catalog,
+		Accounts:       accounts,
+		Site:           web.New(public, catalog, stats, cfg.baseURL, nil, log),
+		Editorial:      editorial,
+		Statistics:     stats,
+		Consultations:  service.NewConsultations(db),
+		Media:          media.NewStore(cfg.mediaPath),
+		EditorialSite:  web.NewEditorial(accounts, nil, log),
+		SecureCookies:  strings.HasPrefix(cfg.baseURL, "https://"),
+		TrustedProxies: proxies,
+		RequireLogin:   cfg.requireLogin,
+		Log:            log,
 	}
 	if cfg.serveMedia {
 		hcfg.MediaPath = cfg.mediaPath

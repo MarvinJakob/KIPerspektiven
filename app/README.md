@@ -66,6 +66,7 @@ Noch nicht enthalten: eine eigene Medienverwaltung (`/redaktion/medien`). Titelb
 | [110 KI Readiness: Navigation umbenennen](https://github.com/MarvinJakob/aiboard/issues/110) | Der Navigationseintrag aus #21 heißt „KI Readiness“ (englisch „AI Readiness“, `nav.audit` in `frontend/src/i18n/`). Der Startseitenlink heißt wie in der Vorlage `content/Landingpage_v03.md` exakt „KI Reifegrad einschätzen“. Beide führen weiter zur Übersicht unter `/{lang}/themen/ai-audit`; dort sowie auf den Dimensionsseiten mit Selbsteinschätzung und Auswertung ist der Eintrag aktiv. URLs und Dimensionslinks bleiben unverändert. |
 | [130 Statistik in der Redaktion](https://github.com/MarvinJakob/aiboard/issues/130) | Unter `/redaktion/statistik` (Navigation „Statistik“, Rollen `editor` und `admin`) zeigt die Redaktion für „Letzte 7 Tage“, „Letzte 30 Tage“ (Vorauswahl) und „Gesamt“ die Seitenaufrufe als Summe und je Tag sowie die gespeicherten Ergebnisse der Selbsteinschätzung, neueste zuerst und 50 je Seite. Seitenaufrufe zählt das Backend beim Ausliefern öffentlicher Seiten als Tageszähler (`page_views`, Europe/Berlin); das Frontend meldet nichts, Seitenwechsel innerhalb der Anwendung zählen daher nicht. Ergebnisse speichert es nur mit Einwilligung: Kontrollkästchen „Ergebnis anonym für die Statistik speichern“ im letzten Schritt und auf der Auswertung (`components/ShareConsent.tsx`, Zustand in `lib/assessment.tsx`). Begründung nach § 25 TDDDG in [ADR 0010](docs/adr/0010-statistik-ohne-kennung-und-einwilligung.md); Code in `backend/internal/service/statistics.go`, `backend/internal/http/statistics.go` und `frontend-redaktion/src/pages/Statistics.tsx`. |
 | [136 Kostenloses Beratungsgespräch anfragen](https://github.com/MarvinJakob/aiboard/issues/136) | Die vollständige Auswertung der Selbsteinschätzung endet mit der Fläche „Kostenloses Beratungsgespräch anfragen“ (`components/ConsultationOffer.tsx`). Einziges Feld ist die E-Mail-Adresse; Frontend und Backend prüfen sie, leere und ungültige Adressen werden nicht gesendet bzw. mit `422` abgelehnt. Erst nach erfolgreicher Übermittlung erscheint die Bestätigung mit dem Hinweis auf die Terminabstimmung per E-Mail; bei Fehlern bleibt die Eingabe zum erneuten Senden. **Ablage und Empfänger:** `POST /api/consultation-requests` speichert Adresse, Sprache und Zeitpunkt in `consultation_requests` (Migration `00013`, ohne Ergebnis); die Redaktion sieht die Anfragen unter `/redaktion/beratungsanfragen` (Navigation „Beratungsanfragen“, Rollen `editor` und `admin`) und löscht sie nach der Terminabstimmung. Dieselbe Adresse ergibt keinen zweiten Eintrag. Je IP-Adresse höchstens fünf Anfragen pro Stunde (`429`, Zähler nur im Arbeitsspeicher). Es gibt keine Benachrichtigung per E-Mail. Begründung in [ADR 0011](docs/adr/0011-beratungsanfragen-in-der-redaktion.md), Prüffälle und Nachweis des Eingangs in [docs/audit-abnahme.md](docs/audit-abnahme.md#beratungsgespräch-anfragen-ticket-136); Code in `backend/internal/service/consultations.go`, `backend/internal/http/consultations.go` und `frontend-redaktion/src/pages/ConsultationRequests.tsx`. |
+| [138 Parallele Login-Versuche begrenzen](https://github.com/MarvinJakob/aiboard/issues/138) | Laufende Anmeldeversuche einer IP-Adresse zählen bei der Zulassung mit (`auth.Limiter.Reserve`). So erreichen auch gleichzeitige Anfragen höchstens zehn Passwortprüfungen, bevor die Sperre für 15 Minuten greift. Über alle IP-Adressen läuft höchstens eine Argon2-Prüfung gleichzeitig (Produktionsserver mit 1 vCPU), acht Anfragen warten höchstens 3 s (`auth.Throttle`). Alle weiteren erhalten vor Argon2 `503` mit `Retry-After: 5`; das zählt nicht als Fehlversuch. Beratungsanfragen (#136) nutzen dieselbe Reservierung. Das Redaktionsfrontend erklärt `503`. Regeln für Erfolg, Fehler und Abbruch, Begründung der Grenzwerte und Lasttest: [docs/login-begrenzung.md](docs/login-begrenzung.md). |
 
 Die Down-Migration von `00010` stellt Prozessautomatisierung mit der ursprünglichen ID `4` wieder her, damit auch ein weiterer Rollback über Migration `00005` und ein anschließendes Up funktionieren (Bug #105). Ist ID `4` inzwischen durch ein anderes Thema belegt, bricht das Rollback ab, ohne dieses Thema zu überschreiben. Frühere Beitragszuordnungen werden nicht wiederhergestellt.
 
@@ -91,7 +92,7 @@ frontend-redaktion/     Redaktionsfrontend unter /redaktion, eigene Vite-Anwendu
   src/api/schema.d.ts   Aus openapi.yaml erzeugt (nicht von Hand ändern)
 backend/                Go-Modul
   cmd/server/           Einstiegspunkt: server, server healthcheck, server backup, server user create
-  internal/auth/        Passwort-Hashing (Argon2id), Sitzungs-Tokens, Begrenzung der Anmeldeversuche
+  internal/auth/        Passwort-Hashing (Argon2id), Sitzungs-Tokens, Begrenzung der Anmeldeversuche und Passwortprüfungen
   internal/api/         Aus openapi.yaml erzeugt (nicht von Hand ändern)
   internal/http/        Handler, Routing, Middleware
   internal/audit/       Inhalte des KI-Audits (content.json, eingebettet) und ihre Prüfung
@@ -107,6 +108,16 @@ docs/audit-abnahme.md   Regeln und Durchlauf der Selbsteinschätzung (KI Readine
 ```
 
 Das Liniendiagramm der Seitenaufrufe ([#139](https://github.com/MarvinJakob/aiboard/issues/139)) verwendet dieselben Tageswerte wie Summe und Tabelle. Auch „Gesamt“ enthält alle Tage vom ersten erfassten Aufruf bis heute, einschließlich Nulltagen. Während des Ladens und bei Fehlern sind bisherige Seitenaufrufwerte ausgeblendet. Umsetzung und Browserprüfung bei 320 und 1280 px: [Abnahme des Statistikdiagramms](docs/statistik-diagramm-abnahme.md).
+
+Seit [#142](https://github.com/MarvinJakob/aiboard/issues/142) zeigt die Statistik zusätzlich „Bereinigte Anzahl“ je IP-Adresse und Zeitraum, je Tag in einer Tabellenspalte und als zuschaltbare zweite Kurve. Periodensummen werden nicht aus Tageswerten addiert. Historische Datenlücken stehen als „Nicht verfügbar“. IPs liegen nur als schlüsselgeschützte Ableitung mit letztem Aufruftag vor, ohne Browserkennung oder Besuchsverlauf. Datenhaltung und Browsernachweise: [Abnahme der IP-Bereinigung](docs/statistik-bereinigung-abnahme.md), [ADR 0010](docs/adr/0010-statistik-ohne-kennung-und-einwilligung.md).
+
+## Themenseite Softwareentwicklung (#146)
+
+Die aktuelle Textvorlage ist [content/KI in der Softwareentwicklung v2.md](../content/KI%20in%20der%20Softwareentwicklung%20v2.md), Stand 15. November 2026. Die vollständigen DE-/EN-Veröffentlichungen stehen unter `src/content/topics/softwareentwicklung.{de,en}.md` im öffentlichen Frontend. Der Artikel umfasst den Entwicklungsprozess mit drei Agententeams, fünf Prozessschritte, sieben Guardrails-Tipps und den Umgang mit Änderungen und Findings. Beide Fassungen enthalten keine Quellen.
+
+Die Originalgrafiken liegen unter `ressources/grafiken/AgenticSWDevProcess_{de,en}.png` im Repository-Stamm. Identische Web-Kopien liegen unter `frontend/src/assets/topics/`, damit auch der Docker-Build mit Kontext `app/` alle Assets enthält. Bei Bildänderungen beide Kopien aktualisieren. `frontend/src/lib/topicImages.ts` ordnet die relativen Markdown-Bildpfade den Vite-Assets mit Dateihash zu. Bilder passen sich unverzerrt der Lesespalte an und lassen sich per Klick oder Tastatur in einem neuen Tab in voller Größe öffnen. URLs und Blogzuordnungen bleiben erhalten. Migration `00015` aktualisiert Einführung und Kurzbeschreibung in beiden Sprachen und stellt beim Rollback die bisherigen Texte wieder her.
+
+`frontend/src/topicContent.test.tsx` prüft die vollständige DE-Übernahme aus der v2-Vorlage, beide Sprachen, Quellenfreiheit, fünf Schritte, sieben Tipps, Grafikauswahl und Sprachwechsel. Die Backend-Prüfung `TestSoftwareDevelopmentMetadata` vergleicht API-/HTML-Metadaten mit den Veröffentlichungskopien. Die Quellenfunktionen des gemeinsamen Renderers bleiben für andere Themen erhalten. Sichtprüfung: beide Sprachen bei 320, 768 und 1440 px, Grafik und Vollbildlink kontrollieren; siehe [Abnahme](docs/softwareentwicklung-v2-abnahme.md).
 
 ## Lokal entwickeln
 
@@ -191,6 +202,14 @@ cd frontend-redaktion && npm run typecheck && npm test
 
 Mit `make` stehen dieselben Schritte als `make generate`, `make test`, `make build` und `make run` bereit.
 
+Parallelitätstests der Anmeldung mit Race-Detector (Ticket #138; braucht CGO und einen C-Compiler, die CI führt sie bei jedem Pull Request aus):
+
+```bash
+cd backend && CGO_ENABLED=1 go test -race -count=1 -run 'Limiter|Throttle|TestParallelLogins|TestPasswordChecks|TestLoginOutcomes|TestLoginRateLimit' ./internal/auth ./internal/http
+```
+
+Der lokale Lasttest der Anmeldung läuft nur auf Anforderung und nie gegen das Produktivsystem. Im Ordner `backend` misst `./scripts/login-lasttest.ps1` (Windows PowerShell) einen eigenen Serverprozess mit einem Kern; plattformunabhängig läuft `LOGIN_LASTTEST=1 go test -run TestLoginLoad -v ./internal/http/` im Testprozess. Ablauf und Ergebnisse: [docs/login-begrenzung.md](docs/login-begrenzung.md).
+
 Hinweise:
 
 - `npm install` nutzt in beiden Frontends `legacy-peer-deps` (siehe `.npmrc`), weil npm 11.1 bei der Auflösung optionaler Peer-Abhängigkeiten abbricht.
@@ -208,7 +227,8 @@ Umgebungsvariablen, siehe [.env.example](.env.example):
 | `PUBLIC_BASE_URL` | `http://localhost:8080` | Basis für canonical, hreflang, Open Graph und Sitemap |
 | `DEV_SEED` | aus | Testbeiträge einspielen (nur Entwicklung) |
 | `SERVE_MEDIA` | aus | `/media/*` ohne Caddy direkt ausliefern (nur Entwicklung) |
-| `TRUST_PROXY` | aus | IP-Adresse für die Begrenzung der Anmeldeversuche aus `X-Forwarded-For` lesen. Nur hinter Caddy setzen (in `compose.yaml` aktiv). |
+| `TRUSTED_PROXIES` | leer | Kommagetrennte vertrauenswürdige Proxy-IPs/CIDRs für `X-Forwarded-For` (Statistik und Ratenbegrenzung). Leer ignoriert Header. Compose vertraut nur der festen internen Caddy-IP. Ersetzt `TRUST_PROXY`. |
+| `STATISTICS_KEY_PATH` | `statistics-ip.key` neben der Datenbank | Persistenter 256-Bit-HMAC-Schlüssel für IP-Bereinigung; wird beim ersten Start erzeugt, separat und zugriffsgeschützt sichern. |
 | `USER_PASSWORD` | – | Nur für `server user create`: Passwort ohne Abfrage übergeben |
 | `REQUIRE_LOGIN` | aus | Optionaler Zugangsschutz (Ticket #49): Die Webseite sieht nur, wer angemeldet ist. Im Betrieb seit Ticket #108 aus. |
 

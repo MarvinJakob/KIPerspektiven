@@ -10,10 +10,12 @@ import (
 )
 
 type Querier interface {
+	CountIdentifiedPageView(ctx context.Context, arg CountIdentifiedPageViewParams) error
 	// ---------------------------------------------------------------------------
 	// Statistik der Redaktion (Ticket #130). Zeitraeume beginnen bei einem Tag bzw. Zeitpunkt; "" heisst gesamt.
 	// ---------------------------------------------------------------------------
 	CountPageView(ctx context.Context, day string) error
+	CountPageViewSources(ctx context.Context, lastDay string) (int64, error)
 	CountPublishedPostsByTopic(ctx context.Context) ([]CountPublishedPostsByTopicRow, error)
 	CountReadinessResults(ctx context.Context, submittedAt string) (int64, error)
 	CreateMedia(ctx context.Context, arg CreateMediaParams) (int64, error)
@@ -28,6 +30,7 @@ type Querier interface {
 	DeleteExpiredSessions(ctx context.Context, expiresAt string) (int64, error)
 	DeleteMedia(ctx context.Context, id int64) error
 	DeleteMediaTranslations(ctx context.Context, mediaID int64) error
+	DeletePageViewSources(ctx context.Context) error
 	// Loeschen eines Beitrags (Ticket #24). Sprachfassungen und Themenzuordnungen entfernt ON DELETE CASCADE.
 	DeletePost(ctx context.Context, id int64) (int64, error)
 	DeletePostTopics(ctx context.Context, postID int64) error
@@ -37,6 +40,8 @@ type Querier interface {
 	DeleteSession(ctx context.Context, id string) error
 	DeleteUserSessions(ctx context.Context, userID int64) error
 	GetMedia(ctx context.Context, id int64) (GetMediaRow, error)
+	GetPageViewIdentity(ctx context.Context) (GetPageViewIdentityRow, error)
+	GetPageViewSource(ctx context.Context, ipHash string) (string, error)
 	GetPostByID(ctx context.Context, id int64) (Post, error)
 	GetPostIDBySlug(ctx context.Context, slug string) (int64, error)
 	GetPublishedPostBySlug(ctx context.Context, slug string) (Post, error)
@@ -49,6 +54,7 @@ type Querier interface {
 	InsertPostTopic(ctx context.Context, arg InsertPostTopicParams) error
 	InsertPostTranslation(ctx context.Context, arg InsertPostTranslationParams) error
 	InsertReadinessRating(ctx context.Context, arg InsertReadinessRatingParams) error
+	InvalidatePageViewDay(ctx context.Context, day string) error
 	// ---------------------------------------------------------------------------
 	// Redaktion: Beitraege verwalten (Anforderung 5)
 	// ---------------------------------------------------------------------------
@@ -57,7 +63,7 @@ type Querier interface {
 	ListDuePosts(ctx context.Context, scheduledAt sql.NullString) ([]ListDuePostsRow, error)
 	ListMedia(ctx context.Context, mediaIds []int64) ([]ListMediaRow, error)
 	ListMediaTranslations(ctx context.Context, mediaIds []int64) ([]MediaTranslation, error)
-	ListPageViews(ctx context.Context, day string) ([]PageView, error)
+	ListPageViews(ctx context.Context, arg ListPageViewsParams) ([]PageView, error)
 	ListPostTopics(ctx context.Context, postIds []int64) ([]PostTopic, error)
 	ListPostTranslationSummaries(ctx context.Context, postIds []int64) ([]ListPostTranslationSummariesRow, error)
 	ListPostTranslations(ctx context.Context, postID int64) ([]PostTranslation, error)
@@ -76,6 +82,7 @@ type Querier interface {
 	// Geplante Veroeffentlichung (Ticket #23). Zeitpunkte in UTC, RFC 3339 ohne Sekundenbruchteile,
 	// damit der Textvergleich der zeitlichen Reihenfolge entspricht.
 	SchedulePost(ctx context.Context, arg SchedulePostParams) (int64, error)
+	SetPageViewIdentity(ctx context.Context, arg SetPageViewIdentityParams) error
 	SetPostCover(ctx context.Context, arg SetPostCoverParams) (int64, error)
 	SetUserActive(ctx context.Context, arg SetUserActiveParams) (int64, error)
 	UnpublishPost(ctx context.Context, arg UnpublishPostParams) (int64, error)
@@ -87,6 +94,7 @@ type Querier interface {
 	// Anfragen fuer ein Beratungsgespraech (Ticket #136). Dieselbe Adresse ergibt keinen zweiten Eintrag.
 	// ---------------------------------------------------------------------------
 	UpsertConsultationRequest(ctx context.Context, arg UpsertConsultationRequestParams) error
+	UpsertPageViewSource(ctx context.Context, arg UpsertPageViewSourceParams) error
 }
 
 var _ Querier = (*Queries)(nil)

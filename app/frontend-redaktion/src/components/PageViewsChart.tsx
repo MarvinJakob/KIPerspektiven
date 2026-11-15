@@ -11,7 +11,9 @@ const TOP = 36;
 const BOTTOM = 204;
 
 /** Dieselben lückenlosen Kalendertage wie die Tabelle; nur die Zeichenreihenfolge ist chronologisch. */
-export function PageViewsChart({ days }: { days: PageViewStats['days'] }) {
+export function PageViewsChart({ days, showUnique, onShowUnique }: {
+  days: PageViewStats['days']; showUnique: boolean; onShowUnique: (show: boolean) => void;
+}) {
   const title = useId();
   const description = useId();
   const container = useRef<HTMLElement>(null);
@@ -35,11 +37,31 @@ export function PageViewsChart({ days }: { days: PageViewStats['days'] }) {
   const labelCount = Math.min(chronological.length, width < 600 ? 3 : 5);
   const labels = Array.from({ length: labelCount }, (_, i) => Math.round(i * (chronological.length - 1) / Math.max(1, labelCount - 1)));
 
+  // Fehlende Werte unterbrechen den Pfad, statt als 0 oder Verbindung zu erscheinen.
+  let connected = false;
+  const uniquePath = chronological.map((day, i) => {
+    if (day.uniqueViews == null) { connected = false; return ''; }
+    const point = `${connected ? 'L' : 'M'}${x(i)},${y(day.uniqueViews)}`;
+    connected = true;
+    return point;
+  }).join(' ');
+  // Auch in langen Reihen bleiben einzelne bekannte Werte zwischen Datenluecken sichtbar.
+  const showUniquePoint = (i: number) => chronological.length <= 60 ||
+    (chronological[i - 1]?.uniqueViews == null && chronological[i + 1]?.uniqueViews == null);
+
   return (
     <figure className="views-chart card" ref={container}>
+      <label className="check chart-toggle">
+        <input type="checkbox" checked={showUnique} onChange={(event) => onShowUnique(event.target.checked)} />
+        Bereinigte Anzahl anzeigen
+      </label>
+      <div className="chart-legend" aria-label="Legende">
+        <span><i className="legend-absolute" aria-hidden="true" />Absolute Anzahl</span>
+        <span><i className="legend-unique" aria-hidden="true" />Bereinigte Anzahl{!showUnique && ' (ausgeblendet)'}</span>
+      </div>
       <svg viewBox={`0 0 ${width} ${HEIGHT}`} role="img" aria-labelledby={`${title} ${description}`}>
         <title id={title}>Verlauf der Seitenaufrufe</title>
-        <desc id={description}>Seitenaufrufe je Kalendertag, älteste zuerst. Die Tabelle darunter enthält alle genauen Tageswerte.</desc>
+        <desc id={description}>Absolute Anzahl und, wenn eingeschaltet, bereinigte Anzahl je Kalendertag, älteste zuerst. Fehlende Daten bleiben als Lücke. Die Tabelle darunter enthält alle genauen Tageswerte.</desc>
         <text x={16} y={18} className="chart-axis-title">Seitenaufrufe</text>
         {ticks.map((tick) => (
           <g key={tick}>
@@ -56,6 +78,12 @@ export function PageViewsChart({ days }: { days: PageViewStats['days'] }) {
             <title>{`${dateFormat.format(new Date(`${day.date}T00:00:00Z`))}: ${numberFormat.format(day.views)} Seitenaufrufe`}</title>
           </circle>
         ))}
+        {showUnique && <path d={uniquePath} className="chart-unique-line" />}
+        {showUnique && chronological.map((day, i) => day.uniqueViews == null || !showUniquePoint(i) ? null : (
+          <circle key={day.date} cx={x(i)} cy={y(day.uniqueViews)} r={3} className="chart-unique-point">
+            <title>{`${dateFormat.format(new Date(`${day.date}T00:00:00Z`))}: ${numberFormat.format(day.uniqueViews)} bereinigt`}</title>
+          </circle>
+        ))}
         {labels.map((i, position) => (
           <text key={i} x={x(i)} y={BOTTOM + 22}
             textAnchor={labels.length === 1 ? 'middle' : position === 0 ? 'start' : position === labels.length - 1 ? 'end' : 'middle'}>
@@ -64,7 +92,7 @@ export function PageViewsChart({ days }: { days: PageViewStats['days'] }) {
         ))}
         <text x={width - RIGHT} y={HEIGHT - 6} textAnchor="end" className="chart-axis-title">Datum</text>
       </svg>
-      <figcaption>Seitenaufrufe je Tag. Genaue Werte stehen in der folgenden Tabelle.</figcaption>
+      <figcaption>Seitenaufrufe je Tag. Die gestrichelte Kurve zeigt die bereinigte Anzahl. Genaue Werte stehen in der folgenden Tabelle.</figcaption>
     </figure>
   );
 }

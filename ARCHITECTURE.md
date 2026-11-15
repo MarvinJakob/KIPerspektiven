@@ -173,7 +173,7 @@ Der Datenzugriff liegt hinter einem Interface. So lässt sich SQLite später geg
 - **Passwörter** werden mit Argon2id gehasht.
 - **Sitzungen** liegen in der Datenbank. Das Cookie ist `HttpOnly`, `Secure` und `SameSite=Lax`. Beim Abmelden wird die Sitzung gelöscht (Anforderung 6). Abgelaufene Sitzungen löscht ein täglicher Aufräumjob.
 - **CSRF-Schutz** für alle schreibenden Anfragen über ein Token im Header.
-- **Anmeldeversuche** werden pro IP-Adresse begrenzt. Die Zähler liegen nur im Arbeitsspeicher.
+- **Anmeldeversuche** werden pro IP-Adresse begrenzt: höchstens zehn Fehlversuche in 15 Minuten. Laufende Versuche zählen bei der Zulassung mit. Zusätzlich läuft über alle IP-Adressen höchstens eine Argon2-Prüfung gleichzeitig, mit einer kurzen, begrenzten Warteschlange. Überzählige Anfragen erhalten vor der Prüfung `503` (Ticket #138, `app/docs/login-begrenzung.md`). Die Zähler liegen nur im Arbeitsspeicher.
 - **Rollen** trennt das Backend in `editor` für Beiträge und Medien sowie `admin` für die Benutzerverwaltung. Deaktivierte Konten können sich nicht anmelden. Beim Deaktivieren löscht das Backend alle Sitzungen des Kontos in derselben Transaktion und prüft bei geschützten Aufrufen den aktuellen Kontostatus.
 - **Sicherheits-Header** setzt Caddy (siehe Abschnitt 9).
 
@@ -372,7 +372,14 @@ erDiagram
                          text lang
                          text alt_text }
     page_views { text day PK "JJJJ-MM-TT, Europe/Berlin"
-                 int views }
+                 int views
+                 int identified_views
+                 int unique_views }
+    page_view_sources { text ip_hash PK
+                        text last_day }
+    page_view_identity { int id PK
+                         text key_id
+                         datetime started_at }
     readiness_results ||--|{ readiness_result_ratings : "Reifegrad je Dimension"
     readiness_results { int id PK
                         text key_hash UK
@@ -392,7 +399,7 @@ erDiagram
 - `status` und `published_at` steuern die Sichtbarkeit. Zurücknehmen setzt `status` wieder auf `draft` (Anforderung 5).
 - Übersetzungen sind eigene Zeilen je Sprache (`lang` = `de` oder `en`). Weitere Sprachen brauchen keine Schemaänderung (Anforderung 7).
 - Die Bilddateien selbst liegen nicht in der Datenbank, sondern im Medien-Volume.
-- Die Statistik (#130) speichert keine Einzelereignisse und keine Kennungen von Personen: `page_views` ist ein Tageszähler, `readiness_results` enthält nur Sprache, Zeitpunkt und den SHA-256-Hash einer zufälligen Kennung aus dem Arbeitsspeicher des Browserfensters. Mit ihr aktualisiert das Backend dasselbe Ergebnis, statt es zu verdoppeln.
+- Die Seitenstatistik (#130, #142) speichert absolute/bereinigte Tagesaggregate in `page_views` und je HMAC-geschütztem IP-Pseudonym nur den letzten Aufruftag in `page_view_sources`. Keine Einzelereignisse oder Seitenverläufe; die Pseudonyme sind personenbezogen und bleiben für die Laufzeit des Statistikbestands, um „Gesamt“ korrekt zu bereinigen. Schlüssel getrennt von SQLite, Client-IP nur über explizit vertraute Proxys. Beginn/Schlüsselfingerabdruck stehen in `page_view_identity`; historische Datenlücken werden als unbekannt ausgegeben. Details: [ADR 0010](app/docs/adr/0010-statistik-ohne-kennung-und-einwilligung.md). `readiness_results` bleibt davon getrennt und enthält nur Sprache, Zeitpunkt und den SHA-256-Hash einer zufälligen Kennung aus dem Arbeitsspeicher des Browserfensters, um dasselbe Ergebnis zu aktualisieren.
 - `consultation_requests` (#136) enthält je Anfrage nur die normalisierte E-Mail-Adresse, die Sprache für die Antwort und den Zeitpunkt, ohne Ergebnis der Selbsteinschätzung und ohne Verknüpfung zu `readiness_results`. Eine erneute Anfrage mit derselben Adresse aktualisiert den Eintrag. Die Redaktion löscht ihn nach der Terminabstimmung.
 
 ### Späterer Wechsel zu PostgreSQL

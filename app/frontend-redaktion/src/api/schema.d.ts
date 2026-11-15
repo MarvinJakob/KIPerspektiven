@@ -222,7 +222,9 @@ export interface paths {
         /**
          * Anmelden, setzt das Sitzungscookie
          * @description Unbekannte E-Mail-Adressen, falsche Passwörter und deaktivierte Konten liefern dieselbe Antwort `401`.
-         *     Nach zu vielen Fehlversuchen von derselben IP-Adresse antwortet das Backend mit `429`.
+         *     Nach zu vielen Fehlversuchen von derselben IP-Adresse antwortet das Backend mit `429`. Noch laufende
+         *     Versuche derselben IP-Adresse zählen dabei mit. Sind über alle IP-Adressen bereits zu viele
+         *     Passwortprüfungen in Arbeit, antwortet das Backend vor der Prüfung mit `503` (Ticket #138).
          */
         post: operations["login"];
         delete?: never;
@@ -834,14 +836,26 @@ export interface components {
             date: string;
             /** Format: int64 */
             views: number;
+            /**
+             * Format: int64
+             * @description Unterschiedliche IPs je Kalendertag; null bei fehlenden oder unvollständigen Daten
+             */
+            uniqueViews: number | null;
         };
         PageViewStats: {
             period: components["schemas"]["StatisticsPeriod"];
             /**
              * Format: int64
-             * @description Seitenaufrufe im Zeitraum
+             * @description Absolute Seitenaufrufe im Zeitraum
              */
             total: number;
+            /**
+             * Format: int64
+             * @description Unterschiedliche IPs im gesamten Zeitraum (keine Summe der Tageswerte); null bei Datenlücken
+             */
+            uniqueTotal: number | null;
+            /** @description Beginn des aktuellen IP-Zuordnungsbestands als UTC-Zeitpunkt (RFC 3339) */
+            uniqueSince: string | null;
             days: components["schemas"]["PageViewDay"][];
         };
         ReadinessDimensionName: {
@@ -1272,6 +1286,17 @@ export interface operations {
             /** @description Zu viele Fehlversuche, später erneut versuchen */
             429: {
                 headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Anmeldung ausgelastet. Zu viele gleichzeitige Passwortprüfungen, nach `Retry-After` Sekunden erneut versuchen. Zählt nicht als Fehlversuch. */
+            503: {
+                headers: {
+                    /** @description Wartezeit in Sekunden bis zum nächsten Versuch */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {

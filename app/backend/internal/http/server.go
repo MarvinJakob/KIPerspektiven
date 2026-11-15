@@ -3,6 +3,7 @@ package httpserver
 import (
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 
 	"ki-web/backend/internal/audit"
 	"ki-web/backend/internal/auth"
+	"ki-web/backend/internal/clientip"
 	"ki-web/backend/internal/media"
 	"ki-web/backend/internal/service"
 	"ki-web/backend/internal/web"
@@ -31,8 +33,8 @@ type Config struct {
 	Media *media.Store
 	// SecureCookies setzt das Secure-Attribut am Sitzungscookie (bei HTTPS).
 	SecureCookies bool
-	// TrustProxy liest die IP-Adresse aus X-Forwarded-For (hinter Caddy).
-	TrustProxy bool
+	// TrustedProxies sind die einzigen Peers, deren X-Forwarded-For ausgewertet wird.
+	TrustedProxies []netip.Prefix
 	// RequireLogin zeigt die öffentliche Webseite nur angemeldeten Konten (optionaler Zugangsschutz, Ticket #49).
 	// Standardmäßig aus: Die Webseite ist öffentlich (Ticket #108). Redaktions-API (guard) und Redaktionsseiten
 	// (web.Editorial) prüfen Sitzung und Rolle unabhängig davon.
@@ -42,31 +44,45 @@ type Config struct {
 
 // New baut den vollständigen HTTP-Handler aus API, Medien und Webseite.
 func New(cfg Config) http.Handler {
-	mux := http.NewServeMux()
-	registerAPI(mux, &apiServer{
-		svc:                 cfg.Public,
-		audit:               cfg.Audit,
-		accounts:            cfg.Accounts,
-		editorial:           cfg.Editorial,
-		stats:               cfg.Statistics,
-		consultations:       cfg.Consultations,
-		media:               cfg.Media,
-		limiter:             auth.NewLimiter(loginMaxFailures, loginWindow),
+	return newHandler(cfg, newAPIServer(cfg))
+}
+
+// newAPIServer baut die API-Handler. Tests im Paket ersetzen danach einzelne Abhängigkeiten, etwa login.
+func newAPIServer(cfg Config) *apiServer {
+	return &apiServer{
+		svc:           cfg.Public,
+		audit:         cfg.Audit,
+		accounts:      cfg.Accounts,
+		editorial:     cfg.Editorial,
+		stats:         cfg.Statistics,
+		consultations: cfg.Consultations,
+		media:         cfg.Media,
+		secureCookies: cfg.SecureCookies,
+		log:           cfg.Log,
+
 		consultationLimiter: auth.NewLimiter(consultationMaxRequests, consultationWindow),
-		secureCookies:       cfg.SecureCookies,
-		log:                 cfg.Log,
-	}, cfg.Log)
+
+		login:          cfg.Accounts.Login,
+		limiter:        auth.NewLimiter(loginMaxFailures, loginWindow),
+		passwordChecks: auth.NewThrottle(passwordChecksActive, passwordChecksWaiting, passwordChecksMaxWait),
+	}
+}
+
+// newHandler verbindet die API-Handler mit Medien, Webseite und Middleware.
+func newHandler(cfg Config, srv *apiServer) http.Handler {
+	mux := http.NewServeMux()
+	registerAPI(mux, srv, cfg.Log)
 	if cfg.MediaPath != "" {
 		mux.Handle("GET /media/", mediaHandler(cfg.MediaPath))
 	}
 	cfg.EditorialSite.Register(mux)
 	cfg.Site.Register(mux)
-	g := &guard{accounts: cfg.Accounts, trustProxy: cfg.TrustProxy, log: cfg.Log}
+	g := &guard{accounts: cfg.Accounts, log: cfg.Log}
 	h := g.wrap(mux)
 	if cfg.RequireLogin {
 		h = (&gate{accounts: cfg.Accounts, log: cfg.Log}).wrap(h)
 	}
-	return recoverer(cfg.Log, logRequests(cfg.Log, hardenResponses(limitBody(h))))
+	return recoverer(cfg.Log, logRequests(cfg.Log, hardenResponses(limitBody(clientip.Middleware(h, cfg.TrustedProxies)))))
 }
 
 // maxRequestBytes begrenzt jeden Anfragetext. Er liegt über dem größten Bild-Upload (media.MaxUploadBytes)

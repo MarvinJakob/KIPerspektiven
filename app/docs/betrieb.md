@@ -214,3 +214,31 @@ So wechselst du die Domain:
 3. `cd /opt/ki-web && docker compose up -d --wait` ausführen. Caddy holt die neuen Zertifikate. canonical-Links und Sitemap verwenden die neue Domain.
 4. In GitHub die Variable `DEPLOY_URL` auf die neue Adresse setzen.
 5. Prüfen: `curl -fsS https://DOMAIN/api/health` und `curl -sS -D - -o /dev/null https://www.DOMAIN/`. Erwartet wird `301` mit `Location: https://DOMAIN/`.
+
+## IP-Bereinigung der Seitenstatistik (#142)
+
+Die IP-Bereinigung verwendet den persistenten Schlüssel `/data/db/statistics-ip.key` getrennt von
+SQLite. Er wird beim ersten Start mit Dateimodus 0600 erzeugt; die Verzeichnisrechte und Sicherungen
+müssen ebenfalls auf den Betreiber beschränkt bleiben. Nie ausgeben, committen oder zusammen mit
+Datenbankkopien weitergeben. `STATISTICS_KEY_PATH` erlaubt einen anderen persistenten Pfad.
+
+Der Befehl `/server backup` und das vorbereitete Backup-Skript sichern nur SQLite und Medien,
+**nicht den Schlüssel**. Den Schlüssel separat in einem zugriffsgeschützten, verschlüsselten
+Geheimnisspeicher sichern, mit derselben Aufbewahrungsregel. Bei Wiederherstellung den zum
+Datenbankstand gehörenden Schlüssel bereitstellen. Bei Verlust oder bewusstem Wechsel erzeugt der
+Server einen neuen Zuordnungsbestand; alte absolute Zahlen bleiben erhalten und nicht mehr
+berechenbare IP-Summen werden als „Nicht verfügbar“ markiert. Kein stilles Vermischen beider Bestände.
+
+Compose verwendet ein eigenes Netz `proxy` (172.30.142.0/24) und die feste Caddy-IP 172.30.142.2.
+Nur diese /32-Adresse steht in `TRUSTED_PROXIES`; der Backend-Port bleibt unveröffentlicht. So muss
+beim ersten Rollout das bisherige Default-Netz nicht umkonfiguriert werden. Vor dem ersten Rollout
+prüfen, dass das Subnetz nicht mit dem Servernetz/VPN kollidiert; bei Anpassung Subnetz, Caddy-IP und
+vertraute /32-Adresse gemeinsam ändern. `TRUST_PROXY` entfällt. Bei einem anderen Proxy müssen
+dessen unmittelbare Peer-IPs/CIDRs explizit konfiguriert werden; ohne Konfiguration werden Header ignoriert.
+
+Ableitungen bleiben für die Laufzeit des Statistikbestands, weil „Gesamt“ sonst wiederkehrende IPs
+mehrfach zählen würde. Mindestens jährlich die Erforderlichkeit prüfen. Bei Abschaltung der
+IP-Statistik Backend stoppen, `page_view_sources` und `page_view_identity` leeren und den Schlüssel
+löschen; reine Tagesaggregate können bleiben. Sicherungen entsprechend löschen (vorbereitetes
+Restic-Skript: 30 tägliche Stände; manuelle Kopien gesondert entfernen). Ein späterer Start legt einen
+neuen Bestand an. Rechtliche Einordnung und Datensparsamkeit: [ADR 0010](adr/0010-statistik-ohne-kennung-und-einwilligung.md).

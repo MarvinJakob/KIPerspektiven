@@ -370,8 +370,11 @@ type NewUser struct {
 // PageViewDay defines model for PageViewDay.
 type PageViewDay struct {
 	// Date Kalendertag in Europe/Berlin (JJJJ-MM-TT)
-	Date  string `json:"date"`
-	Views int64  `json:"views"`
+	Date string `json:"date"`
+
+	// UniqueViews Unterschiedliche IPs je Kalendertag; null bei fehlenden oder unvollständigen Daten
+	UniqueViews *int64 `json:"uniqueViews"`
+	Views       int64  `json:"views"`
 }
 
 // PageViewStats defines model for PageViewStats.
@@ -381,8 +384,14 @@ type PageViewStats struct {
 	// Period Letzte 7 Tage, letzte 30 Tage (jeweils einschließlich heute, Kalendertage in Europe/Berlin) oder gesamt
 	Period StatisticsPeriod `json:"period"`
 
-	// Total Seitenaufrufe im Zeitraum
+	// Total Absolute Seitenaufrufe im Zeitraum
 	Total int64 `json:"total"`
+
+	// UniqueSince Beginn des aktuellen IP-Zuordnungsbestands als UTC-Zeitpunkt (RFC 3339)
+	UniqueSince *string `json:"uniqueSince"`
+
+	// UniqueTotal Unterschiedliche IPs im gesamten Zeitraum (keine Summe der Tageswerte); null bei Datenlücken
+	UniqueTotal *int64 `json:"uniqueTotal"`
 }
 
 // Post defines model for Post.
@@ -3219,6 +3228,28 @@ func (response Login429JSONResponse) VisitLoginResponse(w http.ResponseWriter) e
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Login503ResponseHeaders struct {
+	RetryAfter int
+}
+
+type Login503JSONResponse struct {
+	Body    Error
+	Headers Login503ResponseHeaders
+}
+
+func (response Login503JSONResponse) VisitLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Retry-After", fmt.Sprint(response.Headers.RetryAfter))
+	w.WriteHeader(503)
 	_, err := buf.WriteTo(w)
 	return err
 }
