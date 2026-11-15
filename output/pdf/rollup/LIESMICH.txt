@@ -1,0 +1,32 @@
+ROLL-UP: KI-READINESS-SELBSTEINSCHÄTZUNG
+
+Datei: rollup-85x200cm-cmyk.pdf
+Eine Seite, 850 x 2000 mm, im Maßstab 1:1.
+CMYK-Prozessfarben für Vierfarbdruck, keine Sonderfarben oder RGB-Objekte.
+Reine Vektorgrafik und eingebettete Segoe-UI-Schriften.
+QR-Code in 100 % Schwarz, Fehlerkorrektur Q, vier Module Ruhezone.
+
+Ohne druckereispezifische Vorlage erstellt, wie im Chat abgestimmt.
+Keine zusätzliche Beschnittzugabe, Schnittmarken oder Kassettenverlängerung.
+Die unteren 150 mm enthalten keine wichtigen Informationen.
+Vor der Produktion die Vorlage der gewählten Druckerei abgleichen:
+Das benötigte Datenformat und die Kassettenzugabe unterscheiden sich je System.
+Kein PDF/X-Standard und kein materialspezifisches ICC-Profil deklariert.
+Die CMYK-Ausgabe ist bewusst ohne eine ungeprüfte Druckbedingung angelegt.
+
+MARKETING UND ZIELSEITE
+Die Werbung führt direkt zur KI-Readiness-Selbsteinschätzung:
+https://marvinjakob.de/de/themen/ai-audit
+Diese URL war beim Abruf am 14.11.2026 mit HTTP 200 erreichbar;
+Seitentitel und kanonische URL bestätigten die KI-Readiness-Zielseite.
+
+Die Aussagen zu acht Dimensionen, Reifegrad je Bereich und nächsten Schritten
+beruhen auf der öffentlichen Inhalts-API (am 14.11.2026 abgeglichen)
+und den Bewertungsregeln der vorhandenen Anwendung:
+https://marvinjakob.de/api/audit?lang=de
+app/backend/internal/audit/content.json
+app/frontend/src/lib/audit.ts
+Keine Zusagen zu Dauer, Zertifizierung oder konkreten Geschäftsergebnissen.
+
+design.py enthält die editierbare Layoutquelle.
+vorschau.png ist die gerenderte Ansicht, keine zusätzliche Druckdatei.

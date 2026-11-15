@@ -22,6 +22,17 @@ Der Entwicklungsagent implementiert; ein separater Review-Agent prüft im Featur
 
 Statusfolge: `Todo` → `In Progress` → `Review` → `Done`. Bei Mängeln: `Review` → `In Progress` → nach Korrektur erneut `Review`.
 
+**Vor jedem Commit:** Prüfe unmittelbar mit `git branch --show-current`, ob der aktuell ausgecheckte Branch dem vorgesehenen Arbeitsbranch entspricht. Auf diesem Gerät können mehrere Agenten gleichzeitig entwickeln und den Branch zwischenzeitlich wechseln. Verlasse dich deshalb nicht auf eine frühere Branch-Prüfung. Bei abweichendem oder leerem Ergebnis nicht committen und das weitere Vorgehen zuerst abstimmen.
+
+## Kurzkommandos
+
+Die folgenden Kurzkommandos sind Aufträge im Chat, keine Shell- oder Slash-Commands:
+
+| Kurzkommando | Auftrag |
+| --- | --- |
+| `review` | Führe den vollständigen Ablauf unter **Review-Agent** für alle Tickets im Status `Review` aus, einschließlich Merge und Aufräumen bei erfolgreicher Prüfung. Entspricht „Review durchführen“. |
+| `ticket #[ticket-nr.]` | Bearbeite genau das angegebene GitHub-Ticket nach dem Ablauf unter **Entwicklungsagent**, z. B. `ticket #123`. Setze eine vorhandene Umsetzung im bestehenden Feature-/PR-Branch fort. Ende nach der Übergabe an `Review` oder mit einem dokumentierten Blocker; übernimm kein weiteres Ticket und merge nicht selbst. |
+
 ## Board-Zugriff
 
 Nutze die GitHub CLI (`gh`) mit dem Token aus `.token/github`. Die Datei enthält nur den Token und bleibt lokal. Gib den Token nicht aus und committe ihn nicht. Authentifiziere über `GH_TOKEN`, ohne Speicherung per `gh auth login`.
@@ -45,7 +56,7 @@ Ausgabe `AI Board` bestätigt den Zugriff. Besitzer: `MarvinJakob`, Projektnumme
 
 ## Entwicklungsagent
 
-1. **Ticket übernehmen:** Bearbeite nur ein Ticket gleichzeitig. Setze zuerst dein laufendes Ticket fort; Rückläufer haben Vorrang vor neuen Tickets. Wähle sonst das nächste umsetzbare `Todo`-Ticket in Board-Reihenfolge. Lies Beschreibung und Akzeptanzkriterien; setze es vor Arbeitsbeginn von `Todo` auf `In Progress`.
+1. **Ticket übernehmen:** Bearbeite nur ein Ticket gleichzeitig. Bei `ticket #[ticket-nr.]` wähle das angegebene Ticket statt der automatischen Auswahl; ist bereits ein anderes Ticket in Arbeit, kläre den Wechsel vor der Übernahme. Ohne ausdrückliche Ticketnummer: Setze zuerst dein laufendes Ticket fort; Rückläufer haben Vorrang vor neuen Tickets. Wähle sonst das nächste umsetzbare `Todo`-Ticket in Board-Reihenfolge. Lies Beschreibung und Akzeptanzkriterien; setze es vor Arbeitsbeginn von `Todo` auf `In Progress`.
 2. **Implementieren und testen:** Erstelle nach Übernahme und vor Umsetzung für jedes Feature einen eigenen Branch aus `main`; implementiere dort. Führe die relevanten Prüfungen aus [app/README.md](app/README.md) aus und dokumentiere Blocker im Ticket. Bei Rückläufern: Behebe dokumentierte Mängel und verknüpfte Bugs im bestehenden PR-Branch; wiederhole betroffene Prüfungen. Setze jedes bearbeitete Bug-Ticket vor Korrektur auf `In Progress`, danach mit dokumentiertem Commit und Testergebnis auf `Review`.
 3. **Pull Request (PR):** Erst bei vollständiger Umsetzung und erfolgreichen relevanten Prüfungen den Branch veröffentlichen und einen PR nach `main` eröffnen. Bei Rückläufern den bestehenden PR verwenden. Verknüpfe den prüfbereiten PR mit dem Ticket; dokumentiere Commit, ausgeführte Prüfungen und Ergebnisse.
 4. **Übergeben:** Setze das Feature-Ticket von `In Progress` auf `Review` und kontrolliere den Board-Status. Danach darfst du das nächste Ticket übernehmen.
@@ -56,7 +67,7 @@ Ausgabe `AI Board` bestätigt den Zugriff. Besitzer: `MarvinJakob`, Projektnumme
 
 ## Review-Agent
 
-Bei Auftrag **„Review durchführen“**: Prüfe alle Tickets in `Review` nach den folgenden Schritten, einschließlich Feature-Tests, Bug-Erfassung, sämtlicher Fehlerkorrekturen und bei Erfolg Merge in `main`. Beschränke dich nicht auf zuletzt erstellte Ticketbeschreibungen oder lokale Änderungen. Ist `Review` leer, melde dies.
+Bei Auftrag **`review`** oder **„Review durchführen“**: Prüfe alle Tickets in `Review` nach den folgenden Schritten, einschließlich Feature-Tests, Bug-Erfassung, sämtlicher Fehlerkorrekturen und bei Erfolg Merge in `main`. Beschränke dich nicht auf zuletzt erstellte Ticketbeschreibungen oder lokale Änderungen. Ist `Review` leer, melde dies.
 
 1. **Auswählen:** Öffne das AI Board, prüfe `Review` und lies je Ticket Beschreibung, Akzeptanzkriterien, verknüpfte PRs und alle zugehörigen Bug-Tickets.
 2. **Prüfstand:** Checke den aktuellen Feature-Branch aus und halte den geprüften Commit fest. Prüfe nur dann auf `main`, wenn die Umsetzung bereits dorthin gemergt ist.

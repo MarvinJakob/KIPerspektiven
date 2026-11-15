@@ -1,3 +1,18 @@
+Link zu folgenden Themen:
+•	AI Audit: Wie bereit ist Ihr Unternehmen für KI?
+•	Prozess Automatisierung: humans in the loop (n8n)
+•	Software Entwicklung: KI Assistenten mit Guardrails anleiten
+•	Data Analytics: Daten verstehen und auswerten.
+•	KI Tipps und Ticks: Skills you need to know.
+•	Modelle und Kosten: Wie finde ich das beste Preis- / Leistungsverhältnis?
+
+Was ist KI und was kann man damit machen?
+•	KI ist besonders gut bestimmten Aufgaben wie z.B. Programmieren. Hier können wir die Ergebnisse sehr gut überprüfen.
+•	Wenn wir verstehen, wie KI funktioniert können wir die Grenzen von KI abschätzen. Eine KI basiert auf einem LLM, welches nicht für jede Aufgabe Sinnvoll eingesetzt werden kann.
+Link: Wenn du mehr über mögliche Einsatzmöglichkeiten wissen möchtest, klicke hier.
+
+
+
 # Inhalt für die Landing Page
 
 *Stand: 9. November 2026.* Die Datei enthält die Texte der Startseite in der Reihenfolge, in der Besucherinnen und Besucher sie sehen. Pfeile (→) markieren Buttons und Links.
