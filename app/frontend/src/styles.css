@@ -463,11 +463,16 @@ svg { display: block; }
 .topic-hero .page-title, .topic-subtitle { hyphens: auto; }
 .topic-subtitle { margin-top: 16px; font-size: clamp(1.25rem, 2.5vw, 1.625rem); font-weight: 650; letter-spacing: -.02em; line-height: 1.35; }
 .topic-content { max-width: 760px; margin: clamp(48px, 6vw, 80px) auto 0; overflow-wrap: anywhere; }
+.feature-intro { max-width: 760px; margin-inline: auto; padding-bottom: 0; }
+.feature-page .topic-content { margin-top: 24px; }
+.feature-page .prose { margin-top: 0; }
 .prose--topic > p:first-child, .prose--topic .topic-hook {
   padding: 20px 24px; border: 1px solid var(--border); border-left: 3px solid var(--brand); border-radius: var(--radius-small); background: var(--note-bg);
 }
 .prose--topic .topic-hook > p:first-child { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 700; line-height: 1.25; letter-spacing: -.03em; }
 .prose--topic .topic-hook > p + p { margin-top: .6em; }
+/* Der Stand der Inhaltsvorlage ist eine Datumszeile, kein hervorgehobener Aufhänger. */
+.feature-page .prose > p:first-child { padding: 0; border: 0; background: none; font-size: 1rem; color: var(--text-2); }
 .prose--topic img { display: block; max-width: 100%; height: auto; }
 .topic-image { display: block; cursor: zoom-in; }
 .prose--topic code { font-size: .9em; overflow-wrap: anywhere; }

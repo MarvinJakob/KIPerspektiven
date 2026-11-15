@@ -99,6 +99,8 @@ var texts = map[service.Lang]map[string]string{
 		"home.title":            "KI verstehen. Sinnvoll einsetzen.",
 		"home.desc":             "Praxiswissen für den professionellen Einsatz von KI. Mit klarem Blick auf Nutzen, Grenzen und Verantwortung.",
 		"aiUses.title":          "Wofür KI heute eingesetzt wird",
+		"understandAi.title":    "KI verstehen",
+		"understandAi.desc":     "Wie Sprachmodelle und KI-Agenten funktionieren und wie fünf Disziplinen helfen, bessere KI-Ergebnisse zu erreichen.",
 		"aiUses.desc":           "Sieben typische Aufgaben von KI mit belegten Beispielen und Zahlen zur KI-Nutzung in Deutschland.",
 		"blog.title":            "Blog",
 		"blog.desc":             "Alle veröffentlichten Beiträge rund um KI – die neuesten zuerst.",

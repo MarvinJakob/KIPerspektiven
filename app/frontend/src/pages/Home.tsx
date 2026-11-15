@@ -42,6 +42,9 @@ export function Home() {
             <Link className="text-link" to={href(lang, '/blog')}>
               {c.ctaNews}
             </Link>
+            <Link className="text-link" to={href(lang, '/ki-verstehen')}>
+              {c.ctaUnderstand}
+            </Link>
             <Link className="text-link" to={auditPath(lang)}>
               {c.ctaAudit}
             </Link>
