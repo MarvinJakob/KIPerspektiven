@@ -1,137 +1,55 @@
-# KI in der Softwareentwicklung: KI-Assistenten mit Guardrails anleiten
-
-*Stand: 9. November 2026.*
-
 ## Metadaten der Themenseite
 
-- **Slug:** `softwareentwicklung`
+- **Titel:** KI in der Softwareentwicklung
 - **Label:** Softwareentwicklung
-- **Titel:** KI in der Softwareentwicklung (bisher: „AI in der Softwareentwicklung“)
-- **Untertitel:** KI-Assistenten mit Guardrails anleiten
-- **Kurzbeschreibung:** Wie Sie KI-Assistenten mit Markdown-Regeln, Zugriffsrechten, Tests und Reviews anleiten.
-- **Einführung:** Dateien wie `AGENTS.md` geben KI-Assistenten Ziele, Arbeitsabläufe und Grenzen mit. Das Modell kann solche Regeln aber missverstehen oder übergehen. Hier sehen Sie, wie Sie prüfbare Regeln schreiben, Freigaben an Aktionen binden und Grenzen technisch absichern.
+- **Kurzbeschreibung:** Wie Sie mit KI Software entwickeln, Ergebnisse prüfen und die Flut an Änderungen beherrschen.
+- **Einführung:** KI kann Code schreiben, Tests erstellen und Fehler beheben. Entscheidend sind überprüfbare Ergebnisse und ein klarer Entwicklungsprozess. Hier erfahren Sie, wie drei Agententeams zusammenarbeiten, Guardrails die Arbeit begrenzen und Änderungen gezielt geprüft werden.
+- **Untertitel:** KI entwickeln, Ergebnisse prüfen, Änderungen beherrschen
 
 ---
 
-**Ein Verbot im Prompt verhindert noch keinen Zugriff.**
+*Stand: 15. November 2026.*
 
-## Was Guardrails leisten
+## Software entwickeln mit KI
 
-Markdown eignet sich, um KI-Agenten Ziele, Arbeitsabläufe und Grenzen dauerhaft mitzugeben. Dateien wie `AGENTS.md` machen diese Vorgaben lesbar, versionierbar und gemeinsam pflegbar. Die Regeln wirken jedoch als Anweisungen im Modellkontext. Für verbindliche Grenzen braucht es zusätzlich passende Zugriffsrechte und Kontrollen außerhalb des Modells. Anthropic beschreibt diese Trennung ausdrücklich; OWASP empfiehlt, Funktionen, Berechtigungen und Autonomie auf den benötigten Umfang zu begrenzen. [1] [2]
+KI lässt sich besonders wirkungsvoll einsetzen, wenn ihre Ergebnisse gut überprüfbar sind. In der Mathematik können etwa Beweise oder Gegenbeispiele eine Lösung bestätigen oder widerlegen. In der Softwareentwicklung helfen ausführbare Tests, festzustellen, ob eine Implementierung die erwarteten Ergebnisse liefert. Sie erfassen allerdings nur die geprüften Fälle und ersetzen keine vollständige fachliche Bewertung.
 
-Drei Ebenen lassen sich unterscheiden (eigene Systematisierung):
+Damit verändert sich die Arbeit in der Softwareentwicklung: KI kann neben dem Schreiben von Code auch Tests erstellen, Fehler suchen und Korrekturen umsetzen. Für Menschen gewinnen klare Anforderungen, geeignete Prüfverfahren und die Gestaltung des gesamten Entwicklungsprozesses an Bedeutung. Je verlässlicher sich Ergebnisse prüfen lassen, desto mehr Arbeitsschritte können Agenten selbstständig übernehmen.
 
-| Ebene | Beispiel | Wirkung und Grenze |
-| --- | --- | --- |
-| Anleitung in Markdown | „Ändere nur Dateien, die für das aktuelle Ticket benötigt werden.“ | Beschreibt das gewünschte Verhalten; das Modell kann die Regel missverstehen oder übergehen. |
-| Technische Durchsetzung | Ein Dienstkonto darf Daten nur lesen. | Der Dienst verweigert Schreibaktionen unabhängig von der Modellantwort. |
-| Prüfung und Freigabe | Ein Pull Request braucht erfolgreiche CI-Prüfungen und ein unabhängiges Review. | Kontrolliert das Ergebnis vor der Übernahme; die Qualität hängt auch von Prüfungen und Review ab. |
+### Wie könnte eine Entwicklungspipeline mit KI aussehen?
 
-Ein Beispiel: „Lies keine geheimen Schlüssel“ ist eine Verhaltensregel. Ein Arbeitsbereich ohne zugängliche Schlüssel begrenzt zusätzlich, welche Daten überhaupt erreichbar sind. [2]
+Die folgende Grafik zeigt einen möglichen Ablauf mit drei Agententeams und einem gemeinsamen Repository:
 
-## Welche Markdown-Dateien Agenten lesen
+![Drei Agententeams erstellen Tests, melden Fehler und liefern Korrekturen über eine Qualitätsprüfung in das gemeinsame Repository.](../ressources/grafiken/AgenticSWDevProcess_de.png)
 
-Markdown ist nur das Textformat. Welche Datei automatisch geladen wird und welchen Geltungsbereich sie hat, entscheidet das jeweilige Werkzeug:
+1. **Tests aus Anforderungen ableiten:** Das erste Team formuliert typische Nutzungsszenarien und erstellt daraus Tests. Es prüft die erwarteten Ergebnisse an einem verlässlichen Referenzsystem. Die bestätigten Tests bilden einen gemeinsamen Testbestand.
+2. **Abweichungen finden:** Das zweite Team führt diese Tests gegen die zu entwickelnde Software aus. Es dokumentiert Fehler und bündelt Abweichungen, die vermutlich dieselbe Ursache haben, zu bearbeitbaren Aufgaben.
+3. **Probleme einzeln beheben:** Im dritten Team übernimmt jeder Agent einen konkreten Fall. Er untersucht die Ursache und passt den Code an, bis das Problem behoben ist.
+4. **Änderungen kontrollieren:** Vor der Übernahme muss jede Änderung eine Qualitätsprüfung bestehen: Lässt sich die Software bauen? Entspricht der Code den Vorgaben? Bestehen Sicherheitsprüfungen und die Tests zum erwarteten Verhalten? Bei Mängeln geht die Änderung zur Korrektur zurück.
+5. **Übernehmen und erneut prüfen:** Erfolgreich geprüfte Änderungen gelangen in den Hauptbranch. Behobene Probleme werden entsprechend markiert. Die Teams setzen den Kreislauf mit weiteren Tests, Fehleranalysen und Korrekturen fort.
 
-- **`AGENTS.md`:** Das offene Format verwendet gewöhnliches Markdown ohne Pflichtfelder. Eine verständliche Gliederung genügt. [3]
-- **OpenAI Codex:** Sucht vom Projektstamm bis zum Arbeitsverzeichnis; pro Verzeichnis wird höchstens eine passende Datei berücksichtigt, `AGENTS.override.md` hat Vorrang. [4]
-- **Claude Code:** Unterstützt `CLAUDE.md` und `AGENTS.md`. Welche geladen wird, hängt von Version und Einstellung ab. [1]
-- **GitHub Copilot:** Unterscheidet `.github/copilot-instructions.md`, pfadbezogene Dateien und Agentenanweisungen. Die Unterstützung hängt von Client und Funktion ab. [5]
+## Guardrails
 
-Eine Datei namens `GUARDRAILS.md` wird deshalb nicht automatisch wirksam. Sie muss über den vorgesehenen Mechanismus eingebunden werden. Auch eine universelle Rangfolge gibt es nicht: Konflikte zwischen Regeldateien klären Sie im konkreten Werkzeug und vermeiden widersprüchliche Kopien. [5] [6]
+Guardrails sind Leitplanken für die Arbeit mit KI: Sie legen fest, was ein Agent tun soll, welche Grenzen gelten und wie seine Ergebnisse geprüft werden. Dazu gehören verständliche Arbeitsanweisungen ebenso wie technische Zugriffsbeschränkungen, Tests und Freigaben.
 
-## Prüfbare Regeln schreiben
+Für die Anwendung halten Sie dauerhafte Projektregeln in einer vom Werkzeug unterstützten Anweisungsdatei fest, etwa `AGENTS.md`. Darin stehen beispielsweise der Arbeitsablauf, erlaubte Änderungen und erforderliche Prüfungen. Kontrollieren Sie, ob das eingesetzte Werkzeug die Datei tatsächlich lädt. Verbindliche Grenzen setzen Sie zusätzlich technisch durch, etwa über eingeschränkte Schreibrechte oder geschützte Branches. Eine Anweisung allein garantiert nicht, dass der Agent sie einhält.
 
-Anthropic empfiehlt klare, direkte Anweisungen mit erkennbaren Abschnitten. Zu allgemeine Vorgaben lassen Entscheidungen offen, zu detaillierte Fallunterscheidungen werden spröde. [7] Entscheidend ist, dass ein Mensch nach einem Lauf erkennen kann, ob die Regel eingehalten wurde. Ein mögliches Muster (eigener Vorschlag):
+### Tipps für sinnvolle Guardrails
 
-> Wenn **[Auslöser]** eintritt, führe **[konkrete Handlung]** für **[Geltungsbereich]** aus. Prüfe **[Nachweis]**. Falls das nicht möglich ist, **[Ersatzverhalten]**.
+- **Wenige, klare Regeln formulieren:** Beschreiben Sie konkrete Handlungen mit erkennbarem Anlass. Statt „Teste gründlich“: „Führe vor der Übergabe die relevanten Tests aus der Projektanleitung aus und dokumentiere die Ergebnisse. Falls ein Test nicht ausführbar ist, benenne den Grund.“
+- **Den Auftrag eingrenzen:** Legen Sie fest, welche Dateien und Aufgaben bearbeitet werden dürfen. Zusätzlich entdeckte Verbesserungen werden separat festgehalten.
+- **Selbstständigkeit und Freigaben klären:** Vereinbaren Sie, welche Aktionen der Agent eigenständig ausführen darf und wann eine Freigabe erforderlich ist. Diese muss sich auf die konkrete Aktion, ihren Inhalt und ihr Ziel beziehen.
+- **Berechtigungen begrenzen:** Geben Sie nur die benötigten Zugriffe auf Dateien, Dienste und Netzwerkziele frei. Halten Sie nicht benötigte Zugangsdaten aus dem Arbeitsbereich heraus und begrenzen Sie Laufzeit und Kosten.
+- **Qualität vor der Übernahme prüfen:** Nutzen Sie verpflichtende Tests und ein unabhängiges Review. Nach weiteren Änderungen muss die betroffene Version erneut geprüft werden. Schutzmechanismen darf der Agent nicht eigenständig abschalten.
+- **Fremde Inhalte als Arbeitsmaterial behandeln:** Anweisungen in Webseiten, Dokumenten oder fremdem Code erteilen dem Agenten keine zusätzlichen Befugnisse. Prüfen Sie fremde Regeldateien vor ihrer Übernahme.
+- **Die Wirkung erproben:** Testen Sie normale Aufgaben, Grenzfälle und unerlaubte Aktionen in einer isolierten Umgebung mit künstlichen Geheimnissen. Prüfen Sie auch, ob Regeln unnötige Rückfragen verursachen, und wiederholen Sie die Prüfung nach Anpassungen.
 
-| Zu unbestimmt | Konkreter formuliert |
-| --- | --- |
-| „Arbeite sicher.“ | „Gib keine Zugangsdaten in Antworten, Logs, Tickets oder Commits aus.“ |
-| „Teste gründlich.“ | „Führe vor der Übergabe die relevanten Prüfungen aus `app/README.md` aus. Dokumentiere Befehl, Ergebnis und nicht ausführbare Prüfungen.“ |
-| „Ändere möglichst wenig.“ | „Beschränke Änderungen auf das aktuelle Ticket. Halte zusätzlich entdeckte Verbesserungen separat fest.“ |
+## Wie umgehen mit der Flut an Änderungen und Findings von KI?
 
-Dauerhafte Regeln gehören in die Anweisungsdatei, das aktuelle Ziel und der Bearbeitungsstand separat. Ausgelagerte Dateien brauchen einen klaren Auslöser, etwa: „Lies vor einer Entwicklungsaufgabe den Abschnitt Entwicklung in `docs/agent-workflows.md`.“ [7]
+KI kann in kurzer Zeit viele Codeänderungen und vermeintliche Fehlerbefunde erzeugen. Dadurch verschiebt sich der Engpass: Die Umsetzung wird schneller, während die fachliche Bewertung und das Review mehr Aufmerksamkeit verlangen. Wenn jede Meldung ungefiltert bei Menschen landet, wächst der Prüfaufwand mit der Produktivität der Agenten.
 
-## Freigaben an konkrete Aktionen binden
+Hinzu kommt, dass KI weiterhin plausible, aber falsche Aussagen liefern kann. Ein gemeldeter Fehler muss daher zunächst nachvollziehbar sein. Hilfreich sind klare Annahmekriterien für Findings: Wo tritt das Problem auf? Wie lässt es sich reproduzieren? Was wird erwartet, und was passiert tatsächlich? Ein ausführbarer Test kann den Befund stützen. Mehrere KI-Agenten, die derselben Aussage zustimmen, ersetzen diesen Nachweis nicht.
 
-„Frage immer nach“ erschwert selbstständige Arbeit, „Handle vollständig autonom“ lässt den Umfang offen. Sinnvoll ist eine vorab vereinbarte Zuordnung von Aktion und Freigabe (Vorschlag für einen begrenzten Projektagent):
+Ein geeigneter Prozess filtert und priorisiert, bevor ein menschliches Review beginnt. Doppelte Meldungen werden gebündelt, bereits widerlegte Befunde aussortiert und Auswirkungen bewertet. Änderungen bleiben klein genug, um sie gezielt prüfen zu können. Automatisierte Prüfungen übernehmen wiederkehrende Kontrollen; Menschen konzentrieren sich auf fachliche Richtigkeit, Architekturentscheidungen und Änderungen mit hoher Tragweite. Neue Tests müssen dabei selbst geprüft werden: Ein bestandener Test hilft wenig, wenn er das falsche Verhalten bestätigt.
 
-- **Selbstständig:** Projektdateien lesen, recherchieren, lokale Änderungen und passende Tests.
-- **Nach Auftrag oder Workflow:** Tickets oder Pull Requests erstellen.
-- **Nur mit konkreter Freigabe für Inhalt, Ziel und Umfang:** veröffentlichen, Nachrichten versenden, produktive Systeme ändern.
-- **Keine Selbstfreigabe:** eigene Berechtigungen erweitern oder Schutzprüfungen abschalten.
-
-Eine Freigabe sollte an die tatsächlich ausgeführte Version gebunden sein. GitHub kann veraltete Freigaben eines Pull Requests nach neuen Änderungen verwerfen oder ein Review des letzten prüfbaren Pushs verlangen. [8]
-
-## Was technisch abgesichert werden muss
-
-Markdown beschreibt die Absicht. Für relevante Grenzen sollten Sie festlegen, welche Komponente sie erzwingt (eigene Umsetzungsempfehlung):
-
-- **Arbeitsumfang:** Schreibrechte auf freigegebene Verzeichnisse beschränken.
-- **Geheimnisse:** nicht benötigte Secrets aus dem Arbeitsbereich entfernen; Zugangsdaten beim Werkzeugdienst halten.
-- **Datenabfluss:** Zielsysteme und übertragbare Daten einschränken.
-- **Freigaben:** technisch vor der Aktion prüfen; eine vom Agenten formulierte Zustimmung reicht nicht.
-- **Zeit und Kosten:** Laufzeit, Werkzeugaufrufe und Budget begrenzen.
-- **Übernahme:** geschützte Branches, verpflichtende Prüfungen und passende Review-Rechte verwenden.
-
-OpenAI dokumentiert für Codex getrennte Kontrollen für Sandbox, Freigaben und Netzwerk. Die Netzwerkbegrenzung für ausgeführte Befehle deckt nicht automatisch Websuche, Apps, MCP-Verbindungen und Browseraktivitäten ab. [6] Claude Code bietet Hooks, die eine Werkzeugaktion vor der Ausführung blockieren können. Sie müssen alle relevanten Werkzeuge und Umgehungswege erfassen; modellbasierte Hooks sind keine deterministische Berechtigungsprüfung. [9]
-
-Schutzkonfiguration, Freigabelogik und maßgebliche Tests sollten nicht ohne zusätzliche Kontrolle von demselben Agenten veränderbar sein, den sie begrenzen (eigene Ableitung).
-
-## Prompt Injection: Wenn Arbeitsmaterial zu Anweisungen werden soll
-
-Bei einer indirekten Prompt Injection enthalten etwa eine Webseite oder ein Dokument Anweisungen, die den Agenten vom Auftrag abbringen sollen. OWASP nennt Datenabfluss und unerlaubte Werkzeugaktionen als mögliche Folgen. Eine sichere Trennung lässt sich nicht allein durch einen Hinweis im Prompt garantieren. [10]
-
-Empfehlungen aus dieser Einordnung:
-
-1. Benennen Sie ausdrücklich, dass Webseiten, E-Mails, Anhänge und fremde Repository-Inhalte Arbeitsmaterial sind und keine Befugnisse erteilen.
-2. Übernehmen Sie fremde Inhalte nicht ungeprüft in dauerhafte Anweisungsdateien.
-3. Prüfen Sie Regeldateien aus fremden Repositorys vor der Nutzung.
-4. Halten Sie ausgehende Daten und Zielsysteme technisch im zulässigen Rahmen.
-
-## Was die Forschung zeigt
-
-Die Studie „Evaluating AGENTS.md“ berichtet in Version 3 vom 29. September 2026, dass Kontextdateien die Erfolgsrate bei Entwicklungsaufgaben insgesamt nicht allgemein verbessern, während die durchschnittlichen Inferenzkosten um mehr als 20 Prozent steigen. Nutzen sehen die Autoren insbesondere für nicht standardmäßige Entwicklungsvorgaben. [11]
-
-Die Untersuchung belegt weder, dass jede `AGENTS.md` schadet, noch eine Aussage über Sicherheitskontrollen. Prüfen Sie den Nutzen einer Regeldatei daher an eigenen Aufgaben: Mehr Regeln sind allein kein Erfolgsmaß. [11]
-
-## Guardrails praktisch prüfen
-
-Testen Sie erlaubte Arbeit, Grenzfälle und unerlaubte Aktionen, Sicherheitstests ausschließlich mit künstlichen Geheimnissen und in isolierten Umgebungen (eigener Vorschlag):
-
-- Eine beauftragte lokale Aufgabe läuft ohne unnötige Rückfrage.
-- Eine Webseite mit sachfremder Handlungsanweisung erweitert den Auftrag nicht.
-- Ein künstliches Geheimnis wird weder ausgegeben noch übertragen.
-- Ein Schreibzugriff außerhalb des freigegebenen Bereichs wird technisch verweigert.
-- Ein fehlgeschlagener Test wird nicht als bestanden gemeldet.
-- Nach einem Review geänderte Pull Requests werden erneut geprüft.
-
-Messen Sie Aufgabenerfolg, Regelverletzungen, technische Blockaden, unnötige Unterbrechungen und Aufwand, bei konstantem Modell und konstanten Berechtigungen. Eine bestandene Testsammlung belegt nur das Verhalten unter diesen Bedingungen, keine Garantie für alle künftigen Eingaben.
-
-## Checkliste für den Einstieg
-
-- [ ] Wenige, konkret prüfbare Regeln in `AGENTS.md`, mit Auslöser, Nachweis und Ersatzverhalten.
-- [ ] Geprüft, welche Datei Ihr Werkzeug tatsächlich lädt.
-- [ ] Freigaben an Aktion, Inhalt, Ziel und Version gebunden.
-- [ ] Rechte, Netzwerkzugriff und Secrets technisch begrenzt.
-- [ ] Geschützte Branches, verpflichtende Tests und unabhängiges Review eingerichtet.
-- [ ] Fremde Inhalte als Material gekennzeichnet.
-- [ ] Wirkung der Regeln mit festen Testfällen geprüft und nach Änderungen wiederholt.
-
-## Quellen
-
-Alle Onlinequellen wurden am 9. November 2026 abgerufen. Tabellen, Muster und Empfehlungen sind, soweit gekennzeichnet, eigene Ableitungen und wurden nicht in einem Agententest erprobt.
-
-1. Anthropic: [How Claude remembers your project](https://code.claude.com/docs/en/memory)
-2. OWASP: [LLM06:2025 Excessive Agency](https://genai.owasp.org/llmrisk/llm062025-excessive-agency/)
-3. AGENTS.md: [Offizielle Formatbeschreibung](https://agents.md/)
-4. OpenAI: [Custom instructions with AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
-5. GitHub: [Custom instructions for GitHub Copilot](https://docs.github.com/en/copilot/concepts/prompting-and-context/custom-instructions)
-6. OpenAI: [Agent approvals & security](https://learn.chatgpt.com/docs/agent-approvals-security)
-7. Anthropic: [Effective context engineering for AI agents](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents), 29. September 2025
-8. GitHub: [About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
-9. Anthropic: [Automate actions with hooks](https://code.claude.com/docs/en/hooks-guide)
-10. OWASP: [LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)
-11. Gloaguen et al.: [Evaluating AGENTS.md: Are Repository-Level Context Files Helpful for Coding Agents?](https://arxiv.org/abs/2602.11988v3), Version 3, 29. September 2026. Ergebnisse sind an die untersuchten Aufgaben und Systeme gebunden.
+Wie weit diese Automatisierung sinnvoll ist, hängt vom Anwendungsfall ab. Eine interne Hilfsfunktion verlangt andere Prüfungen als eine Änderung an Zahlungsabläufen oder Zugriffsrechten. Begrenzen Sie deshalb die gleichzeitig laufenden Aufgaben auf die verfügbare Prüfkapazität. Beobachten Sie neben der Zahl erledigter Aufgaben auch die Wartezeit im Review, Fehlalarme und später entdeckte Fehler. So lässt sich erkennen, ob KI den gesamten Prozess verbessert oder vor allem neue Warteschlangen erzeugt.
