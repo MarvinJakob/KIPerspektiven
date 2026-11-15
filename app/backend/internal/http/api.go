@@ -23,11 +23,17 @@ type apiServer struct {
 	stats         *service.Statistics
 	consultations *service.Consultations
 	media         *media.Store
-	limiter       *auth.Limiter // fehlgeschlagene Anmeldeversuche je IP-Adresse
+	secureCookies bool
+	log           *slog.Logger
+
 	// consultationLimiter begrenzt angenommene Beratungsanfragen je IP-Adresse (Ticket #136).
 	consultationLimiter *auth.Limiter
-	secureCookies       bool
-	log                 *slog.Logger
+
+	// Anmeldung (Ticket #138). login prüft die Zugangsdaten samt Argon2-Passwortprüfung (accounts.Login).
+	// Tests im Paket halten die Prüfung dort an, um parallele Anmeldeversuche deterministisch zu zählen.
+	login          func(ctx context.Context, email, password string) (service.Session, error)
+	limiter        *auth.Limiter  // Fehlversuche je IP-Adresse
+	passwordChecks *auth.Throttle // gleichzeitige Passwortprüfungen über alle IP-Adressen
 }
 
 var _ api.StrictServerInterface = (*apiServer)(nil)

@@ -44,20 +44,34 @@ type Config struct {
 
 // New baut den vollständigen HTTP-Handler aus API, Medien und Webseite.
 func New(cfg Config) http.Handler {
-	mux := http.NewServeMux()
-	registerAPI(mux, &apiServer{
-		svc:                 cfg.Public,
-		audit:               cfg.Audit,
-		accounts:            cfg.Accounts,
-		editorial:           cfg.Editorial,
-		stats:               cfg.Statistics,
-		consultations:       cfg.Consultations,
-		media:               cfg.Media,
-		limiter:             auth.NewLimiter(loginMaxFailures, loginWindow),
+	return newHandler(cfg, newAPIServer(cfg))
+}
+
+// newAPIServer baut die API-Handler. Tests im Paket ersetzen danach einzelne Abhängigkeiten, etwa login.
+func newAPIServer(cfg Config) *apiServer {
+	return &apiServer{
+		svc:           cfg.Public,
+		audit:         cfg.Audit,
+		accounts:      cfg.Accounts,
+		editorial:     cfg.Editorial,
+		stats:         cfg.Statistics,
+		consultations: cfg.Consultations,
+		media:         cfg.Media,
+		secureCookies: cfg.SecureCookies,
+		log:           cfg.Log,
+
 		consultationLimiter: auth.NewLimiter(consultationMaxRequests, consultationWindow),
-		secureCookies:       cfg.SecureCookies,
-		log:                 cfg.Log,
-	}, cfg.Log)
+
+		login:          cfg.Accounts.Login,
+		limiter:        auth.NewLimiter(loginMaxFailures, loginWindow),
+		passwordChecks: auth.NewThrottle(passwordChecksActive, passwordChecksWaiting, passwordChecksMaxWait),
+	}
+}
+
+// newHandler verbindet die API-Handler mit Medien, Webseite und Middleware.
+func newHandler(cfg Config, srv *apiServer) http.Handler {
+	mux := http.NewServeMux()
+	registerAPI(mux, srv, cfg.Log)
 	if cfg.MediaPath != "" {
 		mux.Handle("GET /media/", mediaHandler(cfg.MediaPath))
 	}

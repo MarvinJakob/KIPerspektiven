@@ -173,7 +173,7 @@ Der Datenzugriff liegt hinter einem Interface. So lässt sich SQLite später geg
 - **Passwörter** werden mit Argon2id gehasht.
 - **Sitzungen** liegen in der Datenbank. Das Cookie ist `HttpOnly`, `Secure` und `SameSite=Lax`. Beim Abmelden wird die Sitzung gelöscht (Anforderung 6). Abgelaufene Sitzungen löscht ein täglicher Aufräumjob.
 - **CSRF-Schutz** für alle schreibenden Anfragen über ein Token im Header.
-- **Anmeldeversuche** werden pro IP-Adresse begrenzt. Die Zähler liegen nur im Arbeitsspeicher.
+- **Anmeldeversuche** werden pro IP-Adresse begrenzt: höchstens zehn Fehlversuche in 15 Minuten. Laufende Versuche zählen bei der Zulassung mit. Zusätzlich läuft über alle IP-Adressen höchstens eine Argon2-Prüfung gleichzeitig, mit einer kurzen, begrenzten Warteschlange. Überzählige Anfragen erhalten vor der Prüfung `503` (Ticket #138, `app/docs/login-begrenzung.md`). Die Zähler liegen nur im Arbeitsspeicher.
 - **Rollen** trennt das Backend in `editor` für Beiträge und Medien sowie `admin` für die Benutzerverwaltung. Deaktivierte Konten können sich nicht anmelden. Beim Deaktivieren löscht das Backend alle Sitzungen des Kontos in derselben Transaktion und prüft bei geschützten Aufrufen den aktuellen Kontostatus.
 - **Sicherheits-Header** setzt Caddy (siehe Abschnitt 9).
 

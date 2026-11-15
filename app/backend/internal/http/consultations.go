@@ -24,10 +24,12 @@ func (s *apiServer) RequestConsultation(ctx context.Context, req api.RequestCons
 	if req.Body == nil {
 		return api.RequestConsultation400JSONResponse{BadRequestJSONResponse: api.BadRequestJSONResponse{Message: msgNoBody}}, nil
 	}
-	ip := clientIPFrom(ctx)
-	if !s.consultationLimiter.Allowed(ip) {
+	// Laufende Anfragen zählen bei der Zulassung mit; nur angenommene Anfragen werden gezählt (Ticket #138).
+	attempt, ok := s.consultationLimiter.Reserve(clientIPFrom(ctx))
+	if !ok {
 		return api.RequestConsultation429JSONResponse{Message: "Zu viele Anfragen. Bitte in einer Stunde erneut versuchen."}, nil
 	}
+	defer attempt.Cancel()
 	err := s.consultations.Request(ctx, req.Body.Email, service.Lang(req.Body.Lang))
 	var verr *service.ValidationError
 	switch {
@@ -36,7 +38,7 @@ func (s *apiServer) RequestConsultation(ctx context.Context, req api.RequestCons
 	case err != nil:
 		return nil, err
 	}
-	s.consultationLimiter.Hit(ip)
+	attempt.Count()
 	// Ohne Adresse: Das Protokoll enthält keine personenbezogenen Inhalte (ARCHITECTURE.md, Abschnitt 10).
 	s.log.Info("beratungsanfrage eingegangen")
 	return api.RequestConsultation204Response{}, nil
