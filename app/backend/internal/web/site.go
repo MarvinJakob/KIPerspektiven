@@ -155,6 +155,11 @@ func (s *Site) resolve(r *http.Request, parts []string) (int, Meta, error) {
 		return http.StatusOK, s.staticMeta(lang, "profile", "/profil"), nil
 	case len(rest) == 1 && rest[0] == "ki-einsatzfelder":
 		return http.StatusOK, s.staticMeta(lang, "aiUses", "/ki-einsatzfelder"), nil
+	case len(rest) == 1 && rest[0] == "ki-verstehen":
+		// Ohne englische Übersetzung bleibt der deutsche Inhalt kanonisch.
+		m := s.staticMeta(service.DE, "understandAi", "/ki-verstehen")
+		m.Alternates = s.alternates([]service.Lang{service.DE}, "/ki-verstehen")
+		return http.StatusOK, m, nil
 	case len(rest) == 1 && rest[0] == "impressum":
 		return http.StatusOK, s.staticMeta(lang, "imprint", "/impressum"), nil
 	case len(rest) == 1 && rest[0] == "datenschutz":

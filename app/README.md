@@ -119,6 +119,12 @@ Die Originalgrafiken liegen unter `ressources/grafiken/AgenticSWDevProcess_{de,e
 
 `frontend/src/topicContent.test.tsx` prüft die vollständige DE-Übernahme aus der v2-Vorlage, beide Sprachen, Quellenfreiheit, fünf Schritte, sieben Tipps, Grafikauswahl und Sprachwechsel. Die Backend-Prüfung `TestSoftwareDevelopmentMetadata` vergleicht API-/HTML-Metadaten mit den Veröffentlichungskopien. Die Quellenfunktionen des gemeinsamen Renderers bleiben für andere Themen erhalten. Sichtprüfung: beide Sprachen bei 320, 768 und 1440 px, Grafik und Vollbildlink kontrollieren; siehe [Abnahme](docs/softwareentwicklung-v2-abnahme.md).
 
+## KI verstehen (#151)
+
+Die Feature-Seite `/{lang}/ki-verstehen` erklärt Sprachmodelle, Agenten und fünf Disziplinen für gute KI-Ergebnisse. Der Startseiten-Hero verlinkt sie als „KI verstehen“ beziehungsweise „Understand AI“. Die vollständige Vorlage `content/KI verstehen.md` liegt identisch unter `frontend/src/content/features/ki-verstehen.de.md`; bei redaktionellen Änderungen beide Dateien aktualisieren. `pages/UnderstandAi.tsx` verwendet den gemeinsamen Markdown-Renderer, gibt die H1 separat aus und setzt Titel und Beschreibung. Ohne englische Übersetzung erscheint unter `/en/ki-verstehen` der deutsche Artikel mit Sprachhinweis; Canonical und Sitemap nennen die deutsche Fassung.
+
+Die unveränderte Grafik `ressources/grafiken/Agent.png` hat eine Web-Kopie unter `frontend/src/assets/topics/Agent.png`. Bei Bildänderungen beide Kopien aktualisieren. Zuordnung, Alternativtext und Link zur Originalgröße folgen dem bestehenden Verfahren für Themengrafiken. Automatisierte Prüfungen und Browsernachweise bei 375 und 1440 px stehen in [docs/ki-verstehen-abnahme.md](docs/ki-verstehen-abnahme.md).
+
 ## Lokal entwickeln
 
 Voraussetzungen: Go 1.27, Node 24 oder neuer. Docker ist nur für die Compose-Variante nötig.

@@ -33,6 +33,7 @@ interface HomeContent {
   lead: [string, string];
   ctaTopics: string;
   ctaNews: string;
+  ctaUnderstand: string;
   ctaAudit: string;
   ctaAbout: string;
   indexLabel: string;
@@ -68,6 +69,7 @@ export const home: Record<Lang, HomeContent> = {
     lead: ['Praxiswissen für den professionellen Einsatz von KI.', 'Mit klarem Blick auf Nutzen, Grenzen und Verantwortung.'],
     ctaTopics: 'Themen entdecken',
     ctaNews: 'News',
+    ctaUnderstand: 'KI verstehen',
     ctaAudit: 'KI Reifegrad einschätzen',
     ctaAbout: 'Über mich',
     indexLabel: 'Direkt zu den Themen',
@@ -151,6 +153,7 @@ export const home: Record<Lang, HomeContent> = {
     lead: ['Practical knowledge for the professional use of AI.', 'With a clear view of benefits, limits and responsibility.'],
     ctaTopics: 'Explore topics',
     ctaNews: 'News',
+    ctaUnderstand: 'Understand AI',
     ctaAudit: 'Assess your AI maturity',
     ctaAbout: 'About me',
     indexLabel: 'Jump to the topics',

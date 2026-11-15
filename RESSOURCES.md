@@ -22,6 +22,7 @@ Dieses Repository enthält die Webseite „KI Perspektiven“, einen klickbaren 
 | [app/docs/login-begrenzung.md](app/docs/login-begrenzung.md) | Begrenzung paralleler Anmeldeversuche und Passwortprüfungen (Ticket #138): Regeln, Grenzwerte, Tests und Lasttest-Ergebnisse. |
 | [app/docs/statistik-bereinigung-abnahme.md](app/docs/statistik-bereinigung-abnahme.md) | Zählregel und Entwicklungs-/Browserprüfung der IP-bereinigten Seitenstatistik (#142). |
 | [app/docs/readiness-inhalte.md](app/docs/readiness-inhalte.md) | Inhaltsstand für KI Readiness (#111), Herkunft der Texte, Anpassungen und Integration mit #112–#114. |
+| [app/docs/ki-verstehen-abnahme.md](app/docs/ki-verstehen-abnahme.md) | Umsetzung, Inhaltsabgleich und Browsernachweise der Feature-Seite „KI verstehen“ (#151), einschließlich Grafik und Sprach-Fallback. |
 | [LICENSE](LICENSE) | Lizenz des Repositorys. |
 
 ## Anwendung unter `app/`
