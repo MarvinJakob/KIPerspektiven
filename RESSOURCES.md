@@ -13,7 +13,6 @@ Dieses Repository enthält die Webseite „KI Perspektiven“, einen klickbaren 
 | [DESIGN_CIMT.md](DESIGN_CIMT.md) | Anleitung zum cimt × Apple-Layout: Design-Tokens, Seitenaufbau, dauerhaft aktive Liquid-Glass-Navigation, Bedienlogik, responsive Regeln und Quellen. |
 | [mock/design/index.html](mock/design/index.html) | Klickbarer HTML-Entwurf zur Vorschau des Designs. |
 | [mock/design_cimt/index.html](mock/design_cimt/index.html) | cimt × Apple-HIG-Designvariante mit `#dc6e14`, Systemtypografie, opaken Inhaltsflächen und dauerhaft aktiver Liquid-Glass-Navigation mit Vorrang für Barrierefreiheit. Themenauswahl, Beitragsfilter und Demo-KI-Check; Quellen im Footer. Direkt ohne Build im Browser nutzbar. |
-| [mock/landing/index.html](mock/landing/index.html) | Landing-Page-Entwurf mit Einordnung „Was ist KI?“, Themen, interaktivem KI-Audit-Teaser und Blog. |
 | [mock/landing_v03/index.html](mock/landing_v03/index.html) | Separater Landingpage-Mock mit den Inhalten aus `content/Landingpage_v03.md` im cimt-Design. Drei illustrierte Themen mit vollständig sichtbaren Originaltexten, News-Link zum Blog, KI-Reifegrad- und Profil-Einstieg; ohne Build direkt im Browser nutzbar. |
 | [mock/profil/index.html](mock/profil/index.html) | Profilentwurf für Marvin Jakob mit AI-Schwerpunkten und Projekterfahrung. |
 | [ressources/profil/](ressources/profil/) | Porträtbilder für den Profilentwurf. |
@@ -49,6 +48,10 @@ Dieses Repository enthält die Webseite „KI Perspektiven“, einen klickbaren 
 | Ablage | Was dort zu finden ist |
 | --- | --- |
 | [content/](content/) | Redaktionelle Entwürfe und Arbeitsmaterial, etwa zu KI-Audits, Datenanalyse und Softwareentwicklung. |
+| [content/Archiv/](content/Archiv/) | Frühere Textfassungen zur Landingpage und Softwareentwicklung. |
+| [output/pdf/](output/pdf/) | Fertige Druckdateien für Roll-up und Visitenkarte mit Layoutquellen, Vorschauen und Produktionshinweisen. |
+| [presentation/Presentation.md](presentation/Presentation.md) | Arbeitsentwurf für eine Präsentation. |
+| [ressources/grafiken/](ressources/grafiken/) | Deutsche und englische Prozessgrafiken zur Softwareentwicklung mit Agenten. |
 | [research/](research/) | Datierte Recherchen mit Quellen für die jeweiligen Aussagen. [research/SOURCES.md](research/SOURCES.md) sammelt Anlaufstellen für weitere Recherchen. |
 | [mock/](mock/) | Klickbarer HTML-Designentwurf. |
 | `requirements/` | Vorgesehene Ablage für neue Anforderungen als Markdown-Dateien (noch nicht angelegt). Das Format steht in [AGENTS.md](AGENTS.md). |
