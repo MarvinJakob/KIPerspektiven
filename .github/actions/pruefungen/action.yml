@@ -24,6 +24,15 @@ runs:
       working-directory: app/backend
       run: go vet ./... && go test ./...
 
+    # Ticket #138: Parallelitätstests der Anmeldung zusätzlich mit dem Race-Detector. Er braucht CGO und einen
+    # C-Compiler; beides ist auf den Linux-Runnern vorhanden, lokal unter Windows oft nicht.
+    - name: Backend-Parallelitätstests mit Race-Detector
+      shell: bash
+      working-directory: app/backend
+      env:
+        CGO_ENABLED: "1"
+      run: go test -race -count=1 -run 'Limiter|Throttle|TestParallelLogins|TestPasswordChecks|TestLoginOutcomes|TestLoginRateLimit' ./internal/auth ./internal/http
+
     - name: Öffentliches Frontend
       shell: bash
       working-directory: app/frontend
