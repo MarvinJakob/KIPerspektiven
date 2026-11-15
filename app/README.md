@@ -108,6 +108,8 @@ docs/audit-abnahme.md   Regeln und Durchlauf der Selbsteinschätzung (KI Readine
 
 Das Liniendiagramm der Seitenaufrufe ([#139](https://github.com/MarvinJakob/aiboard/issues/139)) verwendet dieselben Tageswerte wie Summe und Tabelle. Auch „Gesamt“ enthält alle Tage vom ersten erfassten Aufruf bis heute, einschließlich Nulltagen. Während des Ladens und bei Fehlern sind bisherige Seitenaufrufwerte ausgeblendet. Umsetzung und Browserprüfung bei 320 und 1280 px: [Abnahme des Statistikdiagramms](docs/statistik-diagramm-abnahme.md).
 
+Seit [#142](https://github.com/MarvinJakob/aiboard/issues/142) zeigt die Statistik zusätzlich „Bereinigte Anzahl“ je IP-Adresse und Zeitraum, je Tag in einer Tabellenspalte und als zuschaltbare zweite Kurve. Periodensummen werden nicht aus Tageswerten addiert. Historische Datenlücken stehen als „Nicht verfügbar“. IPs liegen nur als schlüsselgeschützte Ableitung mit letztem Aufruftag vor, ohne Browserkennung oder Besuchsverlauf. Datenhaltung und Browsernachweise: [Abnahme der IP-Bereinigung](docs/statistik-bereinigung-abnahme.md), [ADR 0010](docs/adr/0010-statistik-ohne-kennung-und-einwilligung.md).
+
 ## Lokal entwickeln
 
 Voraussetzungen: Go 1.27, Node 24 oder neuer. Docker ist nur für die Compose-Variante nötig.
@@ -208,7 +210,8 @@ Umgebungsvariablen, siehe [.env.example](.env.example):
 | `PUBLIC_BASE_URL` | `http://localhost:8080` | Basis für canonical, hreflang, Open Graph und Sitemap |
 | `DEV_SEED` | aus | Testbeiträge einspielen (nur Entwicklung) |
 | `SERVE_MEDIA` | aus | `/media/*` ohne Caddy direkt ausliefern (nur Entwicklung) |
-| `TRUST_PROXY` | aus | IP-Adresse für die Begrenzung der Anmeldeversuche aus `X-Forwarded-For` lesen. Nur hinter Caddy setzen (in `compose.yaml` aktiv). |
+| `TRUSTED_PROXIES` | leer | Kommagetrennte vertrauenswürdige Proxy-IPs/CIDRs für `X-Forwarded-For` (Statistik und Ratenbegrenzung). Leer ignoriert Header. Compose vertraut nur der festen internen Caddy-IP. Ersetzt `TRUST_PROXY`. |
+| `STATISTICS_KEY_PATH` | `statistics-ip.key` neben der Datenbank | Persistenter 256-Bit-HMAC-Schlüssel für IP-Bereinigung; wird beim ersten Start erzeugt, separat und zugriffsgeschützt sichern. |
 | `USER_PASSWORD` | – | Nur für `server user create`: Passwort ohne Abfrage übergeben |
 | `REQUIRE_LOGIN` | aus | Optionaler Zugangsschutz (Ticket #49): Die Webseite sieht nur, wer angemeldet ist. Im Betrieb seit Ticket #108 aus. |
 

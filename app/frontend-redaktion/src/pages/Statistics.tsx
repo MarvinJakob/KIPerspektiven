@@ -23,8 +23,7 @@ const formatDay = (day: string) => dayFormat.format(new Date(`${day}T00:00:00Z`)
 
 /**
  * Statistik der Redaktion (Ticket #130): Seitenaufrufe je Tag und gespeicherte Ergebnisse der
- * Selbsteinschätzung für einen wählbaren Zeitraum. Beides erfasst das Backend ohne Cookies und ohne Kennung
- * der Besucher (ADR 0010).
+ * Selbsteinschätzung für einen wählbaren Zeitraum. Die IP-Bereinigung erfolgt serverseitig ohne Cookies (ADR 0010).
  */
 export function StatisticsPage() {
   const [period, setPeriod] = useState<Period>('30d');
@@ -34,8 +33,9 @@ export function StatisticsPage() {
   return (
     <Page title="Statistik">
       <p className="lead">
-        Reichweite der Webseite und Ergebnisse der KI-Readiness-Selbsteinschätzung. Beides wird ohne Cookies und ohne
-        Kennung der Besucherinnen und Besucher erfasst. Tage und Uhrzeiten gelten in deutscher Zeit.
+        Reichweite der Webseite und Ergebnisse der KI-Readiness-Selbsteinschätzung. Die Erfassung erfolgt ohne Cookies.
+        Die bereinigte Anzahl unterscheidet IP-Adressen, keine Personen.
+        Tage und Uhrzeiten gelten in deutscher Zeit.
       </p>
       <PeriodPicker
         value={period}
@@ -79,12 +79,14 @@ function LoadError({ what, onRetry }: { what: string; onRetry: () => void }) {
   );
 }
 
-function Stat({ label, value, context }: { label: string; value: number; context: string }) {
+function Stat({ label, value, context }: { label: string; value: number | null; context: string }) {
   return (
     <dl className="stat">
       <dt>{label}</dt>
       <dd>
-        <span className="stat-value">{numberFormat.format(value)}</span> <span className="stat-context">{context}</span>
+        <span className={value === null ? 'stat-unavailable' : 'stat-value'}>
+          {value === null ? 'Nicht verfügbar' : numberFormat.format(value)}
+        </span> <span className="stat-context">{context}</span>
       </dd>
     </dl>
   );
@@ -92,6 +94,7 @@ function Stat({ label, value, context }: { label: string; value: number; context
 
 function PageViews({ period, periodText }: { period: Period; periodText: string }) {
   const { data, isFetching, isError, refetch } = usePageViews(period);
+  const [showUnique, setShowUnique] = useState(true);
   const heading = useId();
   return (
     <section className="stats-section" aria-labelledby={heading}>
@@ -99,8 +102,8 @@ function PageViews({ period, periodText }: { period: Period; periodText: string 
         Seitenaufrufe
       </h2>
       <p className="stats-hint">
-        Gezählt wird jeder Abruf einer öffentlichen Seite vom Server: Direktaufruf, Link oder Neuladen. Die Zahl zählt
-        keine eindeutigen Besucher: Wer drei Seiten aufruft oder eine Seite dreimal neu lädt, zählt dreimal.
+        Gezählt wird jeder Abruf einer öffentlichen Seite vom Server: Direktaufruf, Link oder Neuladen. Die absolute Anzahl
+        zählt keine eindeutigen Besucher: Wer drei Seiten aufruft oder eine Seite dreimal neu lädt, zählt dreimal.
         Seitenwechsel innerhalb der geöffneten Webseite zählen nicht, automatische Abrufe etwa durch Suchmaschinen
         zählen mit.
       </p>
@@ -108,21 +111,37 @@ function PageViews({ period, periodText }: { period: Period; periodText: string 
       {isError && <LoadError what="Die Seitenaufrufe" onRetry={() => void refetch()} />}
       {data && !isFetching && !isError && (
         <>
-          <Stat label="Seitenaufrufe" value={data.total} context={periodText} />
+          <div className="stats-totals">
+            <Stat label="Absolute Anzahl" value={data.total} context={periodText} />
+            <Stat label="Bereinigte Anzahl" value={data.uniqueTotal} context={periodText} />
+          </div>
+          <p className="stats-hint">
+            Bereinigt zählt jede IP-Adresse im gewählten Zeitraum einmal, in der Tabelle je Kalendertag einmal.
+            Die bereinigte Gesamtsumme ist keine Summe der Tageswerte. Mehrere Personen können dieselbe IP nutzen,
+            eine Person kann verschiedene IPs nutzen.
+          </p>
+          {data.uniqueTotal === null && (
+            <p className="stats-hint" role="note">
+              Für diesen Zeitraum fehlen vollständige Daten zur Bereinigung.
+              {data.uniqueSince && <> Der aktuelle Erfassungsbeginn ist der {dateFormat.format(new Date(data.uniqueSince))} um {timeFormat.format(new Date(data.uniqueSince))} Uhr.</>}
+              {' '}„Nicht verfügbar“ bedeutet fehlende Daten, nicht 0. Die absolute Historie bleibt erhalten.
+            </p>
+          )}
           {data.total === 0 ? (
             <p className="empty-state card">Im gewählten Zeitraum wurden noch keine Seitenaufrufe gezählt.</p>
           ) : (
             <>
-              <PageViewsChart days={data.days} />
+              <PageViewsChart days={data.days} showUnique={showUnique} onShowUnique={setShowUnique} />
               <div className="table-wrap">
-                <table className="table">
+                <table className="table views-table">
                   <caption className="visually-hidden">Seitenaufrufe je Tag, neueste zuerst</caption>
                   <thead>
                     <tr>
                       <th scope="col">Tag</th>
                       <th scope="col" className="num-col">
-                        Seitenaufrufe
+                        Absolute Anzahl
                       </th>
+                      <th scope="col" className="num-col">Bereinigte Anzahl</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -132,6 +151,7 @@ function PageViews({ period, periodText }: { period: Period; periodText: string 
                           <time dateTime={d.date}>{formatDay(d.date)}</time>
                         </td>
                         <td className="num-col">{numberFormat.format(d.views)}</td>
+                        <td className="num-col">{d.uniqueViews === null ? 'Nicht verfügbar' : numberFormat.format(d.uniqueViews)}</td>
                       </tr>
                     ))}
                   </tbody>

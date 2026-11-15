@@ -1345,7 +1345,7 @@ components:
             $ref: '#/components/schemas/ReadinessRating'
     PageViewDay:
       type: object
-      required: [date, views]
+      required: [date, views, uniqueViews]
       properties:
         date:
           type: string
@@ -1353,16 +1353,30 @@ components:
         views:
           type: integer
           format: int64
+        uniqueViews:
+          type: integer
+          format: int64
+          nullable: true
+          description: Unterschiedliche IPs je Kalendertag; null bei fehlenden oder unvollständigen Daten
     PageViewStats:
       type: object
-      required: [period, total, days]
+      required: [period, total, uniqueTotal, uniqueSince, days]
       properties:
         period:
           $ref: '#/components/schemas/StatisticsPeriod'
         total:
           type: integer
           format: int64
-          description: Seitenaufrufe im Zeitraum
+          description: Absolute Seitenaufrufe im Zeitraum
+        uniqueTotal:
+          type: integer
+          format: int64
+          nullable: true
+          description: Unterschiedliche IPs im gesamten Zeitraum (keine Summe der Tageswerte); null bei Datenlücken
+        uniqueSince:
+          type: string
+          nullable: true
+          description: Beginn des aktuellen IP-Zuordnungsbestands als UTC-Zeitpunkt (RFC 3339)
         days:
           type: array
           items:

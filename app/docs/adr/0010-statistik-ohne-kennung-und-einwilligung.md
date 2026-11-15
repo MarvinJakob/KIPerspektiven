@@ -1,6 +1,6 @@
 # 0010 Statistik: Seitenaufrufe serverseitig zählen, Ergebnisse nur mit Einwilligung
 
-**Status:** angenommen · **Datum:** 2026-11-14 · ergänzt ADR 0009 (Auswertung bisher nur im Browser)
+**Status:** angenommen; IP-Bereinigung durch #142 ergänzt · **Datum:** 2026-11-14 · ergänzt ADR 0009
 
 ## Kontext
 
@@ -63,3 +63,56 @@ Marvin Jakob hat am 2026-11-14 entschieden: serverseitig zählen, Ergebnisse nur
   nicht Teil von #130.
 - Sollen später Seitenwechsel innerhalb der Anwendung zählen, braucht es eine Einwilligung über die
   Cookie-Einstellungen. Das ersetzt diese Entscheidung durch ein neues ADR.
+
+## Ergänzung #142: IP-basierte Bereinigung (2026-11-14)
+
+Diese Ergänzung wird vor der Implementierung festgehalten. „Ohne Kennung“ gilt weiter für die absoluten
+Tageszähler, nicht für die IP-Bereinigung. Die Definition zählbarer Abrufe bleibt gleich.
+
+### Daten und Aufbewahrung
+
+- Die Client-IP wird kanonisiert (IPv4-mapped IPv6 wird IPv4) und mit HMAC-SHA-256 abgeleitet.
+  Keine Klartext-IP, kein einfacher erratbarer IP-Hash. Je Ableitung wird **nur der letzte Aufruftag**
+  in Europe/Berlin gespeichert: keine URLs, einzelnen Zeitpunkte, Browserdaten oder Verknüpfungen
+  zu Konten, Ergebnissen oder Beratungsanfragen. Diese Daten sind pseudonym, nicht anonym.
+- Der letzte Tag reicht für eindeutige IPs in den rollierenden 7-/30-Tage-Zeiträumen; die Anzahl aller
+  Ableitungen ergibt „Gesamt“. Tageswerte sind getrennte Aggregate, keine Besuchsverläufe. Alle
+  Zähler werden atomar in einer Transaktion aktualisiert.
+- Ableitungen und Schlüssel bleiben **für die Laufzeit dieses Statistikbestands** erhalten. Auch
+  lange nicht verwendete IPs müssen für „Gesamt“ wiedererkannt werden. Befristetes Löschen oder
+  täglicher Schlüsselwechsel würde diese Kennzahl verfälschen. Bei Abschaltung oder Zurücksetzen
+  der IP-Statistik löscht der Betreiber Ableitungen und Schlüssel, auch aus Sicherungen nach deren
+  Rotation. Die Erforderlichkeit dieses Bestands prüft der Betreiber jährlich. Reine Tagesaggregate
+  können bestehen bleiben.
+- Der zufällige 256-Bit-Schlüssel liegt in einer separaten Datei mit restriktiven Dateirechten,
+  nicht in der Datenbank, im Repository, in Logs oder der API. Er wird gesondert zugriffsgeschützt
+  gesichert. Verlust/Wechsel startet einen neuen Zuordnungsbestand. Absolute Historie bleibt;
+  unvollständige Tage und Zeiträume erhalten `null` statt scheinbar vollständiger Werte.
+- Weiterleitungsheader zählen nur von explizit in `TRUSTED_PROXIES` konfigurierten Peers. Die Kette
+  wird von rechts nach links bis zum ersten nicht vertrauenswürdigen Hop geprüft. Compose nutzt
+  eine feste interne Caddy-IP ohne veröffentlichten Backend-Port. Ungültige IPs erzeugen eine
+  Datenlücke statt einer gemeinsamen Besucherkennung.
+
+### Einordnung und Einwilligung
+
+Die Unterscheidung von Endeinrichtungszugriff und anschließender Verarbeitung bleibt maßgeblich
+([DSK OH Digitale Dienste, Rn. 18–26 und 88](https://datenschutzkonferenz-online.de/media/oh/OH_Digitale_Dienste.pdf)).
+Unsere technische Einordnung: Kein zusätzlicher Browserzugriff, keine JavaScript-Statistikmeldung,
+keine Cookies oder Storage. Diese Erweiterung erzeugt daher keinen zusätzlichen Zugriff nach
+[§ 25 TDDDG](https://www.gesetze-im-internet.de/ttdsg/__25.html).
+
+Die serverseitigen Ableitungen sind personenbezogene Pseudonyme. Vorgesehene Rechtsgrundlage ist
+Art. 6 Abs. 1 lit. f DSGVO: Interesse an der Einordnung wiederholter Abrufe. Letzter Tag statt Verlauf,
+eigener Server, geschützter Schlüssel, ausschließlich Aggregate und keine Verknüpfungen begrenzen
+den Eingriff. Die Aufbewahrung für „Gesamt“ muss gegen Betroffeneninteressen abgewogen werden;
+Hashing ersetzt das nicht
+([DSGVO Art. 4 Nr. 5, Art. 5, 6 und 21](https://eur-lex.europa.eu/legal-content/DE/ALL/?uri=CELEX%3A32016R0679)).
+Die Datenschutzerklärung beschreibt Zweck, Bestand, Aufbewahrung und Widerspruch. Ihre bestehende
+rechtliche Prüfung bleibt erforderlich; diese technische Bewertung bestätigt keine rechtliche
+Freigabe. Der Opt-in für Ergebnisse bleibt unverändert.
+
+### Aussagekraft
+
+Mehrere Personen können eine IP teilen, eine Person kann mehrere IPs verwenden. Eine IP zählt je
+Zeitraum einmal, in Tageswerten je Kalendertag. Periodensummen werden nicht aus Tageswerten addiert.
+Historische Aufrufe ohne Zuordnung lassen sich nicht nachträglich bereinigen.

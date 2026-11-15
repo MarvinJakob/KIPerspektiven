@@ -834,14 +834,26 @@ export interface components {
             date: string;
             /** Format: int64 */
             views: number;
+            /**
+             * Format: int64
+             * @description Unterschiedliche IPs je Kalendertag; null bei fehlenden oder unvollständigen Daten
+             */
+            uniqueViews: number | null;
         };
         PageViewStats: {
             period: components["schemas"]["StatisticsPeriod"];
             /**
              * Format: int64
-             * @description Seitenaufrufe im Zeitraum
+             * @description Absolute Seitenaufrufe im Zeitraum
              */
             total: number;
+            /**
+             * Format: int64
+             * @description Unterschiedliche IPs im gesamten Zeitraum (keine Summe der Tageswerte); null bei Datenlücken
+             */
+            uniqueTotal: number | null;
+            /** @description Beginn des aktuellen IP-Zuordnungsbestands als UTC-Zeitpunkt (RFC 3339) */
+            uniqueSince: string | null;
             days: components["schemas"]["PageViewDay"][];
         };
         ReadinessDimensionName: {
