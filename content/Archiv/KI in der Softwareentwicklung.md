@@ -29,6 +29,16 @@ Drei Ebenen lassen sich unterscheiden (eigene Systematisierung):
 
 Ein Beispiel: „Lies keine geheimen Schlüssel“ ist eine Verhaltensregel. Ein Arbeitsbereich ohne zugängliche Schlüssel begrenzt zusätzlich, welche Daten überhaupt erreichbar sind. [2]
 
+In Markdown-Dateien kannst du beispielsweise festhalten:
+- Projektkontext: Wozu dient die Anwendung, wer nutzt sie und welche fachlichen Begriffe muss die KI kennen?
+- Orientierung: Wo liegen Code, Anforderungen und Dokumentation? Was soll sie vor Arbeitsbeginn lesen?
+- Arbeitsablauf: Erst das Ticket verstehen, dann einen Feature-Branch erstellen, implementieren, testen und zum Review übergeben.
+- Architektur und Codequalität: Welche Strukturen und Konventionen gelten? Wann sind neue Abhängigkeiten sinnvoll?
+- Prüfungen: Welche Tests muss sie ausführen? Wie dokumentiert sie Ergebnisse und nicht ausführbare Prüfungen?
+- Umgang mit Unklarheiten: Wann soll sie nachfragen, wann eine Annahme treffen und wann einen Blocker melden?
+- Umfang: Wie geht sie mit Fehlern oder Verbesserungen um, die außerhalb des aktuellen Auftrags liegen?
+- Dokumentation und Übergabe: Welche Entscheidungen gehören in die Dokumentation? Welche Informationen braucht der Reviewer?
+
 ## Welche Markdown-Dateien Agenten lesen
 
 Markdown ist nur das Textformat. Welche Datei automatisch geladen wird und welchen Geltungsbereich sie hat, entscheidet das jeweilige Werkzeug:

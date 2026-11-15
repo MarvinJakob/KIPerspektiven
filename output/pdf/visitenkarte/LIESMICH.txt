@@ -1,0 +1,33 @@
+VISITENKARTE MARVIN JAKOB
+
+Endformat: 85 x 55 mm, Querformat, beidseitig.
+PDF-Seite 1: Vorderseite. PDF-Seite 2: Rückseite.
+
+visitenkarte-85x55.pdf
+Ansicht und Ausgabe im Endformat. Keine Beschnittzugabe.
+
+visitenkarte-87x57mm-1mm-druckzugabe.pdf
+87 x 57 mm einschließlich umlaufend 1 mm Druckzugabe.
+TrimBox auf 85 x 55 mm gesetzt, jeweils 1 mm vom Datenrand entfernt.
+Hintergründe bis an den Datenrand erweitert, ohne zusätzliche Schnittmarken.
+Seite 1: Vorderseite. Seite 2: Rückseite. Ausgabe bei 100 %.
+
+visitenkarte-druck-3mm-beschnitt.pdf
+91 x 61 mm einschließlich umlaufend 3 mm Beschnitt.
+TrimBox auf 85 x 55 mm gesetzt. Ohne zusätzliche Schnittmarken.
+Ausgabe bei 100 %, keine Seitenanpassung.
+Vektorobjekte und eingebettete Segoe-UI-Schriften.
+RGB-Farben, kein PDF/X-Export und kein druckereispezifisches ICC-Profil.
+Die endgültigen Produktionsvorgaben richten sich nach der gewählten Druckerei.
+
+QR-Code: https://marvinjakob.de
+Fehlerkorrektur Q, vier Module Ruhezone, schwarz auf warmem Weiß (#fcf8f3).
+Der QR-Code wurde aus beiden gerenderten PDF-Varianten zurückgelesen.
+
+Farben: Dunkelblau #12263a, Orange #dc6e14, warmes Weiß #fcf8f3.
+„Sinnvoll einsetzen.“ verwendet #a64b08 wie die helle Website-Ansicht.
+Die Berufsbezeichnung auf Dunkelblau verwendet helleres Orange #f39b56.
+
+vorderseite.svg / rueckseite.svg
+Editierbare Vektordateien; für identische Darstellung Segoe UI verwenden.
+design.py ist die gemeinsame Layoutquelle für PDF und SVG.
