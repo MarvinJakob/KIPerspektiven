@@ -2,43 +2,35 @@
 
 *Stand: 15. November 2026.*
 
+"vibe coding ist der einfachste weg slop zu erzeugen."
 
+Prompt Engineering
+- Sag dem Agent, "warum" du etwas möchtest. Es ist genau so wichtig wie das "was".
+- Shit in Shit out. Wenn ich eine gute Prompt hineingebe, ist das Ergebnis normalerweise auch deutlich besser.
 
-- vibe coding ist der einfachste weg slop zu erzeugen.
-tell the agent why you want something. its as important as the how.
-
-
-KI modelles erstellen aus Input Token, output Token. (input Token -> model -> output token)
-Prombt Engineering
-Es meint, je besser der input Token desto besser der output Token.
-
-context Engineering
-Habe ich der KI den korrekten context mitgegeben?
-wurden wichtige Teile aus dem context entfernt?
-Context Winwindow (AGENTS.md, System Prompt, Tools)
+Context Engineering
+- Habe ich der KI den korrekten context mitgegeben?
+- wurden wichtige Teile aus dem context entfernt?
+- Context Window (AGENTS.md, System Prompt, Tools)
 
 Harness Engineering
-Model is the Brain
-Harness is Eyes and Hands
-Context about the project
-Hooks
-
-
+- Model is the Brain
+- Harness is Eyes and Hands
+- Context about the project
+- Hooks
 
 Specification Engineering
-Requirements and Documents
-Design
-Plan
-Human interactions with Agents (Wenn ich nur sage: Baue xy, weiß ich nicht ob der Agent verstanden hat was ich will)
-
+- Requirements and Documents
+- Design
+- Plan
+- Human interactions with Agents (Wenn ich nur sage: Baue xy, weiß ich nicht ob der Agent verstanden hat was ich will)
 
 Product Engineering
-Was ist der Mehrwert meines Produkts und wie kann er erreicht werden?
-Für wen ist das Produkt gebaut?
+- Was ist der Mehrwert meines Produkts und wie kann er erreicht werden?
+- Für wen ist das Produkt gebaut?
 
 
-Pathfinder:
-Humans should review ideas, not code
+"Humans should review ideas, not code"
 
 
 
