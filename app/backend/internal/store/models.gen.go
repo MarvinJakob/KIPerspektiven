@@ -31,8 +31,21 @@ type Medium struct {
 }
 
 type PageView struct {
-	Day   string
-	Views int64
+	Day             string
+	Views           int64
+	IdentifiedViews int64
+	UniqueViews     int64
+}
+
+type PageViewIdentity struct {
+	ID        int64
+	KeyID     string
+	StartedAt string
+}
+
+type PageViewSource struct {
+	IpHash  string
+	LastDay string
 }
 
 type Post struct {

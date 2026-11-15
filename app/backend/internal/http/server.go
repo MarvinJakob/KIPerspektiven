@@ -3,6 +3,7 @@ package httpserver
 import (
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 
 	"ki-web/backend/internal/audit"
 	"ki-web/backend/internal/auth"
+	"ki-web/backend/internal/clientip"
 	"ki-web/backend/internal/media"
 	"ki-web/backend/internal/service"
 	"ki-web/backend/internal/web"
@@ -31,8 +33,8 @@ type Config struct {
 	Media *media.Store
 	// SecureCookies setzt das Secure-Attribut am Sitzungscookie (bei HTTPS).
 	SecureCookies bool
-	// TrustProxy liest die IP-Adresse aus X-Forwarded-For (hinter Caddy).
-	TrustProxy bool
+	// TrustedProxies sind die einzigen Peers, deren X-Forwarded-For ausgewertet wird.
+	TrustedProxies []netip.Prefix
 	// RequireLogin zeigt die öffentliche Webseite nur angemeldeten Konten (optionaler Zugangsschutz, Ticket #49).
 	// Standardmäßig aus: Die Webseite ist öffentlich (Ticket #108). Redaktions-API (guard) und Redaktionsseiten
 	// (web.Editorial) prüfen Sitzung und Rolle unabhängig davon.
@@ -75,12 +77,12 @@ func newHandler(cfg Config, srv *apiServer) http.Handler {
 	}
 	cfg.EditorialSite.Register(mux)
 	cfg.Site.Register(mux)
-	g := &guard{accounts: cfg.Accounts, trustProxy: cfg.TrustProxy, log: cfg.Log}
+	g := &guard{accounts: cfg.Accounts, log: cfg.Log}
 	h := g.wrap(mux)
 	if cfg.RequireLogin {
 		h = (&gate{accounts: cfg.Accounts, log: cfg.Log}).wrap(h)
 	}
-	return recoverer(cfg.Log, logRequests(cfg.Log, hardenResponses(limitBody(h))))
+	return recoverer(cfg.Log, logRequests(cfg.Log, hardenResponses(limitBody(clientip.Middleware(h, cfg.TrustedProxies)))))
 }
 
 // maxRequestBytes begrenzt jeden Anfragetext. Er liegt über dem größten Bild-Upload (media.MaxUploadBytes)

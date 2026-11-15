@@ -370,8 +370,11 @@ type NewUser struct {
 // PageViewDay defines model for PageViewDay.
 type PageViewDay struct {
 	// Date Kalendertag in Europe/Berlin (JJJJ-MM-TT)
-	Date  string `json:"date"`
-	Views int64  `json:"views"`
+	Date string `json:"date"`
+
+	// UniqueViews Unterschiedliche IPs je Kalendertag; null bei fehlenden oder unvollständigen Daten
+	UniqueViews *int64 `json:"uniqueViews"`
+	Views       int64  `json:"views"`
 }
 
 // PageViewStats defines model for PageViewStats.
@@ -381,8 +384,14 @@ type PageViewStats struct {
 	// Period Letzte 7 Tage, letzte 30 Tage (jeweils einschließlich heute, Kalendertage in Europe/Berlin) oder gesamt
 	Period StatisticsPeriod `json:"period"`
 
-	// Total Seitenaufrufe im Zeitraum
+	// Total Absolute Seitenaufrufe im Zeitraum
 	Total int64 `json:"total"`
+
+	// UniqueSince Beginn des aktuellen IP-Zuordnungsbestands als UTC-Zeitpunkt (RFC 3339)
+	UniqueSince *string `json:"uniqueSince"`
+
+	// UniqueTotal Unterschiedliche IPs im gesamten Zeitraum (keine Summe der Tageswerte); null bei Datenlücken
+	UniqueTotal *int64 `json:"uniqueTotal"`
 }
 
 // Post defines model for Post.

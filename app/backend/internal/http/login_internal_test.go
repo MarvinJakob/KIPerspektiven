@@ -12,6 +12,7 @@ import (
 
 	"ki-web/backend/internal/api"
 	"ki-web/backend/internal/auth"
+	"ki-web/backend/internal/clientip"
 	"ki-web/backend/internal/service"
 	"ki-web/backend/internal/store"
 )
@@ -102,7 +103,7 @@ func (r loginResult) status() int {
 
 // tryLogin ruft den Login-Handler so auf, als käme die Anfrage von ip.
 func tryLogin(ctx context.Context, s *apiServer, ip, email, password string) loginResult {
-	ctx = context.WithValue(ctx, clientIPKey, ip)
+	ctx = clientip.WithAddress(ctx, ip)
 	resp, err := s.Login(ctx, api.LoginRequestObject{Body: &api.LoginJSONRequestBody{Email: email, Password: password}})
 	return loginResult{ip, resp, err}
 }

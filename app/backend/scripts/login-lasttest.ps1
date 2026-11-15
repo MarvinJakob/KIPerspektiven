@@ -4,7 +4,7 @@ Lasttest der Anmeldung (Ticket #138) gegen einen lokalen Server mit einem Prozes
 
 .DESCRIPTION
 Startet je Stufe einen frischen Server als eigenen Prozess: GOMAXPROCS=1, gebunden an einen logischen
-Prozessor, Testkonten aus DEV_SEED, TRUST_PROXY für wechselnde IP-Adressen, temporäre Datenbank. Danach
+Prozessor, Testkonten aus DEV_SEED, TRUSTED_PROXIES=127.0.0.1/32 für wechselnde IP-Adressen, temporäre Datenbank. Danach
 schickt TestLoginLoad (internal/http/login_load_test.go) die Anmeldeversuche und ruft den Healthcheck auf.
 Das Skript misst Spitzen-Arbeitsspeicher und Prozessorzeit des Serverprozesses und gibt je Stufe eine
 Tabellenzeile aus. Ergebnisse und Einordnung: docs/login-begrenzung.md.
@@ -54,7 +54,7 @@ try {
         $data = Join-Path $work "stufe-$n"
         New-Item -ItemType Directory -Force $data | Out-Null
         $serverEnv = @{
-            GOMAXPROCS = '1'; ADDR = "127.0.0.1:$Port"; DEV_SEED = 'true'; TRUST_PROXY = 'true'
+            GOMAXPROCS = '1'; ADDR = "127.0.0.1:$Port"; DEV_SEED = 'true'; TRUSTED_PROXIES = '127.0.0.1/32'
             DATABASE_PATH = Join-Path $data 'app.db'; MEDIA_PATH = Join-Path $data 'media'
         }
         foreach ($k in $serverEnv.Keys) { Set-Item "Env:$k" $serverEnv[$k] }

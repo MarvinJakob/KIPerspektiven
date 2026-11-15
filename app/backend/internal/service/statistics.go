@@ -64,18 +64,6 @@ func (p Period) days() int {
 // ResultsPageSize ist die Zahl der Ergebnisse je Seite in der Statistik.
 const ResultsPageSize = 50
 
-// DayViews sind die Seitenaufrufe eines Kalendertags (JJJJ-MM-TT).
-type DayViews struct {
-	Day   string
-	Views int64
-}
-
-// PageViewStats fasst die Seitenaufrufe eines Zeitraums zusammen, neueste Tage zuerst.
-type PageViewStats struct {
-	Total int64
-	Days  []DayViews
-}
-
 // Rating ist der gewählte Reifegrad einer Dimension.
 type Rating struct {
 	Dimension string
@@ -101,25 +89,20 @@ type ReadinessResultPage struct {
 var resultKeyPattern = regexp.MustCompile(`^[0-9a-f]{32}$`)
 
 // Statistics zählt Seitenaufrufe und speichert Ergebnisse der Selbsteinschätzung (Ticket #130, ADR 0010).
-// Beides geschieht ohne Kennung der Besucherinnen und Besucher: Seitenaufrufe nur als Tageszähler,
-// Ergebnisse nur mit Reifegraden, Sprache und Zeitpunkt.
+// IP-Pseudonyme enthalten nur den letzten Aufruftag (#142, ADR 0010). Ergebnisse bleiben davon getrennt.
 type Statistics struct {
 	db         *sql.DB
 	q          *store.Queries
 	dimensions []string // freigegebene Dimensionen in Ablaufreihenfolge
 	maxLevel   int
 	now        func() time.Time
+	ipKey      []byte
 }
 
 // NewStatistics erzeugt den Dienst. dimensions sind die freigegebenen Dimensionen, maxLevel der höchste
 // Reifegrad. Beides kommt aus dem Audit-Katalog, den dieses Paket nicht kennen darf (Importzyklus).
 func NewStatistics(db *sql.DB, dimensions []string, maxLevel int) *Statistics {
 	return &Statistics{db: db, q: store.New(db), dimensions: dimensions, maxLevel: maxLevel, now: time.Now}
-}
-
-// CountPageView erhöht den Zähler des heutigen Tages um eins.
-func (s *Statistics) CountPageView(ctx context.Context) error {
-	return s.q.CountPageView(ctx, s.now().In(StatsZone).Format(dayLayout))
 }
 
 // firstDay liefert 0:00 Uhr deutscher Zeit am ersten Tag des Zeitraums; ok ist false ohne Begrenzung.
@@ -130,46 +113,6 @@ func (s *Statistics) firstDay(p Period) (start time.Time, ok bool) {
 	}
 	y, m, d := s.now().In(StatsZone).Date()
 	return time.Date(y, m, d-(n-1), 0, 0, 0, 0, StatsZone), true
-}
-
-// PageViews liefert die Seitenaufrufe im Zeitraum. Begrenzte Zeiträume enthalten jeden Tag, auch ohne
-// Aufrufe, damit Lücken nicht übersehen werden. „Gesamt“ beginnt am ersten erfassten Tag und endet heute.
-func (s *Statistics) PageViews(ctx context.Context, p Period) (PageViewStats, error) {
-	start, bounded := s.firstDay(p)
-	since := ""
-	if bounded {
-		since = start.Format(dayLayout)
-	}
-	rows, err := s.q.ListPageViews(ctx, since)
-	if err != nil {
-		return PageViewStats{}, err
-	}
-	var out PageViewStats
-	if !bounded {
-		if len(rows) == 0 {
-			return out, nil
-		}
-		start, err = time.ParseInLocation(dayLayout, rows[len(rows)-1].Day, StatsZone)
-		if err != nil {
-			return PageViewStats{}, err
-		}
-	}
-	views := make(map[string]int64, len(rows))
-	for _, r := range rows {
-		views[r.Day] = r.Views
-	}
-	y, m, d := s.now().In(StatsZone).Date()
-	end := time.Date(y, m, d, 0, 0, 0, 0, StatsZone)
-	if bounded {
-		// Dieselbe Momentaufnahme wie firstDay, auch wenn die Abfrage über Mitternacht läuft.
-		end = start.AddDate(0, 0, p.days()-1)
-	}
-	for date := end; !date.Before(start); date = date.AddDate(0, 0, -1) {
-		day := date.Format(dayLayout)
-		out.Total += views[day]
-		out.Days = append(out.Days, DayViews{Day: day, Views: views[day]})
-	}
-	return out, nil
 }
 
 // SaveReadinessResult speichert ein vollständiges Ergebnis oder aktualisiert das Ergebnis mit derselben

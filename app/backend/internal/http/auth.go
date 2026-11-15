@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,6 +11,7 @@ import (
 
 	"ki-web/backend/internal/api"
 	"ki-web/backend/internal/auth"
+	"ki-web/backend/internal/clientip"
 	"ki-web/backend/internal/service"
 )
 
@@ -42,10 +42,7 @@ const (
 
 type ctxKey int
 
-const (
-	identityKey ctxKey = iota
-	clientIPKey
-)
+const identityKey ctxKey = iota
 
 // identityFrom liefert die vom guard geprüfte Identität der Sitzung.
 func identityFrom(ctx context.Context) (service.Identity, bool) {
@@ -53,10 +50,9 @@ func identityFrom(ctx context.Context) (service.Identity, bool) {
 	return id, ok
 }
 
-// clientIPFrom liefert die vom guard ermittelte IP-Adresse der Anfrage.
+// clientIPFrom liefert die von der Client-IP-Middleware gepruefte Adresse.
 func clientIPFrom(ctx context.Context) string {
-	ip, _ := ctx.Value(clientIPKey).(string)
-	return ip
+	return clientip.FromContext(ctx)
 }
 
 // guard schützt die Redaktions-API. Die Entscheidung trifft ausschließlich das Backend
@@ -66,9 +62,8 @@ func clientIPFrom(ctx context.Context) string {
 //   - Schreibende Aufrufe mit Sitzung verlangen das CSRF-Token der Sitzung im Header X-CSRF-Token (sonst 403).
 //   - Schreibende API-Aufrufe von fremden Ursprüngen werden abgelehnt (403).
 type guard struct {
-	accounts   *service.Accounts
-	trustProxy bool
-	log        *slog.Logger
+	accounts *service.Accounts
+	log      *slog.Logger
 }
 
 // unsafeMethod meldet, ob die Methode Daten verändern darf (und deshalb CSRF-Schutz braucht).
@@ -89,7 +84,7 @@ func (g *guard) wrap(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		ctx := context.WithValue(r.Context(), clientIPKey, g.clientIP(r))
+		ctx := r.Context()
 		if p == "/api/auth/login" {
 			ctx = context.WithValue(ctx, previousSessionKey{}, sessionToken(r))
 		}
@@ -151,22 +146,6 @@ func sameOrigin(r *http.Request) bool {
 		return err == nil && strings.EqualFold(u.Host, r.Host)
 	}
 	return r.Header.Get("Sec-Fetch-Site") != "cross-site"
-}
-
-// clientIP ermittelt die IP-Adresse für die Begrenzung der Anmeldeversuche. Hinter Caddy steht sie im
-// letzten Eintrag von X-Forwarded-For, den Caddy selbst setzt.
-func (g *guard) clientIP(r *http.Request) string {
-	if g.trustProxy {
-		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-			parts := strings.Split(xff, ",")
-			return strings.TrimSpace(parts[len(parts)-1])
-		}
-	}
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return host
 }
 
 // ---------------------------------------------------------------------------

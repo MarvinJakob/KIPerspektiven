@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"net/netip"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -13,6 +15,7 @@ import (
 	"ki-web/backend/internal/api"
 	"ki-web/backend/internal/audit"
 	"ki-web/backend/internal/auth"
+	httpserver "ki-web/backend/internal/http"
 	"ki-web/backend/internal/service"
 )
 
@@ -70,12 +73,14 @@ func dayOffset(days int) string { return today().AddDate(0, 0, -days).Format("20
 
 const resultKey = "0123456789abcdef0123456789abcdef"
 
-// Gespeichert werden nur Tageszähler und Ergebnisse ohne Kennung der Person: Das Schema hat keine Spalten für
-// IP-Adresse, User-Agent oder Ähnliches, und die Kennung des Ergebnisses liegt nur als Hash vor.
+// Keine Klartext-IP oder Browserdaten: IP-Pseudonyme enthalten nur den letzten Tag (#142).
+// Ergebnisse bleiben ohne Personenzuordnung und die Ergebniskennung liegt nur als Hash vor.
 func TestStatisticsSchemaHoldsNoVisitorData(t *testing.T) {
 	_, db := newServer(t, false)
 	for table, want := range map[string][]string{
-		"page_views":               {"day", "views"},
+		"page_views":               {"day", "views", "identified_views", "unique_views"},
+		"page_view_sources":        {"ip_hash", "last_day"},
+		"page_view_identity":       {"id", "key_id", "started_at"},
 		"readiness_results":        {"id", "key_hash", "lang", "submitted_at"},
 		"readiness_result_ratings": {"result_id", "dimension", "level"},
 	} {
@@ -128,7 +133,7 @@ func TestPageViewsCountPublicPagesOnly(t *testing.T) {
 	if st.Period != api.N30d || st.Total != int64(len(counted)) || len(st.Days) != 30 {
 		t.Fatalf("Vorauswahl: %+v", st)
 	}
-	if st.Days[0] != (api.PageViewDay{Date: dayOffset(0), Views: int64(len(counted))}) || st.Days[29].Date != dayOffset(29) {
+	if st.Days[0].Date != dayOffset(0) || st.Days[0].Views != int64(len(counted)) || st.Days[29].Date != dayOffset(29) {
 		t.Fatalf("Tage: erster %+v, letzter %+v", st.Days[0], st.Days[29])
 	}
 }
@@ -158,7 +163,7 @@ func TestPageViewPeriods(t *testing.T) {
 		if st.Total != c.total || len(st.Days) != c.days {
 			t.Errorf("%s: Summe %d mit %d Tagen, erwartet %d mit %d", c.query, st.Total, len(st.Days), c.total, c.days)
 		}
-		if st.Days[1] != (api.PageViewDay{Date: dayOffset(1), Views: 0}) {
+		if st.Days[1].Date != dayOffset(1) || st.Days[1].Views != 0 || st.Days[1].UniqueViews == nil || *st.Days[1].UniqueViews != 0 {
 			t.Errorf("%s: Tag ohne Aufrufe fehlt: %+v", c.query, st.Days[1])
 		}
 		if !slices.IsSortedFunc(st.Days, func(a, b api.PageViewDay) int { return strings.Compare(b.Date, a.Date) }) {
@@ -186,8 +191,9 @@ func TestAllPageViewsWithoutRecentViews(t *testing.T) {
 	resp, body = b.do(http.MethodGet, "/api/admin/statistics/page-views?period=all", nil)
 	wantStatus(t, resp, body, http.StatusOK)
 	st = decode[api.PageViewStats](t, body)
-	want := []api.PageViewDay{{Date: dayOffset(0), Views: 0}, {Date: dayOffset(1), Views: 0}, {Date: dayOffset(2), Views: 5}}
-	if st.Total != 5 || !slices.Equal(st.Days, want) {
+	zero := int64(0)
+	want := []api.PageViewDay{{Date: dayOffset(0), Views: 0, UniqueViews: &zero}, {Date: dayOffset(1), Views: 0, UniqueViews: &zero}, {Date: dayOffset(2), Views: 5}}
+	if st.Total != 5 || !reflect.DeepEqual(st.Days, want) {
 		t.Fatalf("Gesamt: %+v, erwartet %+v", st, want)
 	}
 }
@@ -412,4 +418,27 @@ func TestReadinessResultsListNewestFirstWithPaging(t *testing.T) {
 	}
 	resp, body := b.do(http.MethodGet, "/api/admin/statistics/readiness-results?period=gestern", nil)
 	wantStatus(t, resp, body, http.StatusBadRequest)
+}
+
+// Der oeffentliche HTML-Abruf bekommt dieselbe gepruefte Client-IP wie die Ratenbegrenzung.
+func TestPageViewIPCountingBehindConfiguredProxy(t *testing.T) {
+	srv, db := newServer(t, false, func(cfg *httpserver.Config) {
+		cfg.TrustedProxies = []netip.Prefix{netip.MustParsePrefix("127.0.0.0/8"), netip.MustParsePrefix("::1/128")}
+	})
+	createUser(t, db, editorEmail, "editor")
+	b := newBrowser(t, srv)
+	for _, ip := range []string{"192.0.2.1", "::ffff:192.0.2.1", "198.51.100.9, 192.0.2.1", "2001:db8::1"} {
+		resp, body := b.do(http.MethodGet, "/de", nil, "X-Forwarded-For", ip)
+		wantStatus(t, resp, body, http.StatusOK)
+	}
+	b.mustLogin(editorEmail)
+	resp, body := b.do(http.MethodGet, "/api/admin/statistics/page-views?period=all", nil)
+	wantStatus(t, resp, body, http.StatusOK)
+	st := decode[api.PageViewStats](t, body)
+	if st.Total != 4 || st.UniqueTotal == nil || *st.UniqueTotal != 2 || st.Days[0].UniqueViews == nil || *st.Days[0].UniqueViews != 2 {
+		t.Fatalf("Proxy-Bereinigung: %+v", st)
+	}
+	if strings.Contains(body, "192.0.2.1") || strings.Contains(body, "ip_hash") {
+		t.Fatal("API gibt IP-Zuordnung aus")
+	}
 }

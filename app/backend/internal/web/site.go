@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"ki-web/backend/internal/audit"
+	"ki-web/backend/internal/clientip"
 	"ki-web/backend/internal/service"
 )
 
@@ -24,7 +25,7 @@ var dist embed.FS
 
 // PageViewCounter zählt ausgelieferte öffentliche Seiten (Ticket #130).
 type PageViewCounter interface {
-	CountPageView(ctx context.Context) error
+	CountPageView(ctx context.Context, ip string) error
 }
 
 // Site liefert die öffentliche Webseite aus.
@@ -110,7 +111,7 @@ func (s *Site) page(w http.ResponseWriter, r *http.Request) {
 }
 
 // countView zählt eine ausgelieferte öffentliche Seite (Ticket #130, ADR 0010). Gezählt wird nur der Abruf,
-// den der Browser ohnehin schickt: kein Skript, kein Cookie, keine Kennung, nur der Tageszähler steigt.
+// den der Browser ohnehin schickt: kein Skript und kein Cookie. IP-Zuordnung nur serverseitig (ADR 0010, #142).
 // Seitenwechsel innerhalb der Anwendung erreichen den Server nicht und zählen deshalb nicht. Nicht gezählt
 // werden HEAD-Anfragen, Fehlerseiten und Vorab-Abrufe (Prefetch), die niemand sieht. Scheitert das Zählen,
 // bleibt die Seite unberührt.
@@ -118,7 +119,7 @@ func (s *Site) countView(r *http.Request, status int) {
 	if s.views == nil || r.Method != http.MethodGet || status != http.StatusOK || isPrefetch(r) {
 		return
 	}
-	if err := s.views.CountPageView(r.Context()); err != nil {
+	if err := s.views.CountPageView(r.Context(), clientip.FromContext(r.Context())); err != nil {
 		s.log.Error("seitenaufruf zählen", "fehler", err)
 	}
 }

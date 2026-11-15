@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/netip"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -38,7 +39,7 @@ import (
 //
 // Im Testprozess teilt sich der Server die Prozessoren mit dem Lastgenerator. Für eine Messung wie auf einem
 // Server mit einem Kern startet scripts/login-lasttest.ps1 den Server als eigenen Prozess (GOMAXPROCS=1,
-// DEV_SEED=true, TRUST_PROXY=true) und setzt LOGIN_LASTTEST_URL. Speicher und Prozessorzeit misst dann das
+// DEV_SEED=true, TRUSTED_PROXIES=127.0.0.1/32) und setzt LOGIN_LASTTEST_URL. Speicher und Prozessorzeit misst dann das
 // Skript am Serverprozess; der Test meldet nur Antworten und Healthcheck.
 func TestLoginLoad(t *testing.T) {
 	if os.Getenv("LOGIN_LASTTEST") != "1" {
@@ -54,7 +55,7 @@ func TestLoginLoad(t *testing.T) {
 	base, account, where := os.Getenv("LOGIN_LASTTEST_URL"), "redaktion@example.test", "extern" // Testkonto aus DEV_SEED
 	inProcess := base == ""
 	if inProcess {
-		srv, db := newServer(t, false, func(c *httpserver.Config) { c.TrustProxy = true })
+		srv, db := newServer(t, false, func(c *httpserver.Config) { c.TrustedProxies = loopbackProxies })
 		createUser(t, db, editorEmail, service.RoleEditor)
 		base, account, where = srv.URL, editorEmail, "im Testprozess"
 	}
@@ -253,3 +254,7 @@ func envInts(t *testing.T, name, fallback string) []int {
 	}
 	return out
 }
+
+// loopbackProxies lässt den Testserver X-Forwarded-For vom Lastgenerator auf derselben Maschine auswerten, damit
+// jeder Versuch von einer eigenen IP-Adresse kommt.
+var loopbackProxies = []netip.Prefix{netip.MustParsePrefix("127.0.0.1/32"), netip.MustParsePrefix("::1/128")}

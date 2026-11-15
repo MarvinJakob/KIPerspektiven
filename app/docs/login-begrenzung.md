@@ -86,7 +86,7 @@ Der Race-Detector braucht CGO und einen C-Compiler. Lokal unter Windows ist kein
 
 Ohne Korrektur steigt der Speicher um etwa 64 MiB je gleichzeitiger Anfrage. Deshalb endet die Messung von `main` bei 15 parallelen Anfragen. Nicht gegen das Produktivsystem ausführen.
 
-**Testumgebung:** Windows 11 Enterprise 10.0.26300, Intel Core i5-1135G7 (4 Kerne, 8 Threads), 15,7 GB RAM, davon etwa 3,6 GB frei, Go 1.27.0. Der Server lief mit `GOMAXPROCS=1`, gebunden an einen logischen Prozessor, als Nachbildung des Servers mit 1 vCPU. Weitere Einstellungen: `DEV_SEED=true`, `TRUST_PROXY=true`, temporäre SQLite-Datenbank. Der Lastgenerator lief als eigener Prozess auf den übrigen Prozessoren. Leerlauf-Arbeitsspeicher des Servers: 81 MiB.
+**Testumgebung:** Windows 11 Enterprise 10.0.26300, Intel Core i5-1135G7 (4 Kerne, 8 Threads), 15,7 GB RAM, davon etwa 3,6 GB frei, Go 1.27.0. Der Server lief mit `GOMAXPROCS=1`, gebunden an einen logischen Prozessor, als Nachbildung des Servers mit 1 vCPU. Weitere Einstellungen: `DEV_SEED=true`, `TRUST_PROXY=true` (seit #142 ersetzt durch `TRUSTED_PROXIES`; das Skript setzt heute `TRUSTED_PROXIES=127.0.0.1/32`), temporäre SQLite-Datenbank. Der Lastgenerator lief als eigener Prozess auf den übrigen Prozessoren. Leerlauf-Arbeitsspeicher des Servers: 81 MiB.
 
 Die Messwerte gelten für Commit `b94d593`. Der anschließende Merge mit `main` benennt die Ergebnis-Methoden des Limiters neutral um (`Count`, `Reset`, `Cancel`) und stellt die Beratungsanfragen um. Login-Ablauf und Grenzwerte bleiben unverändert.
 

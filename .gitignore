@@ -8,6 +8,7 @@ coverage/
 *.out
 
 # Daten, Medien und Geheimnisse
+statistics-ip.key
 .token/
 *.db
 *.db-wal
