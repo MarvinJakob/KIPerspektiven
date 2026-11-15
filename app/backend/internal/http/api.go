@@ -20,10 +20,14 @@ type apiServer struct {
 	audit         *audit.Catalog
 	accounts      *service.Accounts
 	editorial     *service.Editorial
+	stats         *service.Statistics
+	consultations *service.Consultations
 	media         *media.Store
-	limiter       *auth.Limiter
-	secureCookies bool
-	log           *slog.Logger
+	limiter       *auth.Limiter // fehlgeschlagene Anmeldeversuche je IP-Adresse
+	// consultationLimiter begrenzt angenommene Beratungsanfragen je IP-Adresse (Ticket #136).
+	consultationLimiter *auth.Limiter
+	secureCookies       bool
+	log                 *slog.Logger
 }
 
 var _ api.StrictServerInterface = (*apiServer)(nil)
@@ -129,18 +133,16 @@ func (s *apiServer) GetAudit(_ context.Context, req api.GetAuditRequestObject) (
 		return api.GetAudit400JSONResponse{BadRequestJSONResponse: api.BadRequestJSONResponse{Message: msgBadLang}}, nil
 	}
 	o := s.audit.Overview(langOf(req.Params.Lang))
-	levels := make([]api.AuditLevelInfo, 0, len(o.Levels))
-	for _, l := range o.Levels {
-		levels = append(levels, api.AuditLevelInfo{Level: l.Level, Name: l.Name, Motto: l.Motto})
-	}
+	levels := toAuditLevelInfos(o.Levels)
 	dims := make([]api.AuditDimensionSummary, 0, len(o.Dimensions))
 	for _, d := range o.Dimensions {
 		dims = append(dims, api.AuditDimensionSummary{
 			Slug: d.Slug, Lang: api.Lang(d.Lang), Title: d.Title, Summary: d.Summary, Category: api.AuditCategory(d.Category),
+			Intro: d.Intro,
 		})
 	}
 	return api.GetAudit200JSONResponse{
-		Lang: api.Lang(o.Lang), Translations: toLangs(o.Translations), Intro: o.Intro, Levels: levels, Dimensions: dims,
+		Lang: api.Lang(o.Lang), Translations: toLangs(o.Translations), Intro: o.Intro, Guidance: o.Guidance, Classification: o.Classification, Levels: levels, Dimensions: dims,
 	}, nil
 }
 
@@ -161,8 +163,7 @@ func (s *apiServer) GetAuditDimension(_ context.Context, req api.GetAuditDimensi
 	}
 	return api.GetAuditDimension200JSONResponse{
 		Slug: d.Slug, Lang: api.Lang(d.Lang), Title: d.Title, Summary: d.Summary, Category: api.AuditCategory(d.Category),
-		Translations: toLangs(d.Translations), Intro: d.Intro, Benefits: d.Benefits,
-		NotApplied: toAuditLevel(d.NotApplied), Levels: levels,
+		Translations: toLangs(d.Translations), Intro: d.Intro, Benefits: d.Benefits, Levels: levels,
 	}, nil
 }
 
@@ -170,10 +171,18 @@ func (s *apiServer) GetAuditDimension(_ context.Context, req api.GetAuditDimensi
 // Abbildung Fachmodell -> API-Modell
 // ---------------------------------------------------------------------------
 
+func toAuditLevelInfos(ls []audit.LevelInfo) []api.AuditLevelInfo {
+	out := make([]api.AuditLevelInfo, 0, len(ls))
+	for _, l := range ls {
+		out = append(out, api.AuditLevelInfo{Level: l.Level, Name: l.Name, Motto: l.Motto})
+	}
+	return out
+}
+
 func toAuditLevel(l audit.Level) api.AuditLevel {
 	qs := make([]api.AuditQuestion, 0, len(l.Questions))
 	for _, q := range l.Questions {
-		qs = append(qs, api.AuditQuestion{Id: q.ID, Text: q.Text, Conditional: q.Conditional})
+		qs = append(qs, api.AuditQuestion{Id: q.ID, Text: q.Text})
 	}
 	return api.AuditLevel{Level: l.Level, Name: l.Name, Description: l.Description, Questions: qs}
 }
@@ -229,6 +238,10 @@ func toSummaries(ps []service.PostSummary) []api.PostSummary {
 func registerAPI(mux *http.ServeMux, srv *apiServer, log *slog.Logger) {
 	strict := api.NewStrictHandlerWithOptions(srv, nil, api.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
+			if _, tooLarge := errors.AsType[*http.MaxBytesError](err); tooLarge {
+				writeJSONError(w, http.StatusRequestEntityTooLarge, "Die Anfrage ist zu groß.")
+				return
+			}
 			writeJSONError(w, http.StatusBadRequest, "Ungültige Anfrage.")
 		},
 		ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {

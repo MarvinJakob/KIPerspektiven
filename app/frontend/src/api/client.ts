@@ -15,6 +15,7 @@ export type AuditDimension = components['schemas']['AuditDimension'];
 export type AuditLevel = components['schemas']['AuditLevel'];
 export type AuditQuestion = components['schemas']['AuditQuestion'];
 export type AuditCategory = components['schemas']['AuditCategory'];
+export type AuditLevelInfo = components['schemas']['AuditLevelInfo'];
 
 /** Fehler mit HTTP-Status, z. B. 404 für unbekannte oder nicht öffentliche Inhalte. */
 export class ApiError extends Error {
@@ -82,6 +83,35 @@ export const useAudit = (lang: Lang) =>
     queryKey: ['audit', lang],
     queryFn: () => unwrap(client.GET('/api/audit', { params: { query: { lang } } })),
   });
+
+export type ReadinessResultInput = components['schemas']['ReadinessResultInput'];
+
+/**
+ * Speichert das Ergebnis der Selbsteinschätzung anonym oder aktualisiert es (Ticket #130). Nur nach
+ * Einwilligung aufrufen. Bewusst ohne unwrap: Ein Fehler darf weder zur Anmeldung führen noch die
+ * Auswertung stören.
+ */
+export async function saveReadinessResult(body: ReadinessResultInput) {
+  const { response } = await client.POST('/api/readiness-results', { body });
+  if (!response.ok) throw new ApiError(response.status, response.statusText);
+}
+
+/** Löscht das gespeicherte Ergebnis, wenn die Einwilligung zurückgenommen wird (Ticket #130). */
+export async function deleteReadinessResult(key: string) {
+  const { response } = await client.DELETE('/api/readiness-results/{key}', { params: { path: { key } } });
+  if (!response.ok) throw new ApiError(response.status, response.statusText);
+}
+
+export type ConsultationRequestInput = components['schemas']['ConsultationRequestInput'];
+
+/**
+ * Fragt ein kostenloses Beratungsgespräch an (Ticket #136). Bewusst ohne unwrap: Ein Fehler führt nicht zur
+ * Anmeldung, sondern zu einer Meldung im Formular, das sich erneut senden lässt.
+ */
+export async function requestConsultation(body: ConsultationRequestInput) {
+  const { response } = await client.POST('/api/consultation-requests', { body });
+  if (!response.ok) throw new ApiError(response.status, response.statusText);
+}
 
 export const useAuditDimension = (slug: string, lang: Lang) =>
   useQuery({

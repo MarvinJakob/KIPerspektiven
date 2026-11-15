@@ -2,7 +2,17 @@ import { render } from '@testing-library/react';
 import { createMemoryRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { vi } from 'vitest';
-import type { AuditDimension, AuditOverview, AuditQuestion, Post, PostSummary, Topic, TopicDetail } from '../api/client';
+import type {
+  AuditDimension,
+  AuditOverview,
+  AuditQuestion,
+  ConsultationRequestInput,
+  Post,
+  PostSummary,
+  ReadinessResultInput,
+  Topic,
+  TopicDetail,
+} from '../api/client';
 import { Providers, createQueryClient, routes } from '../App';
 
 type L = 'de' | 'en';
@@ -13,20 +23,12 @@ const topicData: Record<string, Record<L, Omit<Topic, 'lang' | 'postCount' | 'sl
     en: { title: 'AI in Software Development', label: 'Software Development', summary: 'How to guide AI assistants with Markdown rules, access permissions, tests and reviews.', intro: 'Files such as `AGENTS.md` give AI assistants goals, workflows and boundaries. However, the model can misunderstand or disregard these rules. Here you can learn how to write verifiable rules, tie approvals to actions and enforce boundaries through technical controls.' },
   },
   'ai-audit': {
-    de: { title: 'AI Audit für Unternehmen', label: 'AI Audit', summary: 'Kurz Audit', intro: 'Einführung Audit' },
-    en: { title: 'AI Audit for Companies', label: 'AI Audit', summary: 'Short audit', intro: 'Intro audit' },
+    de: { title: 'KI Readiness', label: 'AI Audit', summary: 'Kurz Audit', intro: 'Einführung Audit' },
+    en: { title: 'AI Readiness', label: 'AI Audit', summary: 'Short audit', intro: 'Intro audit' },
   },
   'data-analytics': {
     de: { title: 'KI in Data Analytics', label: 'Data Analytics', summary: 'Wie aus einer schnellen KI-Antwort eine belastbare Analyse wird: Kennzahlen klären, Ergebnisse prüfen.', intro: 'KI beantwortet Datenfragen in Alltagssprache, schreibt Analysecode und unterstützt Prognosen. Belastbar werden die Ergebnisse erst, wenn Kennzahlen eindeutig definiert sind und Antworten mit den Quelldaten abgeglichen werden. Diese Seite zeigt Einsatzfelder, Grenzen und einen Pilot.' },
     en: { title: 'AI in Data Analytics', label: 'Data Analytics', summary: 'How a quick AI answer becomes a reliable analysis: clarify metrics, check results.', intro: 'AI answers data questions in everyday language, writes analysis code and supports forecasts. The results only become reliable once metrics are clearly defined and answers are checked against the source data. This page covers use cases, limits and a pilot.' },
-  },
-  prozessautomatisierung: {
-    de: { title: 'Prozessautomatisierung', label: 'Prozessautomatisierung', summary: 'Kurz Automatisierung', intro: 'Einführung Prozessautomatisierung' },
-    en: { title: 'Process Automation', label: 'Process Automation', summary: 'Short automation', intro: 'Intro process automation' },
-  },
-  'ki-tipps-und-tricks': {
-    de: { title: 'KI-Tipps und Tricks', label: 'KI-Tipps und Tricks', summary: 'Welche Skills KI-Agenten wirklich helfen und wie belastbar der Nutzen ist.', intro: 'Skills halten wiederkehrende Arbeitsabläufe für KI-Agenten fest, etwa für Excel-Auswertungen oder die systematische Fehlersuche. Wir ordnen ein, was Studien zeigen, welche Skills sich für einen Test lohnen und wie Sie den Nutzen in Ihrem eigenen Arbeitsablauf prüfen.' },
-    en: { title: 'AI Tips and Tricks', label: 'AI Tips and Tricks', summary: 'Which skills actually help AI agents and how strong the evidence is.', intro: 'Skills capture recurring workflows for AI agents, such as analysing Excel files or investigating bugs systematically. We explain what studies show, which skills are worth testing and how to assess their value in your own workflow.' },
   },
   'modelle-und-kosten': {
     de: { title: 'Modelle und Kosten: Wie finde ich das beste Preis-/Leistungsverhältnis?', label: 'Modelle und Kosten', summary: 'Warum das günstigste Modell nicht automatisch die beste Wahl ist und wie Sie Preis und Leistung selbst vergleichen.', intro: 'Ein niedriger Preis je Token sagt wenig darüber aus, was ein brauchbares Ergebnis kostet. Diese Seite zeigt, welche Kosten in die Rechnung gehören, was öffentliche Vergleiche leisten und wie Sie mit eigenen Testaufgaben das passende Modell finden.' },
@@ -96,9 +98,10 @@ function summary(p: FakePost, lang: L): PostSummary {
 }
 
 // Audit-Inhalte liegen nur auf Deutsch vor (wie im Backend).
-const LEVEL_NAMES = ['Nicht angewendet', 'Einfach', 'Strukturiert', 'Intelligent'];
+// Index = Reifegrad; einen Reifegrad 0 gibt es seit Ticket #113 nicht mehr.
+const LEVEL_NAMES = ['', 'Einfach', 'Strukturiert', 'Intelligent'];
 
-const question = (id: string, conditional = false): AuditQuestion => ({ id, text: `Frage ${id}?`, conditional });
+const question = (id: string): AuditQuestion => ({ id, text: `Frage ${id}?` });
 
 export const AUDIT_DIMENSIONS: AuditDimension[] = [
   {
@@ -110,10 +113,9 @@ export const AUDIT_DIMENSIONS: AuditDimension[] = [
     translations: ['de'],
     intro: ['Einführung Strategie'],
     benefits: ['Vorteil Budget', 'Vorteil Priorisierung'],
-    notApplied: { level: 0, name: LEVEL_NAMES[0], description: 'Beschreibung Strategie 0', questions: [] },
     levels: [
       { level: 1, name: LEVEL_NAMES[1], description: 'Beschreibung Strategie 1', questions: [question('1.1'), question('1.2')] },
-      { level: 2, name: LEVEL_NAMES[2], description: 'Beschreibung Strategie 2', questions: [question('2.1'), question('2.2', true)] },
+      { level: 2, name: LEVEL_NAMES[2], description: 'Beschreibung Strategie 2', questions: [question('2.1'), question('2.2')] },
       { level: 3, name: LEVEL_NAMES[3], description: 'Beschreibung Strategie 3', questions: [question('3.1')] },
     ],
   },
@@ -126,7 +128,6 @@ export const AUDIT_DIMENSIONS: AuditDimension[] = [
     translations: ['de'],
     intro: ['Einführung Betrieb'],
     benefits: ['Vorteil Verfügbarkeit', 'Vorteil Kosten'],
-    notApplied: { level: 0, name: LEVEL_NAMES[0], description: 'Beschreibung Betrieb 0', questions: [] },
     levels: [
       { level: 1, name: LEVEL_NAMES[1], description: 'Beschreibung Betrieb 1', questions: [question('1.1')] },
       { level: 2, name: LEVEL_NAMES[2], description: 'Beschreibung Betrieb 2', questions: [question('2.1')] },
@@ -135,25 +136,83 @@ export const AUDIT_DIMENSIONS: AuditDimension[] = [
   },
 ];
 
+const CLASSIFICATION = '### Nicht überall auf der höchsten Stufe\n\nUnterschiedliche Reifegrade sind normal.';
+
 function auditOverview(): AuditOverview {
   return {
     lang: 'de',
     translations: ['de'],
     intro: ['Das KI-Audit zeigt, welche Fähigkeiten vorhanden sind.'],
+    guidance: `### So ist die Selbsteinschätzung aufgebaut\n\nJe Dimension einen Reifegrad wählen.\n\n${CLASSIFICATION}`,
+    classification: CLASSIFICATION,
     levels: [1, 2, 3].map((level) => ({ level, name: LEVEL_NAMES[level], motto: `Leitsatz ${level}` })),
-    dimensions: AUDIT_DIMENSIONS.map(({ slug, lang, title, summary, category }) => ({ slug, lang, title, summary, category })),
+    dimensions: AUDIT_DIMENSIONS.map(({ slug, lang, title, summary, category, intro }) => ({ slug, lang, title, summary, category, intro })),
   };
 }
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+/** Aufruf von /api/readiness-results (Ticket #130) */
+export interface ReadinessCall {
+  method: string;
+  path: string;
+  body?: ReadinessResultInput;
+}
+
+/** Alle Aufrufe zum Speichern und Löschen von Ergebnissen seit dem letzten installFakeApi. */
+export const readinessCalls: ReadinessCall[] = [];
+let readinessFails = false;
+/** Lässt Speichern und Löschen von Ergebnissen mit 500 scheitern. */
+export const failReadiness = (fail = true) => {
+  readinessFails = fail;
+};
+const heldReadiness: Promise<number>[] = [];
+/** Hält den nächsten noch nicht angehaltenen Aufruf zum Speichern oder Löschen an, bis er mit dem übergebenen Status beantwortet wird. */
+export function holdReadiness() {
+  let answer!: (status: number) => void;
+  heldReadiness.push(new Promise((resolve) => (answer = resolve)));
+  return answer;
+}
+
+/** Gesendete Beratungsanfragen (Ticket #136) seit dem letzten installFakeApi. */
+export const consultationCalls: ConsultationRequestInput[] = [];
+const consultationAnswers: number[] = [];
+/** Legt die Statuscodes der nächsten Beratungsanfragen fest, z. B. 500 oder 429; danach antwortet die API mit 204. */
+export const answerConsultations = (...statuses: number[]) => {
+  consultationAnswers.push(...statuses);
+};
+const heldConsultations: Promise<number>[] = [];
+/** Hält die nächste Beratungsanfrage an, bis sie mit dem übergebenen Status beantwortet wird. */
+export function holdConsultation() {
+  let answer!: (status: number) => void;
+  heldConsultations.push(new Promise((resolve) => (answer = resolve)));
+  return answer;
+}
+
 /** Ersetzt fetch durch eine kleine Nachbildung der öffentlichen API. */
 export function installFakeApi(posts: FakePost[] = POSTS) {
+  readinessCalls.length = 0;
+  readinessFails = false;
+  heldReadiness.length = 0;
+  consultationCalls.length = 0;
+  consultationAnswers.length = 0;
+  heldConsultations.length = 0;
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     const lang = (url.searchParams.get('lang') ?? 'de') as L;
     const parts = url.pathname.split('/').filter(Boolean); // api, posts|topics, slug?
+    if (parts[1] === 'readiness-results' && input instanceof Request) {
+      const body = input.method === 'POST' ? (JSON.parse(await input.text()) as ReadinessResultInput) : undefined;
+      readinessCalls.push({ method: input.method, path: url.pathname, body });
+      const status = await (heldReadiness.shift() ?? (readinessFails ? 500 : 204));
+      return status === 204 ? new Response(null, { status }) : json(status, { message: 'Interner Fehler.' });
+    }
+    if (parts[1] === 'consultation-requests' && input instanceof Request && input.method === 'POST') {
+      consultationCalls.push(JSON.parse(await input.text()) as ConsultationRequestInput);
+      const status = await (heldConsultations.shift() ?? consultationAnswers.shift() ?? 204);
+      return status === 204 ? new Response(null, { status }) : json(status, { message: 'Fehler.' });
+    }
     if (parts[1] === 'topics' && parts.length === 2) {
       return json(200, { items: Object.keys(topicData).map((s) => topic(s, lang, posts)) });
     }

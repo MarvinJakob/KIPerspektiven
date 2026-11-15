@@ -1,10 +1,19 @@
 const PATHS = {
-  bulb: <><path d="M9 18h6M10 21h4M8 14a6 6 0 1 1 8 0c-1 .8-1 1.5-1 2H9c0-.5 0-1.2-1-2Z" /><path d="M10 8h4M12 8v8" /></>,
   chevDown: <path d="M6 9l6 6 6-6" />,
   chevLeft: <path d="M15 6l-6 6 6 6" />,
   chevRight: <path d="M9 6l6 6-6 6" />,
   arrowRight: <path d="M5 12h14M13 6l6 6-6 6" />,
   arrowDown: <path d="M12 5v14M6 13l6 6 6-6" />,
+  arrowUpRight: <path d="M7 17 17 7M8 7h9v9" />,
+  mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 6 9 7 9-7" /></>,
+  linkedin: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="4" />
+      <path d="M8 11v6M8 7.5h.01M12 17v-6M12 13.5a2.5 2.5 0 0 1 5 0V17" />
+    </>
+  ),
+  ticket: <path d="M3 5h18v5a2 2 0 0 0 0 4v5H3v-5a2 2 0 0 0 0-4V5Zm12 0v14" />,
+  file: <path d="M5 3h9l5 5v13H5V3Zm9 0v5h5M9 12h6m-6 4h6" />,
   alert: <path d="M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />,
   clock: (
     <>
@@ -52,33 +61,11 @@ const PATHS = {
     </>
   ),
   moon: <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />,
-  flow: (
-    <>
-      <rect x="3" y="4" width="6" height="6" rx="1.5" />
-      <rect x="15" y="14" width="6" height="6" rx="1.5" />
-      <path d="M9 7h3a2 2 0 0 1 2 2v6a2 2 0 0 0 2 2" />
-    </>
-  ),
   coins: (
     <>
       <ellipse cx="9" cy="6.5" rx="6" ry="2.5" />
       <path d="M3 6.5v5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-5" />
       <path d="M9 14v3.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-5c0-1.4-2.7-2.5-6-2.5" />
-    </>
-  ),
-  plug: <path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4" />,
-  server: (
-    <>
-      <rect x="4" y="4" width="16" height="7" rx="2" />
-      <rect x="4" y="13" width="16" height="7" rx="2" />
-      <path d="M8 7.5h.01M8 16.5h.01" />
-    </>
-  ),
-  users: (
-    <>
-      <circle cx="9" cy="8" r="3.5" />
-      <path d="M2.5 20c1.2-3 3.6-4.5 6.5-4.5s5.3 1.5 6.5 4.5" />
-      <path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4M17.5 15.8c1.8.6 3.1 2 4 4.2" />
     </>
   ),
   inbox: (

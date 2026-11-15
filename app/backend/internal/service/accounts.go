@@ -101,7 +101,15 @@ func formatTime(t time.Time) string { return t.UTC().Format(time.RFC3339) }
 // NormalizeEmail entfernt Leerzeichen und schreibt die Adresse klein.
 func NormalizeEmail(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
 
+// MaxEmailLength ist die größte zulässige Länge einer E-Mail-Adresse (RFC 5321, Pfad ohne spitze Klammern).
+const MaxEmailLength = 254
+
+// validateEmail prüft eine bereits normalisierte Adresse. Das Frontend der Beratungsanfrage (Ticket #136)
+// prüft vorab gröber; diese Prüfung ist maßgeblich.
 func validateEmail(email string) error {
+	if len(email) > MaxEmailLength {
+		return invalid("Die E-Mail-Adresse ist zu lang.")
+	}
 	addr, err := mail.ParseAddress(email)
 	if err != nil || addr.Address != email || !strings.Contains(email[strings.LastIndex(email, "@")+1:], ".") {
 		return invalid("Bitte eine gültige E-Mail-Adresse angeben.")

@@ -1,84 +1,206 @@
 import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
+import personaSource from '../../../content/Persona.md?raw';
+import { profile } from './i18n/profile';
 import { installFakeApi, renderApp } from './test/fakeApi';
 
 beforeEach(() => { installFakeApi(); });
 
-describe('Tickets 41 und 60: Profilseite nach dem Mock', () => {
-  it.each([
-    ['de', 'Aus der Praxis.', 'AI braucht mehr als ein gutes Modell.', 'Profil'],
-    ['en', 'From practice.', 'AI needs more than a good model.', 'Profile'],
-  ])('zeigt auf %s die Vorstellung, Stationen und drei Themen', async (lang, experience, topics, title) => {
-    renderApp(`/${lang}/profil`);
-    expect(await screen.findByRole('heading', { level: 1, name: 'Marvin Jakob' })).toBeInTheDocument();
-    const career = screen.getByRole('region', { name: experience });
-    expect(career.querySelectorAll('details')).toHaveLength(3);
-    expect(career.querySelector('details')).toHaveAttribute('open');
-    expect(career).toHaveTextContent('2020 – 2022');
-    expect(career).toHaveTextContent('2023');
-    expect(career).toHaveTextContent('2019');
-    expect(career).toHaveTextContent('IT Service Owner');
-    expect(career).toHaveTextContent('Product Owner');
-    const interests = screen.getByRole('region', { name: topics });
-    expect(within(interests).getAllByRole('heading', { level: 3 })).toHaveLength(3);
-    expect(within(interests).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
-      `/${lang}/themen/softwareentwicklung`, `/${lang}/themen/ai-audit`, `/${lang}/themen/data-analytics`,
-    ]);
-    expect(screen.getByRole('img', { name: /Marvin Jakob/ })).toHaveAttribute('width', '1024');
-    expect(screen.getByText('AWS Certified Cloud Practitioner')).toBeInTheDocument();
-    expect(within(screen.getByRole('article')).getByRole('link', { name: lang === 'de' ? 'Zum Blog' : 'Go to blog' })).toHaveAttribute('href', `/${lang}/blog`);
-    expect(document.title).toBe(`Marvin Jakob – ${title} · KI Perspektiven`);
-    expect(document.querySelector('meta[name="description"]')).toHaveAttribute('content', expect.stringContaining('Marvin Jakob:'));
+/**
+ * Zerlegt content/Persona.md in Abschnitte (`# `) und Unterabschnitte (`## `) mit ihren nicht leeren Zeilen.
+ * Der einfache Bindestrich zwischen Wörtern wird wie auf der Seite als Gedankenstrich gelesen.
+ */
+function readPersona() {
+  const sections = new Map<string, { lines: string[]; subsections: Map<string, string[]> }>();
+  let section: { lines: string[]; subsections: Map<string, string[]> } | undefined;
+  let lines: string[] = [];
+  for (const raw of personaSource.replace(/\r\n/g, '\n').split('\n')) {
+    const line = raw.trim().replace(/ - /g, ' – ');
+    if (line.startsWith('# ')) {
+      section = { lines: [], subsections: new Map() };
+      sections.set(line.slice(2), section);
+      lines = section.lines;
+    } else if (line.startsWith('## ')) {
+      lines = [];
+      section!.subsections.set(line.slice(3), lines);
+    } else if (line) {
+      lines.push(line);
+    }
+  }
+  const get = (name: string) => {
+    const found = sections.get(name);
+    if (!found) throw new Error(`Abschnitt „${name}“ fehlt in Persona.md`);
+    return found;
+  };
+  return { sections, get };
+}
+
+const labelled = (line: string, label: string) => {
+  const prefix = `**${label}:** `;
+  expect(line.startsWith(prefix)).toBe(true);
+  return line.slice(prefix.length);
+};
+
+describe('Ticket 124: Profilseite nach content/Persona.md', () => {
+  it('zeigt alle deutschen Inhalte der Persona wortgleich und in ihrer Reihenfolge', async () => {
+    const persona = readPersona();
+    const de = profile.de;
+    renderApp('/de/profil');
+    const article = await screen.findByRole('article');
+
+    const [intro] = persona.sections.keys();
+    const [name, headline, accent] = persona.get(intro).lines;
+    expect(intro).toBe(de.label);
+    expect(within(article).getByRole('heading', { level: 1, name })).toBeInTheDocument();
+    expect(within(article).getByText(intro)).toHaveClass('eyebrow');
+    expect(article.querySelector('.profile-headline')).toHaveTextContent(`${headline}${accent}`);
+    expect(article.querySelector('.profile-headline span')).toHaveTextContent(accent);
+
+    expect(within(article).getByText(persona.get('Leitsatz').lines[0])).toHaveClass('profile-motto');
+    const tags = within(article).getByRole('list', { name: de.focusLabel });
+    expect(within(tags).getAllByRole('listitem').map((li) => li.textContent)).toEqual(persona.get('Tags').lines[0].split(', '));
+
+    const caption = persona.get('Bildunterschrift').lines[0].match(/^\*\*(.+)\*\* – (.+)$/)!;
+    expect(article.querySelector('figcaption strong')).toHaveTextContent(caption[1]);
+    expect(article.querySelector('figcaption span')).toHaveTextContent(caption[2]);
+    expect(within(article).getByRole('img', { name: /Marvin Jakob/ })).toHaveAttribute('width', '1024');
+
+    const about = within(article).getByRole('region', { name: de.aboutTitle });
+    expect([...about.querySelectorAll('p')].map((p) => p.textContent)).toEqual(persona.get('Beschreibung').lines);
+
+    const facts = article.querySelector('.profile-facts')!;
+    expect([...facts.querySelectorAll('div')].map((div) => [div.querySelector('dt')!.textContent, div.querySelector('dd')!.textContent]))
+      .toEqual([...persona.get('Fakten').subsections.values()]);
+
+    const contact = within(article).getByRole('region', { name: de.contactTitle });
+    expect(within(contact).getAllByRole('link').map((link) => link.textContent)).toEqual(persona.get('Kontakt').lines);
+
+    const offers = within(article).getByRole('region', { name: 'Beratungsangebote' });
+    const personaOffers = [...persona.get('Beratungsangebote').subsections];
+    expect(within(offers).getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(personaOffers.map(([title]) => title));
+    for (const [title, [text, scope, result]] of personaOffers) {
+      const offer = within(offers).getByRole('region', { name: title });
+      expect(within(offer).getByText(text).tagName).toBe('P');
+      expect(within(offer).getByText('Leistungsumfang').nextElementSibling).toHaveTextContent(labelled(scope, 'Leistungsumfang'));
+      expect(within(offer).getByText('Ergebnis').nextElementSibling).toHaveTextContent(labelled(result, 'Ergebnis'));
+    }
+
+    const order = ['.profile-hero', '.profile-about', '.profile-facts', '.profile-contact', '.profile-section']
+      .map((selector) => article.querySelector(selector)!);
+    order.slice(1).forEach((el, i) => expect(order[i].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy());
+  });
+
+  it('übersetzt jede Persona-Angabe vollständig ins Englische', () => {
+    const { de, en } = profile;
+    for (const key of ['tags', 'about', 'facts', 'offers'] as const) expect(en[key]).toHaveLength(de[key].length);
+    for (const value of [...en.tags, ...en.about, ...en.facts.flatMap(Object.values), ...en.offers.flatMap(Object.values)]) {
+      expect(value).not.toBe('');
+      expect([...de.tags, ...de.about, ...de.facts.flatMap(Object.values), ...de.offers.flatMap(Object.values)]).not.toContain(value);
+    }
   });
 
   it('wechselt beide Profilfassungen und die Metadaten ohne Sprachfallback', async () => {
     const user = userEvent.setup();
     const { router } = renderApp('/de/profil');
+    await screen.findByRole('heading', { level: 1, name: 'Marvin Jakob' });
     await user.click(screen.getByRole('button', { name: 'English' }));
     expect(router.state.location.pathname).toBe('/en/profil');
-    expect(screen.getByText(/^AI creates value/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Explore my expertise' })).toBeInTheDocument();
+    expect(screen.getByText(profile.en.motto)).toBeInTheDocument();
+    expect(screen.queryByText(profile.de.motto)).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'About me' })).toHaveTextContent(profile.en.about[0]);
+    const offers = screen.getByRole('region', { name: 'Consulting services' });
+    expect(within(offers).getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(profile.en.offers.map((o) => o.title));
+    expect(within(offers).getAllByText('Scope of services')).toHaveLength(3);
+    expect(screen.getByRole('link', { name: 'Explore consulting services' })).toHaveAttribute('href', '#offers-title');
     expect(screen.getByRole('img')).toHaveAttribute('alt', 'Illustrated portrait of Marvin Jakob against a colourful background');
     expect(document.title).toBe('Marvin Jakob – Profile · KI Perspektiven');
-    expect(document.querySelector('meta[name="description"]')).toHaveAttribute('content', expect.stringContaining('IT consultant'));
+    expect(document.querySelector('meta[name="description"]')).toHaveAttribute('content', profile.en.description);
     await user.click(screen.getByRole('button', { name: 'Deutsch' }));
     expect(router.state.location.pathname).toBe('/de/profil');
-    expect(screen.getByText(/^AI entfaltet ihren Wert/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Meine Expertise entdecken' })).toBeInTheDocument();
+    expect(screen.getByText(profile.de.motto)).toBeInTheDocument();
+    expect(document.title).toBe('Marvin Jakob – Profil · KI Perspektiven');
+    expect(document.querySelector('meta[name="description"]')).toHaveAttribute('content', profile.de.description);
   });
 
-  it('verlinkt die fokussierbare Expertise-Überschrift und schaltet Projektdetails um', async () => {
+  it.each([
+    ['de', 'de-DE', 'Mail'],
+    ['en', 'en-US', 'Email'],
+  ])('führt die Kontaktlinks in %s zu LinkedIn und zur Impressumsadresse', async (lang, locale, mail) => {
+    renderApp(`/${lang}/profil`);
+    const contact = await screen.findByRole('region', { name: lang === 'de' ? 'Kontakt' : 'Contact' });
+    expect(within(contact).getByRole('link', { name: /^LinkedIn/ }))
+      .toHaveAttribute('href', `https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=${locale}`);
+    expect(within(contact).getByRole('link', { name: mail })).toHaveAttribute('href', 'mailto:mail@marvinjakob.de');
+  });
+
+  it('verlinkt die fokussierbare Angebotsüberschrift', async () => {
+    renderApp('/de/profil');
+    const discover = await screen.findByRole('link', { name: 'Beratungsangebote entdecken' });
+    const target = document.querySelector(discover.getAttribute('href')!);
+    expect(target).toBe(screen.getByRole('heading', { level: 2, name: 'Beratungsangebote' }));
+    expect(target).toHaveAttribute('tabindex', '-1');
+  });
+
+  it.each(['de', 'en'])('ersetzt in %s die bisherigen Profilinhalte ohne zusätzliche Verweise', async (lang) => {
+    renderApp(`/${lang}/profil`);
+    const article = await screen.findByRole('article');
+    const { linkedinUrl } = profile[lang as 'de' | 'en'];
+    expect(within(article).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
+      `/${lang}`, '#offers-title', linkedinUrl, 'mailto:mail@marvinjakob.de',
+    ]);
+    expect(article.querySelector('details')).toBeNull();
+    expect(article).not.toHaveTextContent(/AWS|IT Service Owner|Product Owner|2020 – 2022/);
+  });
+});
+
+describe('Ticket 129: Aufgeräumter Profilkopf und LinkedIn in neuem Tab', () => {
+  const linkedin = {
+    de: { name: 'LinkedIn (öffnet in neuem Tab)', href: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=de-DE' },
+    en: { name: 'LinkedIn (opens in new tab)', href: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=en-US' },
+  } as const;
+
+  it.each(['de', 'en'] as const)('zeigt in %s den Namen ohne Punkt und Icon und kündigt den neuen LinkedIn-Tab an', async (lang) => {
+    const user = userEvent.setup();
+    renderApp(`/${lang}/profil`);
+    const name = await screen.findByRole('heading', { level: 1, name: 'Marvin Jakob' });
+    expect(name.textContent).toBe('Marvin Jakob');
+    const hero = name.closest('header')!;
+    expect(within(hero).queryByRole('link', { name: /LinkedIn/ })).not.toBeInTheDocument();
+    expect(hero.querySelector('svg')).toBeNull();
+    const contact = screen.getByRole('region', { name: lang === 'de' ? 'Kontakt' : 'Contact' });
+    const link = within(contact).getByRole('link', { name: linkedin[lang].name });
+    expect(link).toHaveAttribute('href', linkedin[lang].href);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(link).toHaveTextContent('LinkedIn');
+    expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    act(() => name.focus());
+    await user.tab();
+    expect(document.activeElement).toHaveAttribute('href', '#offers-title');
+    await user.tab();
+    expect(link).toHaveFocus();
+    const article = screen.getByRole('article');
+    for (const other of within(article).getAllByRole('link').filter((a) => a !== link)) {
+      expect(other).not.toHaveAttribute('target');
+    }
+  });
+
+  it('aktualisiert die Zieladresse beim Sprachwechsel', async () => {
     const user = userEvent.setup();
     renderApp('/de/profil');
-    const discover = screen.getByRole('link', { name: 'Meine Expertise entdecken' });
-    const target = document.querySelector(discover.getAttribute('href')!);
-    expect(target).toBe(screen.getByRole('heading', { name: 'AI braucht mehr als ein gutes Modell.' }));
-    expect(target).toHaveAttribute('tabindex', '-1');
-    const projects = screen.getByRole('region', { name: 'Aus der Praxis.' });
-    const summary = within(projects).getByText('Monitoring von der Konzeption bis zum Betrieb').closest('summary')!;
-    const details = summary.closest('details')!;
-    expect(details).not.toHaveAttribute('open');
-    // jsdom simuliert die native Tastaturaktivierung von summary nicht.
-    // Enter/Leertaste werden zusätzlich im echten Browser geprüft.
-    await user.click(summary);
-    expect(details).toHaveAttribute('open');
-    expect(within(details).getByText(/Planung und Implementierung/)).toBeVisible();
-    await user.click(summary);
-    expect(details).not.toHaveAttribute('open');
+    expect(await screen.findByRole('link', { name: linkedin.de.name })).toHaveAttribute('href', linkedin.de.href);
+    await user.click(screen.getByRole('button', { name: 'English' }));
+    expect(screen.getByRole('link', { name: linkedin.en.name })).toHaveAttribute('href', linkedin.en.href);
+    await user.click(screen.getByRole('button', { name: 'Deutsch' }));
+    expect(screen.getByRole('link', { name: linkedin.de.name })).toHaveAttribute('href', linkedin.de.href);
   });
 
-  it.each(['de', 'en'])('öffnet alle Themenlinks in %s', async (lang) => {
-    const user = userEvent.setup();
-    const { router } = renderApp(`/${lang}/profil`);
-    for (const slug of ['softwareentwicklung', 'data-analytics', 'ai-audit']) {
-      const article = screen.getByRole('article');
-      const link = within(article).getAllByRole('link').find((a) => a.getAttribute('href') === `/${lang}/themen/${slug}`)!;
-      await user.click(link);
-      expect(router.state.location.pathname).toBe(`/${lang}/themen/${slug}`);
-      expect(await screen.findByRole('heading', { level: 1 })).toBeInTheDocument();
-      await act(() => router.navigate(`/${lang}/profil`));
-      await screen.findByRole('heading', { name: 'Marvin Jakob' });
+  it('ergänzt in Kopfzeile und Footer keinen LinkedIn-Link', async () => {
+    renderApp('/de/profil');
+    await screen.findByRole('heading', { level: 1, name: 'Marvin Jakob' });
+    for (const region of [document.querySelector<HTMLElement>('.site-header')!, screen.getByRole('contentinfo')]) {
+      expect(within(region).queryAllByRole('link').filter((a) => a.getAttribute('href')?.includes('linkedin.com'))).toHaveLength(0);
     }
   });
 });
@@ -124,13 +246,17 @@ describe('Ticket 42: Profil in der Hauptnavigation', () => {
   });
 });
 
-it.each(['de', 'en'])('verlinkt das neue Skill-Thema aus der Profilnavigation in %s', async (lang) => {
+// Ticket #102: Profilseite und ihr Themenmenü verweisen nicht mehr auf die entfernten Themen.
+it.each(['de', 'en'])('verlinkt vom Profil in %s keine entfernten Themen', async (lang) => {
   const user = userEvent.setup();
-  const { router } = renderApp(`/${lang}/profil`);
+  renderApp(`/${lang}/profil`);
+  await screen.findByRole('heading', { level: 1, name: 'Marvin Jakob' });
   await user.click(screen.getByRole('button', { name: lang === 'de' ? 'Themen' : 'Topics' }));
   const menu = document.querySelector('.popover') as HTMLElement;
-  const link = await within(menu).findByRole('link', { name: lang === 'de' ? /KI-Tipps und Tricks/ : /AI Tips and Tricks/ });
-  await user.click(link);
-  expect(router.state.location.pathname).toBe(`/${lang}/themen/ki-tipps-und-tricks`);
-  expect(await screen.findByRole('heading', { level: 1, name: lang === 'de' ? 'KI-Tipps und Tricks' : 'AI Tips and Tricks' })).toBeInTheDocument();
+  const links = await within(menu).findAllByRole('link');
+  expect(links.map((a) => a.getAttribute('href'))).toEqual(
+    ['softwareentwicklung', 'data-analytics', 'modelle-und-kosten'].map((slug) => `/${lang}/themen/${slug}`),
+  );
+  const hrefs = [...document.querySelectorAll('a')].map((a) => a.getAttribute('href') ?? '');
+  expect(hrefs.filter((h) => /prozessautomatisierung|ki-tipps-und-tricks/.test(h))).toEqual([]);
 });

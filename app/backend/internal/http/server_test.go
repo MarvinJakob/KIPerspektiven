@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -54,6 +53,7 @@ func newServer(t *testing.T, devSeed bool, opts ...func(*httpserver.Config)) (*h
 		"assets/app-abc.js": {Data: []byte("console.log(1)")},
 	}
 	accounts := service.NewAccounts(db)
+	stats := service.NewStatistics(db, catalog.Slugs(), audit.LevelCount)
 	editorialFiles := fstest.MapFS{
 		"index.html":            {Data: []byte(testEditorialIndex)},
 		"favicon.svg":           {Data: []byte("<svg/>")},
@@ -63,8 +63,10 @@ func newServer(t *testing.T, devSeed bool, opts ...func(*httpserver.Config)) (*h
 		Public:        public,
 		Audit:         catalog,
 		Accounts:      accounts,
-		Site:          web.New(public, catalog, "https://example.test", files, log),
+		Site:          web.New(public, catalog, stats, "https://example.test", files, log),
 		Editorial:     service.NewEditorial(db),
+		Statistics:    stats,
+		Consultations: service.NewConsultations(db),
 		EditorialSite: web.NewEditorial(accounts, editorialFiles, log),
 		Media:         media.NewStore(mediaDir),
 		MediaPath:     mediaDir,
@@ -127,11 +129,11 @@ func TestHealth(t *testing.T) {
 	}
 }
 
-// Anforderung 3 und Tickets #77/#82/#83: sechs Themen mit Titel und Einführung, auch ohne Beiträge.
+// Anforderung 3 und Tickets #83/#102: vier Themen mit Titel und Einführung, auch ohne Beiträge.
 func TestTopicsAreSeeded(t *testing.T) {
 	srv, _ := newServer(t, false)
 	list := getJSON[api.TopicList](t, srv, "/api/topics?lang=de", 200)
-	want := []string{"KI in der Softwareentwicklung", "AI Audit für Unternehmen", "KI in Data Analytics", "Prozessautomatisierung", "KI-Tipps und Tricks", "Modelle und Kosten: Wie finde ich das beste Preis-/Leistungsverhältnis?"}
+	want := []string{"KI in der Softwareentwicklung", "KI Readiness", "KI in Data Analytics", "Modelle und Kosten: Wie finde ich das beste Preis-/Leistungsverhältnis?"}
 	if len(list.Items) != len(want) {
 		t.Fatalf("%d Themen, erwartet %d", len(list.Items), len(want))
 	}
@@ -148,62 +150,39 @@ func TestTopicsAreSeeded(t *testing.T) {
 	}
 }
 
-// Ticket #82: echte Migration, Metadaten, Seiten, Sitemap und Sichtbarkeit zugeordneter Beiträge.
-func TestSkillsTopic(t *testing.T) {
-	srv, db := newServer(t, true)
-	source, err := os.ReadFile("../../../../content/KI Tipps und Tricks.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	metadata := func(key string) string {
-		t.Helper()
-		match := regexp.MustCompile(`\*\*` + key + `:\*\* (.+)`).FindStringSubmatch(string(source))
-		if len(match) != 2 {
-			t.Fatalf("Metadatum %s fehlt", key)
-		}
-		return strings.TrimSpace(match[1])
-	}
-	const slug = "ki-tipps-und-tricks"
+// Ticket #102: Die Themen „Prozessautomatisierung“ und „KI-Tipps und Tricks“ fehlen in Themenliste und
+// Sitemap; ihre Seiten und API-Einzelabrufe liefern in beiden Sprachen 404. Beiträge bleiben erreichbar.
+func TestRemovedTopics(t *testing.T) {
+	srv, _ := newServer(t, true)
+	removed := []string{"prozessautomatisierung", "ki-tipps-und-tricks"}
+	_, sitemap := get(t, srv, "/sitemap.xml")
 	for _, lang := range []string{"de", "en"} {
 		list := getJSON[api.TopicList](t, srv, "/api/topics?lang="+lang, 200)
-		found := false
-		for _, item := range list.Items {
-			if item.Slug == slug {
-				found = true
+		for _, tp := range list.Items {
+			for _, slug := range removed {
+				if tp.Slug == slug {
+					t.Errorf("%s: %s noch in /api/topics", lang, slug)
+				}
 			}
 		}
-		if !found {
-			t.Fatalf("Neues Thema fehlt in /api/topics (%s)", lang)
-		}
-		d := getJSON[api.TopicDetail](t, srv, "/api/topics/"+slug+"?lang="+lang, 200)
-		if string(d.Lang) != lang || len(d.Translations) != 2 || d.PostCount != 0 || len(d.Posts) != 0 {
-			t.Fatalf("Metadaten: %+v", d)
-		}
-		if lang == "de" {
-			if d.Title != metadata("Titel") || d.Label != metadata("Label") || d.Summary != metadata("Kurzbeschreibung") || d.Intro != metadata("Einführung") {
-				t.Fatalf("Abweichung von Textvorlage: %+v", d)
+		for _, slug := range removed {
+			getJSON[api.Error](t, srv, "/api/topics/"+slug+"?lang="+lang, 404)
+			path := "/" + lang + "/themen/" + slug
+			if resp, _ := get(t, srv, path); resp.StatusCode != 404 {
+				t.Errorf("%s: Status %d, erwartet 404", path, resp.StatusCode)
 			}
-		} else if d.Title != "AI Tips and Tricks" || d.Label != "AI Tips and Tricks" || d.Summary == "" || !strings.HasPrefix(d.Intro, "Skills capture recurring workflows") {
-			t.Fatalf("Englische Metadaten: %+v", d)
-		}
-		resp, page := get(t, srv, "/"+lang+"/themen/"+slug)
-		if resp.StatusCode != 200 || !strings.Contains(page, d.Title) || !strings.Contains(page, `hreflang="`+lang+`"`) {
-			t.Fatalf("Themenseite %s: %d %s", lang, resp.StatusCode, page)
-		}
-		_, sitemap := get(t, srv, "/sitemap.xml")
-		if !strings.Contains(sitemap, "/"+lang+"/themen/"+slug) {
-			t.Fatalf("Thema fehlt in Sitemap (%s)", lang)
+			if strings.Contains(sitemap, path) {
+				t.Errorf("%s noch in der Sitemap", path)
+			}
 		}
 	}
-	_, err = db.Exec(`INSERT INTO post_topics (post_id, topic_id)
-		SELECT posts.id, topics.id FROM posts CROSS JOIN topics
-		WHERE posts.slug IN ('ki-veraendert-softwareteams', 'entwurf-ki-in-der-datenanalyse') AND topics.slug = ?`, slug)
-	if err != nil {
-		t.Fatal(err)
+	// Die Testbeiträge bleiben veröffentlicht und erreichbar.
+	posts := getJSON[api.PostList](t, srv, "/api/posts?lang=de", 200)
+	if len(posts.Items) == 0 {
+		t.Fatal("veröffentlichte Beiträge fehlen")
 	}
-	d := getJSON[api.TopicDetail](t, srv, "/api/topics/"+slug+"?lang=de", 200)
-	if d.PostCount != 1 || strings.Join(slugs(d.Posts), ",") != "ki-veraendert-softwareteams" {
-		t.Fatalf("Veröffentlichte Beiträge und Entwurfsfilter: %+v", d)
+	if resp, _ := get(t, srv, "/de/blog/"+posts.Items[0].Slug); resp.StatusCode != 200 {
+		t.Errorf("Beitragsseite: %d", resp.StatusCode)
 	}
 }
 
@@ -232,39 +211,6 @@ func TestDataAnalyticsTopicMetadata(t *testing.T) {
 		if len(d.Posts) != 1 || d.Posts[0].Slug != "daten-beitrag" {
 			t.Errorf("%s: Beitrag fehlt: %+v", lang, d.Posts)
 		}
-	}
-}
-
-// Ticket #77: Die Themenseite Prozessautomatisierung gibt es auf Deutsch und Englisch,
-// mit Seite, Sitemap-Eintrag und veröffentlichten Beiträgen zum Thema.
-func TestProcessAutomationTopic(t *testing.T) {
-	srv, db := newServer(t, false)
-	for lang, title := range map[string]string{"de": "Prozessautomatisierung", "en": "Process Automation"} {
-		d := getJSON[api.TopicDetail](t, srv, "/api/topics/prozessautomatisierung?lang="+lang, 200)
-		if d.Title != title || string(d.Lang) != lang || d.Intro == "" || d.Summary == "" || len(d.Posts) != 0 {
-			t.Errorf("%s: %+v", lang, d)
-		}
-		if !strings.Contains(d.Intro, "n8n") {
-			t.Errorf("%s: Einführung nennt n8n nicht: %q", lang, d.Intro)
-		}
-		if resp, body := get(t, srv, "/"+lang+"/themen/prozessautomatisierung"); resp.StatusCode != 200 || !strings.Contains(body, title) {
-			t.Errorf("%s: Seite %d", lang, resp.StatusCode)
-		}
-	}
-	if _, sitemap := get(t, srv, "/sitemap.xml"); !strings.Contains(sitemap, "/de/themen/prozessautomatisierung") {
-		t.Error("Themenseite fehlt in der Sitemap")
-	}
-
-	_, err := db.Exec(`INSERT INTO posts (id, slug, status, published_at, featured, updated_at)
-		VALUES (100, 'erster-workflow', 'published', '2026-11-06T08:00:00Z', FALSE, '2026-11-06T08:00:00Z');
-		INSERT INTO post_translations (post_id, lang, title, summary, body_markdown) VALUES (100, 'de', 'Erster Workflow', 'Kurz', 'Text');
-		INSERT INTO post_topics (post_id, topic_id) SELECT 100, id FROM topics WHERE slug = 'prozessautomatisierung';`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	d := getJSON[api.TopicDetail](t, srv, "/api/topics/prozessautomatisierung?lang=de", 200)
-	if got := strings.Join(slugs(d.Posts), ","); got != "erster-workflow" || d.PostCount != 1 {
-		t.Fatalf("Beiträge: %s (%d)", got, d.PostCount)
 	}
 }
 
@@ -506,7 +452,7 @@ func TestMetaTags(t *testing.T) {
 	}
 
 	_, body = get(t, srv, "/de/themen/ai-audit")
-	if !strings.Contains(body, "<title>AI Audit für Unternehmen · KI Perspektiven</title>") {
+	if !strings.Contains(body, "<title>KI Readiness · KI Perspektiven</title>") {
 		t.Errorf("Themen-Titel fehlt:\n%s", body)
 	}
 }
@@ -574,8 +520,22 @@ func TestAuditOverview(t *testing.T) {
 	if o.Lang != "de" || len(o.Intro) == 0 || len(o.Dimensions) != 8 {
 		t.Fatalf("übersicht: lang=%s intro=%d dimensionen=%d", o.Lang, len(o.Intro), len(o.Dimensions))
 	}
+	if !strings.Contains(o.Guidance, "Gesamtauswertung") || !strings.Contains(o.Guidance, "Entscheidungshilfe") {
+		t.Fatalf("Readiness-Anleitung fehlt: %s", o.Guidance)
+	}
+	// Ticket #114: Die Einordnung kommt für die Auswertung einzeln und steht weiter am Ende der Anleitung.
+	if !strings.HasPrefix(o.Classification, "### Nicht überall auf der höchsten Stufe") || !strings.HasSuffix(o.Guidance, o.Classification) {
+		t.Fatalf("Einordnung: %q", o.Classification)
+	}
 	if d := o.Dimensions[0]; d.Slug != "strategie-und-wirtschaftlichkeit" || d.Title != "Strategie und Wirtschaftlichkeit" || d.Category != "organizational" {
 		t.Fatalf("erste dimension: %+v", d)
+	}
+	// Ticket #112: Die Übersicht liefert die Erklärung jeder Dimension mit, identisch zur Dimensionsseite.
+	for _, d := range o.Dimensions {
+		full := getJSON[api.AuditDimension](t, srv, "/api/audit/dimensions/"+d.Slug, 200)
+		if len(d.Intro) == 0 || strings.Join(d.Intro, "\n") != strings.Join(full.Intro, "\n") {
+			t.Fatalf("erklärung %s: %v", d.Slug, d.Intro)
+		}
 	}
 	names := []string{}
 	for _, l := range o.Levels {
@@ -585,7 +545,7 @@ func TestAuditOverview(t *testing.T) {
 		t.Fatalf("reifegrade: %v", names)
 	}
 	// Ohne englische Fassung liefert das Backend Deutsch und nennt die Sprache.
-	if en := getJSON[api.AuditOverview](t, srv, "/api/audit?lang=en", 200); en.Lang != "de" || len(en.Translations) != 1 {
+	if en := getJSON[api.AuditOverview](t, srv, "/api/audit?lang=en", 200); en.Lang != "de" || len(en.Translations) != 1 || en.Guidance != o.Guidance {
 		t.Fatalf("rückfall: lang=%s translations=%v", en.Lang, en.Translations)
 	}
 	getJSON[api.Error](t, srv, "/api/audit?lang=fr", 400)
@@ -598,15 +558,15 @@ func TestAuditDimension(t *testing.T) {
 	if d.Title != "Strategie und Wirtschaftlichkeit" || len(d.Benefits) < 2 || len(d.Intro) == 0 {
 		t.Fatalf("dimension: %+v", d)
 	}
-	if len(d.Levels) != 3 || d.Levels[0].Name != "Einfach" || d.Levels[2].Name != "Intelligent" || d.NotApplied.Level != 0 {
+	if len(d.Levels) != 3 || d.Levels[0].Name != "Einfach" || d.Levels[2].Name != "Intelligent" || d.Levels[0].Level != 1 {
 		t.Fatalf("reifegrade: %+v", d.Levels)
 	}
-	if q := d.Levels[0].Questions[0]; q.Id != "1.1" || q.Text == "" || q.Conditional {
+	if q := d.Levels[0].Questions[0]; q.Id != "1.1" || q.Text == "" {
 		t.Fatalf("erste frage: %+v", q)
 	}
-	b := getJSON[api.AuditDimension](t, srv, "/api/audit/dimensions/betrieb", 200)
-	if !b.Levels[0].Questions[2].Conditional {
-		t.Fatal("bedingte frage nicht gekennzeichnet")
+	// Ticket #113: Reifegrad 0 und „Trifft nicht zu“ gehören zum abgelösten Ja/Nein-Fragebogen.
+	if _, body := get(t, srv, "/api/audit/dimensions/betrieb"); strings.Contains(body, "notApplied") || strings.Contains(body, "conditional") || strings.Contains(body, "Nicht angewendet") {
+		t.Fatalf("veraltete felder ausgeliefert: %s", body)
 	}
 	getJSON[api.Error](t, srv, "/api/audit/dimensions/gibt-es-nicht", 404)
 	getJSON[api.Error](t, srv, "/api/audit/dimensions/betrieb?lang=xx", 400)
@@ -620,6 +580,8 @@ func TestAuditPages(t *testing.T) {
 		"/de/themen/ai-audit/gibt-es-nicht":                    404,
 		"/de/themen/softwareentwicklung/betrieb":               404,
 		"/de/themen/ai-audit/betrieb/mehr":                     404,
+		"/de/themen/ai-audit/auswertung":                       200,
+		"/en/themen/ai-audit/auswertung":                       200,
 	} {
 		if resp, _ := get(t, srv, path); resp.StatusCode != want {
 			t.Errorf("%s: %d, erwartet %d", path, resp.StatusCode, want)
@@ -645,5 +607,36 @@ func TestAuditPages(t *testing.T) {
 	}
 	if strings.Contains(sitemap, "<loc>https://example.test/en/themen/ai-audit/betrieb</loc>") {
 		t.Error("nicht übersetzte dimensionsseite mit englischer URL in der sitemap")
+	}
+
+	// Ticket #113: Die Auswertung zeigt nur die eigene Auswahl und wird nicht indexiert.
+	// Bug #126: Titel und Beschreibung lauten wie im Frontend, damit der Seitentitel nach dem Laden nicht wechselt.
+	for _, tc := range []struct{ lang, title, description string }{
+		{"de", "Auswertung der Selbsteinschätzung", "Die gewählten Reifegrade aller Dimensionen der KI-Readiness-Selbsteinschätzung."},
+		{"en", "Self-assessment results", "The chosen maturity levels of all dimensions of the AI readiness self-assessment."},
+	} {
+		_, result := get(t, srv, "/"+tc.lang+"/themen/ai-audit/auswertung")
+		for _, want := range []string{
+			"<title>" + tc.title + " · KI Perspektiven</title>",
+			`<meta property="og:title" content="` + tc.title + ` · KI Perspektiven">`,
+			`<meta name="description" content="` + tc.description + `">`,
+			`<meta name="robots" content="noindex">`,
+		} {
+			if !strings.Contains(result, want) {
+				t.Errorf("auswertung (%s): fehlt %s", tc.lang, want)
+			}
+		}
+		source, err := os.ReadFile("../../../frontend/src/i18n/" + tc.lang + ".ts")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, want := range []string{"resultTitle: '" + tc.title + "'", "resultMeta: '" + tc.description + "'"} {
+			if !strings.Contains(string(source), want) {
+				t.Errorf("Frontend weicht ab, erwartet in %s.ts: %s", tc.lang, want)
+			}
+		}
+	}
+	if strings.Contains(sitemap, "/auswertung") {
+		t.Error("auswertung in der sitemap")
 	}
 }

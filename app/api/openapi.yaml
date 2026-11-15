@@ -116,9 +116,10 @@ paths:
       operationId: getAuditDimension
       summary: Eine Audit-Dimension mit Vorteilen, Reifegraden und Prüffragen
       description: |
-        Inhalte der Dimensionsseite und des Quiz (Anforderungen 9 und 10). Für unbekannte und
-        fachlich nicht freigegebene Dimensionen antwortet das Backend mit `404`. Das Quiz wertet
-        die Antworten im Browser aus; sie werden nicht an das Backend gesendet.
+        Inhalte eines Schritts der Selbsteinschätzung (Anforderung 9, Ticket #113). Für unbekannte und
+        fachlich nicht freigegebene Dimensionen antwortet das Backend mit `404`. Die gewählten
+        Reifegrade bleiben im Browser. Nur mit Einwilligung sendet das Frontend das vollständige Ergebnis
+        an `POST /api/readiness-results` (Ticket #130).
       parameters:
         - $ref: '#/components/parameters/Slug'
         - $ref: '#/components/parameters/Lang'
@@ -133,6 +134,86 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/readiness-results:
+    post:
+      operationId: saveReadinessResult
+      summary: Ergebnis der Selbsteinschätzung anonym speichern oder aktualisieren
+      description: |
+        Ticket #130. Das Frontend sendet das Ergebnis nur, wenn Nutzer der anonymen Speicherung vorher
+        zugestimmt haben. Gespeichert werden nur Reifegrad je Dimension, Sprache und Zeitpunkt.
+        `key` ist eine zufällige Kennung, die nur im Arbeitsspeicher des Browserfensters liegt. Mit derselben
+        Kennung aktualisiert das Backend das bestehende Ergebnis, statt ein weiteres anzulegen; ein
+        unverändertes Ergebnis ändert nichts. Die Kennung steht bewusst im Anfragetext und nicht in der URL,
+        damit sie nicht im Zugriffsprotokoll erscheint. Anfragen von fremder Herkunft lehnt das Backend
+        mit `403` ab, zu große Anfragetexte mit `413`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadinessResultInput'
+      responses:
+        '204':
+          description: Gespeichert, aktualisiert oder unverändert
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/readiness-results/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        description: Kennung aus `ReadinessResultInput`
+        schema:
+          type: string
+    delete:
+      operationId: deleteReadinessResult
+      summary: Gespeichertes Ergebnis löschen, wenn Nutzer ihre Einwilligung zurücknehmen
+      description: |
+        Antwortet auch dann mit `204`, wenn es zu der Kennung kein Ergebnis gibt. Nach dem Schließen des
+        Browserfensters ist die Kennung verloren; das Ergebnis lässt sich dann niemandem mehr zuordnen.
+      responses:
+        '204':
+          description: Gelöscht oder nicht vorhanden
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/consultation-requests:
+    post:
+      operationId: requestConsultation
+      summary: Kostenloses Beratungsgespräch nach der Selbsteinschätzung anfragen
+      description: |
+        Ticket #136, ADR 0011. Das Formular auf der Auswertung sendet nur die E-Mail-Adresse und die Sprache
+        der Seite, kein Ergebnis der Selbsteinschätzung. Das Backend speichert die Anfrage für die Redaktion
+        (`GET /api/admin/consultation-requests`), die sich zur Terminabstimmung per E-Mail meldet. Eine erneute
+        Anfrage mit derselben Adresse aktualisiert den bestehenden Eintrag. Anfragen von fremder Herkunft lehnt
+        das Backend mit `403` ab, zu große Anfragetexte mit `413`, mehr als fünf angenommene Anfragen je
+        IP-Adresse und Stunde mit `429`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsultationRequestInput'
+      responses:
+        '204':
+          description: Anfrage eingegangen
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          description: Zu viele Anfragen, später erneut versuchen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/health:
     get:
       operationId: getHealth
@@ -586,6 +667,99 @@ paths:
           $ref: '#/components/responses/NotFound'
         '422':
           $ref: '#/components/responses/Unprocessable'
+  /api/admin/statistics/page-views:
+    get:
+      operationId: adminGetPageViews
+      summary: Seitenaufrufe je Tag im gewählten Zeitraum
+      description: |
+        Ticket #130. Der Server zählt jede ausgelieferte öffentliche Seite (Direktaufruf, Link, Neuladen)
+        als Tageszähler. Seitenwechsel innerhalb der Anwendung lösen keinen Abruf aus und zählen nicht.
+        Besucher werden nicht unterschieden. Für begrenzte Zeiträume enthält `days` jeden Tag, auch ohne
+        Aufrufe; für `all` nur Tage mit Aufrufen. Neueste Tage zuerst.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Period'
+      responses:
+        '200':
+          description: Summe und Aufrufe je Tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageViewStats'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/statistics/readiness-results:
+    get:
+      operationId: adminListReadinessResults
+      summary: Gespeicherte Ergebnisse der Selbsteinschätzung, neueste zuerst
+      description: Ticket #130. Je Seite höchstens `pageSize` Ergebnisse.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - name: page
+          in: query
+          required: false
+          description: Seite ab 1
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        '200':
+          description: Anzahl im Zeitraum und eine Seite der Ergebnisse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResultPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/consultation-requests:
+    get:
+      operationId: adminListConsultationRequests
+      summary: Offene Anfragen für ein Beratungsgespräch, neueste zuerst
+      description: Ticket #136. Für die Rollen `editor` und `admin`.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Alle offenen Anfragen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsultationRequestList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/consultation-requests/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    delete:
+      operationId: adminDeleteConsultationRequest
+      summary: Erledigte Anfrage löschen
+      description: Ticket #136. Die Redaktion löscht eine Anfrage, sobald der Termin abgestimmt ist.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '204':
+          description: Gelöscht
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     sessionCookie:
@@ -617,6 +791,13 @@ components:
       required: true
       schema:
         type: string
+    Period:
+      name: period
+      in: query
+      required: false
+      description: Zeitraum der Statistik, ohne Angabe die letzten 30 Tage
+      schema:
+        $ref: '#/components/schemas/StatisticsPeriod'
   responses:
     BadRequest:
       description: Ungültige Anfrage
@@ -1016,7 +1197,7 @@ components:
           description: Leitsatz des Reifegrads
     AuditDimensionSummary:
       type: object
-      required: [slug, lang, title, summary, category]
+      required: [slug, lang, title, summary, category, intro]
       properties:
         slug:
           type: string
@@ -1029,9 +1210,14 @@ components:
           description: Eine Zeile Beschreibung für die Übersicht
         category:
           $ref: '#/components/schemas/AuditCategory'
+        intro:
+          type: array
+          description: Absätze der Erklärung; die Übersicht zeigt sie aufklappbar (Ticket #112)
+          items:
+            type: string
     AuditOverview:
       type: object
-      required: [lang, translations, intro, levels, dimensions]
+      required: [lang, translations, intro, guidance, classification, levels, dimensions]
       properties:
         lang:
           $ref: '#/components/schemas/Lang'
@@ -1041,9 +1227,17 @@ components:
             $ref: '#/components/schemas/Lang'
         intro:
           type: array
-          description: Absätze der Einführung
+          description: Absätze der Einführung (Markdown)
           items:
             type: string
+        guidance:
+          type: string
+          description: Anleitung und fachliche Einordnung als Markdown in der angegebenen Inhaltssprache
+        classification:
+          type: string
+          description: |
+            Fachliche Einordnung der Ergebnisse als Markdown (Ende von `guidance`). Die Gesamtauswertung zeigt
+            sie neben dem Netzdiagramm (Ticket #114).
         levels:
           type: array
           description: Die Reifegrade 1 bis 3
@@ -1055,25 +1249,21 @@ components:
             $ref: '#/components/schemas/AuditDimensionSummary'
     AuditQuestion:
       type: object
-      required: [id, text, conditional]
+      description: Prüffrage als Entscheidungshilfe; sie wird nicht einzeln beantwortet (Ticket #113).
+      required: [id, text]
       properties:
         id:
           type: string
           description: Reifegrad und laufende Nummer, z. B. `2.3`
         text:
           type: string
-        conditional:
-          type: boolean
-          description: |
-            Gilt nur unter einer Voraussetzung (z. B. „Bei Agenten: …“). Darf mit „Trifft nicht zu“
-            beantwortet werden und zählt dann als erfüllt.
     AuditLevel:
       type: object
       required: [level, name, description, questions]
       properties:
         level:
           type: integer
-          minimum: 0
+          minimum: 1
           maximum: 3
         name:
           type: string
@@ -1082,12 +1272,12 @@ components:
           description: Bedeutung des Reifegrads in dieser Dimension
         questions:
           type: array
-          description: Prüffragen (Ja/Nein). Reifegrad 0 hat keine.
+          description: Prüffragen dieses Reifegrads als Entscheidungshilfe
           items:
             $ref: '#/components/schemas/AuditQuestion'
     AuditDimension:
       type: object
-      required: [slug, lang, title, summary, category, translations, intro, benefits, notApplied, levels]
+      required: [slug, lang, title, summary, category, translations, intro, benefits, levels]
       properties:
         slug:
           type: string
@@ -1113,12 +1303,159 @@ components:
           description: Mindestens zwei konkrete Vorteile
           items:
             type: string
-        notApplied:
-          $ref: '#/components/schemas/AuditLevel'
         levels:
           type: array
           description: |
-            Reifegrade 1 bis 3. Ein Reifegrad ist erreicht, wenn alle seine Prüffragen und die aller
-            darunterliegenden Reifegrade erfüllt sind. Ist Reifegrad 1 nicht erfüllt, gilt Reifegrad 0.
+            Reifegrade 1 bis 3, aus denen Nutzer genau einen wählen. Es gibt keine automatische Ableitung
+            aus den Prüffragen und keinen Reifegrad 0 (Ticket #113).
           items:
             $ref: '#/components/schemas/AuditLevel'
+    StatisticsPeriod:
+      type: string
+      description: Letzte 7 Tage, letzte 30 Tage (jeweils einschließlich heute, Kalendertage in Europe/Berlin) oder gesamt
+      enum: [7d, 30d, all]
+      default: 30d
+    ReadinessRating:
+      type: object
+      required: [dimension, level]
+      properties:
+        dimension:
+          type: string
+          description: Slug einer freigegebenen Dimension
+        level:
+          type: integer
+          minimum: 1
+          maximum: 3
+    ReadinessResultInput:
+      type: object
+      description: |
+        Vollständiges Ergebnis: jede freigegebene Dimension genau einmal mit Reifegrad 1 bis 3.
+        Unvollständige oder ungültige Ergebnisse lehnt das Backend mit `422` ab.
+      required: [key, lang, ratings]
+      properties:
+        key:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+          description: Zufällige Kennung (128 Bit, hexadezimal) aus dem Arbeitsspeicher des Browserfensters
+        lang:
+          $ref: '#/components/schemas/Lang'
+        ratings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReadinessRating'
+    PageViewDay:
+      type: object
+      required: [date, views]
+      properties:
+        date:
+          type: string
+          description: Kalendertag in Europe/Berlin (JJJJ-MM-TT)
+        views:
+          type: integer
+          format: int64
+    PageViewStats:
+      type: object
+      required: [period, total, days]
+      properties:
+        period:
+          $ref: '#/components/schemas/StatisticsPeriod'
+        total:
+          type: integer
+          format: int64
+          description: Seitenaufrufe im Zeitraum
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/PageViewDay'
+    ReadinessDimensionName:
+      type: object
+      required: [slug, title]
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+    ReadinessResult:
+      type: object
+      required: [id, lang, submittedAt, ratings]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Laufende Nummer in der Datenbank, nicht die Kennung aus dem Browser
+        lang:
+          $ref: '#/components/schemas/Lang'
+        submittedAt:
+          type: string
+          format: date-time
+          description: Zeitpunkt der letzten Speicherung
+        ratings:
+          type: array
+          description: Reifegrade in Ablaufreihenfolge der Dimensionen
+          items:
+            $ref: '#/components/schemas/ReadinessRating'
+    ReadinessResultPage:
+      type: object
+      required: [period, total, page, pageSize, dimensions, levels, items]
+      properties:
+        period:
+          $ref: '#/components/schemas/StatisticsPeriod'
+        total:
+          type: integer
+          format: int64
+          description: Gespeicherte Ergebnisse im Zeitraum
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        dimensions:
+          type: array
+          description: Freigegebene Dimensionen mit deutschem Titel, in Ablaufreihenfolge
+          items:
+            $ref: '#/components/schemas/ReadinessDimensionName'
+        levels:
+          type: array
+          description: Namen der Reifegrade, z. B. Strukturiert
+          items:
+            $ref: '#/components/schemas/AuditLevelInfo'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReadinessResult'
+    ConsultationRequestInput:
+      type: object
+      description: |
+        Anfrage für ein kostenloses Beratungsgespräch (Ticket #136). Die E-Mail-Adresse ist die einzige
+        Angabe der Person. Leere oder ungültige Adressen lehnt das Backend mit `422` ab.
+      required: [email, lang]
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          description: E-Mail-Adresse für die Terminabstimmung; Groß- und Kleinschreibung zählt nicht
+        lang:
+          $ref: '#/components/schemas/Lang'
+    ConsultationRequest:
+      type: object
+      required: [id, email, lang, requestedAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+          description: Normalisiert (ohne Leerzeichen, kleingeschrieben)
+        lang:
+          $ref: '#/components/schemas/Lang'
+        requestedAt:
+          type: string
+          format: date-time
+          description: Zeitpunkt der letzten Anfrage mit dieser Adresse
+    ConsultationRequestList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConsultationRequest'

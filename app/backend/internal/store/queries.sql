@@ -199,3 +199,60 @@ WHERE id = sqlc.arg(id) AND status = 'draft' AND scheduled_at IS NOT NULL
 -- name: UnscheduleDuePost :execrows
 UPDATE posts SET scheduled_at = NULL, updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id) AND status = 'draft' AND scheduled_at <= sqlc.arg(now);
+
+-- ---------------------------------------------------------------------------
+-- Statistik der Redaktion (Ticket #130). Zeitraeume beginnen bei einem Tag bzw. Zeitpunkt; "" heisst gesamt.
+-- ---------------------------------------------------------------------------
+
+-- name: CountPageView :exec
+INSERT INTO page_views (day, views) VALUES (?, 1)
+ON CONFLICT (day) DO UPDATE SET views = views + 1;
+
+-- name: ListPageViews :many
+SELECT day, views FROM page_views WHERE day >= ? ORDER BY day DESC;
+
+-- name: GetReadinessResultByKey :one
+SELECT id, lang FROM readiness_results WHERE key_hash = ?;
+
+-- name: CreateReadinessResult :execlastid
+INSERT INTO readiness_results (key_hash, lang, submitted_at) VALUES (?, ?, ?);
+
+-- name: UpdateReadinessResult :exec
+UPDATE readiness_results SET lang = ?, submitted_at = ? WHERE id = ?;
+
+-- name: DeleteReadinessResultByKey :exec
+DELETE FROM readiness_results WHERE key_hash = ?;
+
+-- name: DeleteReadinessRatings :exec
+DELETE FROM readiness_result_ratings WHERE result_id = ?;
+
+-- name: InsertReadinessRating :exec
+INSERT INTO readiness_result_ratings (result_id, dimension, level) VALUES (?, ?, ?);
+
+-- name: CountReadinessResults :one
+SELECT COUNT(*) FROM readiness_results WHERE submitted_at >= ?;
+
+-- name: ListReadinessResults :many
+SELECT id, lang, submitted_at FROM readiness_results
+WHERE submitted_at >= sqlc.arg(since)
+ORDER BY submitted_at DESC, id DESC
+LIMIT sqlc.arg(page_size) OFFSET sqlc.arg(skip);
+
+-- name: ListReadinessRatings :many
+SELECT result_id, dimension, level FROM readiness_result_ratings
+WHERE result_id IN (sqlc.slice('result_ids'))
+ORDER BY result_id, dimension;
+
+-- ---------------------------------------------------------------------------
+-- Anfragen fuer ein Beratungsgespraech (Ticket #136). Dieselbe Adresse ergibt keinen zweiten Eintrag.
+-- ---------------------------------------------------------------------------
+
+-- name: UpsertConsultationRequest :exec
+INSERT INTO consultation_requests (email, lang, requested_at) VALUES (?, ?, ?)
+ON CONFLICT (email) DO UPDATE SET lang = excluded.lang, requested_at = excluded.requested_at;
+
+-- name: ListConsultationRequests :many
+SELECT id, email, lang, requested_at FROM consultation_requests ORDER BY requested_at DESC, id DESC;
+
+-- name: DeleteConsultationRequest :execrows
+DELETE FROM consultation_requests WHERE id = ?;

@@ -96,7 +96,7 @@ type access int
 const (
 	accessUnknown access = iota // unbekannte Seite
 	accessPublic                // Anmeldung
-	accessEditor                // Beiträge
+	accessEditor                // Beiträge und Statistik
 	accessAdmin                 // Benutzerverwaltung
 )
 
@@ -111,6 +111,10 @@ func route(rest string) access {
 	case rest == "":
 		return accessEditor
 	case rest == "beitraege/neu" || postPath.MatchString(rest):
+		return accessEditor
+	case rest == "statistik": // Ticket #130
+		return accessEditor
+	case rest == "beratungsanfragen": // Ticket #136
 		return accessEditor
 	case rest == "benutzer":
 		return accessAdmin
