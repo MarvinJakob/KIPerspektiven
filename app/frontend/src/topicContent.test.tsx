@@ -20,7 +20,7 @@ describe('Ticket #146: Themenseite Softwareentwicklung', () => {
     const article = screen.getByRole('article');
     const expected = [...source.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim());
     expect(within(article).getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(expected);
-    expect(screen.getByText('KI entwickeln, Ergebnisse prüfen, Änderungen beherrschen')).toHaveClass('topic-subtitle');
+    expect(screen.getByText('Mit KI entwickeln, Ergebnisse prüfen, Änderungen beherrschen')).toHaveClass('topic-subtitle');
     expect(within(article).getByRole('heading', { name: 'Tipps für sinnvolle Guardrails' })).toBeInTheDocument();
     expect(article).not.toHaveTextContent('Metadaten der Themenseite');
     expect(screen.getByRole('link', { name: /Neuester Beitrag/ })).toHaveAttribute('href', '/de/blog/neu');

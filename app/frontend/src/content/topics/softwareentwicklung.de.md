@@ -4,7 +4,7 @@
 - **Label:** Softwareentwicklung
 - **Kurzbeschreibung:** Wie Sie mit KI Software entwickeln, Ergebnisse prüfen und die Flut an Änderungen beherrschen.
 - **Einführung:** KI kann Code schreiben, Tests erstellen und Fehler beheben. Entscheidend sind überprüfbare Ergebnisse und ein klarer Entwicklungsprozess. Hier erfahren Sie, wie drei Agententeams zusammenarbeiten, Guardrails die Arbeit begrenzen und Änderungen gezielt geprüft werden.
-- **Untertitel:** KI entwickeln, Ergebnisse prüfen, Änderungen beherrschen
+- **Untertitel:** Mit KI entwickeln, Ergebnisse prüfen, Änderungen beherrschen
 
 ---
 
