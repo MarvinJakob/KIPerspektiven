@@ -2,6 +2,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { visit } from 'unist-util-visit';
 import type { Link, Root, RootContent, Text } from 'mdast';
+import { topicImages } from '../lib/topicImages';
 import { jumpTo } from '../lib/jump';
 import { useLang } from '../lib/lang';
 import type { getTopicContent } from '../lib/topicContent';
@@ -77,6 +78,15 @@ export function TopicContent({ content }: { content: NonNullable<ReturnType<type
               {children}
             </a>
           ),
+          img: ({ src, alt, title }) => {
+            const asset = src ? topicImages[src] : undefined;
+            const picture = <img src={asset ?? src} alt={alt} title={title} loading="lazy" />;
+            return asset ? (
+              <a className="topic-image" href={asset} target="_blank" rel="noopener noreferrer" aria-label={
+                (content.lang === 'de' ? 'Grafik in voller Größe öffnen (neuer Tab): ' : 'Open full-size diagram (new tab): ') + (alt ?? '')
+              }>{picture}</a>
+            ) : picture;
+          },
           table: ContentTable,
           li: ({ children, className, id, tabIndex }) => (
             <li className={className} id={id} tabIndex={tabIndex}>

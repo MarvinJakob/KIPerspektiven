@@ -111,6 +111,14 @@ Das Liniendiagramm der Seitenaufrufe ([#139](https://github.com/MarvinJakob/aibo
 
 Seit [#142](https://github.com/MarvinJakob/aiboard/issues/142) zeigt die Statistik zusätzlich „Bereinigte Anzahl“ je IP-Adresse und Zeitraum, je Tag in einer Tabellenspalte und als zuschaltbare zweite Kurve. Periodensummen werden nicht aus Tageswerten addiert. Historische Datenlücken stehen als „Nicht verfügbar“. IPs liegen nur als schlüsselgeschützte Ableitung mit letztem Aufruftag vor, ohne Browserkennung oder Besuchsverlauf. Datenhaltung und Browsernachweise: [Abnahme der IP-Bereinigung](docs/statistik-bereinigung-abnahme.md), [ADR 0010](docs/adr/0010-statistik-ohne-kennung-und-einwilligung.md).
 
+## Themenseite Softwareentwicklung (#146)
+
+Die aktuelle Textvorlage ist [content/KI in der Softwareentwicklung v2.md](../content/KI%20in%20der%20Softwareentwicklung%20v2.md), Stand 15. November 2026. Die vollständigen DE-/EN-Veröffentlichungen stehen unter `src/content/topics/softwareentwicklung.{de,en}.md` im öffentlichen Frontend. Der Artikel umfasst den Entwicklungsprozess mit drei Agententeams, fünf Prozessschritte, sieben Guardrails-Tipps und den Umgang mit Änderungen und Findings. Beide Fassungen enthalten keine Quellen.
+
+Die Originalgrafiken liegen unter `ressources/grafiken/AgenticSWDevProcess_{de,en}.png` im Repository-Stamm. Identische Web-Kopien liegen unter `frontend/src/assets/topics/`, damit auch der Docker-Build mit Kontext `app/` alle Assets enthält. Bei Bildänderungen beide Kopien aktualisieren. `frontend/src/lib/topicImages.ts` ordnet die relativen Markdown-Bildpfade den Vite-Assets mit Dateihash zu. Bilder passen sich unverzerrt der Lesespalte an und lassen sich per Klick oder Tastatur in einem neuen Tab in voller Größe öffnen. URLs und Blogzuordnungen bleiben erhalten. Migration `00015` aktualisiert Einführung und Kurzbeschreibung in beiden Sprachen und stellt beim Rollback die bisherigen Texte wieder her.
+
+`frontend/src/topicContent.test.tsx` prüft die vollständige DE-Übernahme aus der v2-Vorlage, beide Sprachen, Quellenfreiheit, fünf Schritte, sieben Tipps, Grafikauswahl und Sprachwechsel. Die Backend-Prüfung `TestSoftwareDevelopmentMetadata` vergleicht API-/HTML-Metadaten mit den Veröffentlichungskopien. Die Quellenfunktionen des gemeinsamen Renderers bleiben für andere Themen erhalten. Sichtprüfung: beide Sprachen bei 320, 768 und 1440 px, Grafik und Vollbildlink kontrollieren; siehe [Abnahme](docs/softwareentwicklung-v2-abnahme.md).
+
 ## Lokal entwickeln
 
 Voraussetzungen: Go 1.27, Node 24 oder neuer. Docker ist nur für die Compose-Variante nötig.
