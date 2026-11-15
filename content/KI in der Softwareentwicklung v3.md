@@ -19,6 +19,8 @@ Harness Engineering
 - Context about the project
 - Hooks
 
+Quelle: https://www.perplexity.ai/de/hub/blog/harness-engineering
+
 Specification Engineering
 - Requirements and Documents
 - Design
