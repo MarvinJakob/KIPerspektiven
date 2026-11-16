@@ -259,11 +259,11 @@ Einzurichten unter *Settings → Secrets and variables → Actions* von `MarvinJ
 | `DEPLOY_HOST` | Secret | SSH-Ziel, z. B. `root@<Server-IP>` |
 | `HETZNER_CLOUD_SSH` | Secret | privater ed25519-Schlüssel nur für Deployments; öffentlicher Teil in `/root/.ssh/authorized_keys` |
 | `DEPLOY_KNOWN_HOSTS` | Secret | Host-Schlüssel des Servers (`ssh-keyscan -t ed25519 <IP>`, Fingerprint abgleichen) |
-| `HCLOUD_TOKEN` | Secret | Hetzner-Cloud-API-Token des Projekts (Lesen und Schreiben) für Snapshots |
+| `HETZNER_CLOUD_API` | Secret | Hetzner-Cloud-API-Token des Projekts (Lesen und Schreiben) für Snapshots |
 | `DEPLOY_URL` | Variable | öffentliche Adresse, z. B. `https://marvinjakob.de` |
 | `HCLOUD_SERVER_NAME` | Variable | Name des Servers in der Hetzner Cloud |
 
-Fehlen `HCLOUD_TOKEN` oder `HCLOUD_SERVER_NAME`, läuft das Release ohne Snapshot mit Warnung. Das Image wird auf dem Server gebaut; eine Container-Registry ist nicht nötig.
+Fehlen `HETZNER_CLOUD_API` oder `HCLOUD_SERVER_NAME`, läuft das Release ohne Snapshot mit Warnung. Das Image wird auf dem Server gebaut; eine Container-Registry ist nicht nötig.
 
 ---
 

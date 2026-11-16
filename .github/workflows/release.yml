@@ -160,7 +160,7 @@ jobs:
         if: github.event_name == 'push' || inputs.snapshot
         uses: ./.github/actions/hcloud-snapshot
         with:
-          token: ${{ secrets.HCLOUD_TOKEN }}
+          token: ${{ secrets.HETZNER_CLOUD_API }}
           server-name: ${{ vars.HCLOUD_SERVER_NAME }}
           description: vor Release ${{ needs.build.outputs.version }}
 
