@@ -21,6 +21,18 @@ flowchart LR
 
 Der Auftrag im Chat nennt das Team, optional mit Issue: `Team 1`, `Team 2`, `Team 3`, `Team 3 #45`. Ohne Issue prüft der Agent zuerst die offenen Board-Tickets in `Review`, `In Progress` und `Ready` (siehe „Auswahl und Wiederaufnahme“), dann den Backlog seines Teams. Gibt es keine freie passende Aufgabe, meldet er das und endet. Eine spätere automatische Aktivierung braucht eine separate Betriebssteuerung.
 
+**Auftrag `work`:** Der Agent ordnet sich selbst einem Team zu. Die Stufen bestimmen das Team (frei heißt: ohne `in-progress` und `blocked`):
+
+1. Team 3: freies `release-blocker`-Issue.
+2. Team 1: freies `test-defect`-Issue.
+3. Team 2: freie Anforderung mit `specified`, die nach Schritt 2 von Team 2 zu bearbeiten ist.
+4. Team 3: freies `bug`-Issue.
+5. Team 1: freie Anforderung mit `needs-analysis`.
+
+Reihenfolge: zuerst Stufe 1, dann „Auswahl und Wiederaufnahme“ über alle Teams (Board-Tickets in `Review`, dann `In Progress`, dann `Ready`), dann der Backlog. Innerhalb eines Board-Status und im Backlog gilt die Reihenfolge der Stufen, bei gleicher Stufe das älteste Issue. Bei `Review` und `In Progress` ergibt sich das Team aus der dokumentierten Übergabe bzw. dem Branch-Präfix (`spec/`, `verify/`, `fix/`), sonst aus der Stufe. Tickets ohne eindeutige Team-Zuordnung (z. B. `maint`) übernimmt ein `work`-Agent nicht.
+
+Liefert `tools/task.sh claim` bzw. `resume` Exitcode `2`, versucht er die nächste Aufgabe derselben Stufe, dann die nächste Stufe. Jeder andere Fehler (z. B. Exitcode `1`, Boardzugriff) zählt nicht als „belegt“: melden und enden. Er nennt im Chat das gewählte Team und das Issue und arbeitet danach genau wie ein Agent dieses Teams. Nach `finish` oder `pause` wählt er die nächste Aufgabe erneut nach Auftrag `work`; Tickets, an denen er selbst implementiert hat, reviewt er nicht. Gibt es nirgends eine freie Aufgabe, meldet er das und endet.
+
 ## Gemeinsame Regeln
 
 1. **Zugang:** GitHub über die Umgebungsvariable `GH_TOKEN` (für `gh` und `git`), Hetzner Cloud über `HCLOUD_TOKEN`. Werte nie ausgeben, in Dateien schreiben oder committen. Fehlt eine Variable im Prozess, steht sie in den Windows-Benutzervariablen; das Terminal bzw. den Agenten dann neu starten.
