@@ -19,7 +19,7 @@ flowchart LR
 
 ## Auftrag
 
-Der Auftrag im Chat nennt das Team, optional mit Issue: `Team 1`, `Team 2`, `Team 3`, `Team 3 #45`. Ohne Issue wählt der Agent die nächste freie Aufgabe nach dem Ablauf seines Teams. Gibt es keine freie Aufgabe, meldet er das und endet.
+Der Auftrag im Chat nennt das Team, optional mit Issue: `Team 1`, `Team 2`, `Team 3`, `Team 3 #45`. Ohne Issue prüft der Agent zuerst die offenen Board-Tickets in `Review`, `In Progress` und `Ready` (siehe „Auswahl und Wiederaufnahme“), dann den Backlog seines Teams. Gibt es keine freie passende Aufgabe, meldet er das und endet. Eine spätere automatische Aktivierung braucht eine separate Betriebssteuerung.
 
 ## Gemeinsame Regeln
 
@@ -28,8 +28,8 @@ Der Auftrag im Chat nennt das Team, optional mit Issue: `Team 1`, `Team 2`, `Tea
    ```bash
    bash tools/task.sh claim <spec|verify|fix> <Issue-Nummer>
    ```
-   Exitcode `2` heißt: Ein anderer Agent hat sie, nächste Aufgabe wählen. Bei Erfolg steht der Pfad des Worktrees in der letzten Zeile. **Alle Änderungen, Builds und Commits nur dort.** Im Hauptverzeichnis weder Branch wechseln noch committen.
-3. **Keine Abstimmung zwischen Agenten.** Nicht auf andere Agenten warten, keine Nachrichten an sie, keine Arbeit an fremden Branches. Was ein anderes Team braucht, steht als Issue mit Label im Repository.
+   `AGENT_ID` ist eine eindeutige Sitzungs-ID; bei Codex wird `CODEX_THREAD_ID` automatisch verwendet. Andere Agenten setzen sie einmal pro Sitzung. Exitcode `2` heißt: belegt bzw. nicht zur Übernahme freigegeben, nächste Aufgabe wählen. Eine freigegebene Aufgabe übernimmt man mit `bash tools/task.sh resume <spec|verify|fix> <n>` im vorhandenen Worktree. **Alle Änderungen, Builds und Commits nur dort.** Im Hauptverzeichnis weder Branch wechseln noch committen.
+3. **Übergabe ausschließlich im Repository.** Keine direkten Nachrichten zwischen Teams. Aktive fremde Aufgaben nie übernehmen. Nach dokumentierter Freigabe darf ein anderer Agent den vorhandenen Branch fortsetzen oder reviewen; Fragen, Antworten, Zwischenstand und Review stehen am Issue bzw. PR.
 4. **Team-Grenzen** (das Merge Gate erzwingt sie über den Branch-Präfix):
 
    | Team | Branch | darf ändern | darf nicht ändern |
@@ -39,15 +39,15 @@ Der Auftrag im Chat nennt das Team, optional mit Issue: `Team 1`, `Team 2`, `Tea
    | 3 Fixer | `fix/<n>` | `app/`, `fidelity/baseline.txt` (nur anhängen) | `fidelity/specs`, `fidelity/tests`, `fidelity/scripts`, `.github/`, `AGENTS.md` |
 
    Prozess- und Infrastrukturdateien (`AGENTS.md`, `ARCHITECTURE.md`, `.github/`, `tools/`) ändert nur der Maintainer bzw. ein ausdrücklicher Auftrag.
-5. **Abschluss:** PR erst öffnen, wenn lokal alles grün ist. Mergen nur mit grünem **Merge Gate** (`gh pr checks <PR> --watch`, dann `gh pr merge <PR> --squash --delete-branch`). Nie `--admin`, nie Checks umgehen. Danach `bash tools/task.sh finish <team> <n>`.
-6. **Blocker:** Ist eine Aufgabe ohne Rückfrage nicht lösbar, einen kurzen Kommentar mit der konkreten Frage ins Issue, Label `blocked` setzen, `bash tools/task.sh finish <team> <n> --abandon`, nächste Aufgabe. Nicht raten.
+5. **Abschluss:** PR erst öffnen, wenn die lokalen Prüfungen bestehen; vor unabhängiger Abnahme als Draft. Mergen nur mit grünem **Merge Gate** (`gh pr checks <PR> --watch`, dann `gh pr merge <PR> --squash --delete-branch`). Nie `--admin`, nie Checks umgehen. Danach `bash tools/task.sh finish <team> <n>`.
+6. **Blocker:** Ist eine Aufgabe ohne Rückfrage nicht lösbar, die konkrete Frage, den Entscheidungsbedarf und den bisherigen Stand ins Issue kommentieren, Label `blocked` setzen und Board-Status `Blocked` wählen: `bash tools/board.sh block <n> <Fragen-Datei>`. Vorhandene Änderungen als Zwischenstand committen und die Übergabe mit Team, Branch, Commit, beteiligten Implementierer-IDs und nächstem Schritt im Issue dokumentieren. Danach `bash tools/task.sh pause <team> <n>`; Server beenden, nächste Aufgabe. **Kein `finish --abandon`: Branch und Worktree bleiben erhalten.** Der Maintainer beantwortet die Frage im Kommentar und verschiebt nach `In Progress`. Ein freier Agent liest die Antworten, entfernt `blocked` mit `bash tools/board.sh unblock <n>` und übernimmt mit `resume`. Fehlt die erforderliche Antwort, die konkrete noch offene Frage kommentieren und wieder nach `Blocked` verschieben. Nicht raten.
 7. **Sparsam arbeiten:** Nur lesen, was die Aufgabe braucht: dieses Dokument, das Issue, die Spezifikation `fidelity/specs/REQ-<n>.md` und den betroffenen Code. `content/` (außer als fachliche Quelle einer Anforderung), `res/` und `mock/` sind keine Vorgaben; `content/archive/` ist veraltet und wird nie gelesen. Issue-Kommentare kurz und sachlich.
 8. **Commits:** [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/) mit Issue-Nummer, z. B. `fix: Themenseite liefert 404 für Entwürfe (#45)`. Vor dem Push `git fetch origin && git rebase origin/main`, danach betroffene Prüfungen wiederholen.
 9. **Parallele Server:** Jeder Agent startet die Anwendung auf eigenem Port `20000 + <Issue-Nummer>` und mit eigener Datenbank im Worktree (siehe [Befehle](#befehle)).
 
 ## Labels und Board
 
-Labels sind maßgeblich für die Auswahl von Aufgaben. Das Board „AI Perspectives“ spiegelt den Stand für Menschen (`bash tools/board.sh <n> "<Status>"`; schlägt das fehl, weiterarbeiten).
+Labels bestimmen das zuständige Team. Das Board bestimmt zusätzlich den Bearbeitungsschritt: `bash tools/board.sh list` bzw. `bash tools/board.sh <n> "<Status>"`. Ein fehlgeschlagener Boardzugriff ist kein Nachweis einer leeren Warteschlange; Fehler melden und keine aktive Belegung übergehen. `In Arbeit` wird als bisheriger Name von `In Progress`, `Merge Gate` als bisheriger Name von `Review` unterstützt.
 
 | Label | Bedeutung | Board-Status |
 |---|---|---|
@@ -58,10 +58,21 @@ Labels sind maßgeblich für die Auswahl von Aufgaben. Das Board „AI Perspecti
 | `works` | Nachweis funktionierender Kriterien (sofort geschlossen) | Funktioniert |
 | `test-defect` | Test selbst ist falsch oder instabil → Team 1 | Neu |
 | `release-blocker` | Regression einer Baseline-ID, sperrt das Release → Team 3 zuerst | Bug offen |
-| `in-progress` | von einem Agenten belegt (setzt `tools/task.sh`) | In Arbeit |
-| `blocked` | wartet auf eine Antwort des Maintainers | – |
+| `in-progress` | aktuell von einem Agenten belegt (setzt `tools/task.sh`) | In Progress oder Review |
+| `blocked` | wartet auf eine Antwort des Maintainers | Blocked |
 
-Offene PRs: Board-Status `Merge Gate`.
+PRs vor Abnahme: Board-Status `Review`. Nach Abnahme bleibt das Ticket dort bis zum grünen Merge Gate und Merge.
+
+### Auswahl und Wiederaufnahme
+
+Vor jeder neuen Aufgabe `bash tools/board.sh list` sowie die aktuellen Issue-Kommentare und gegebenenfalls den PR lesen. Die Repository-URL beachten: gleiche Issue-Nummern aus anderen Repositories sind andere Aufgaben. Innerhalb des eigenen Teams zuerst Regressionen (`release-blocker`), dann folgende Schritte bearbeiten:
+
+1. **Review:** Ein zur Prüfung freigegebener PR kann von einer anderen Agentensitzung übernommen werden. Kein Agent, der Änderungen für dieses Ticket implementiert hat, darf dessen Review übernehmen, auch nicht nach einer Pause. Alle Implementierer-IDs stehen im PR (`Implementer-Agents:`). Der Reviewer liest Issue, Spezifikation und Diff ohne Umsetzungskontext. Aktuellen Head-Commit, Reviewer-ID, Ergebnis und Befunde als PR-Kommentar dokumentieren. `Reviewer-Agent:` und `Reviewed-Commit:` im PR-Text müssen zum Nachweis passen. Nach jeder weiteren Codeänderung ist ein neues unabhängiges Review des neuen Commits nötig. Befunde an einen Implementierer übergeben, nicht im eigenen Review selbst implementieren und anschließend abnehmen.
+2. **In Progress:** Antworten auf frühere Blocker und dokumentierte Übergaben prüfen. Nur mit `pause` freigegebene Aufgaben mit `resume` fortsetzen. Ein Boardstatus allein hebt keine aktive Sperre auf. Bei alten Worktrees ohne Freigabe erst einen belegbaren Übergabe-/Wiederherstellungsentscheid des Maintainers einholen; niemals einen vermuteten Absturz als Erlaubnis zum Übernehmen verwenden.
+3. **Ready:** Die nächste passende freie Aufgabe nach Teamregeln mit `claim` belegen, danach Boardstatus `In Progress` setzen. Besteht bereits ein freigegebener Zwischenstand, `resume` verwenden.
+4. **Backlog:** Weitere Aufgaben nach den unten beschriebenen Teamregeln wählen. `Blocked` wird nur auf neue Antworten geprüft, nicht ohne Klärung implementiert. Die Rückkehr nach `In Progress` durch den Maintainer erlaubt, das noch vorhandene `blocked`-Label nach Lesen der Antwort zu entfernen.
+
+Für eine Übergabe alle Änderungen committen, den Branch pushen und im Issue/PR Team, Branch, Commit, Implementierer-IDs, Prüfergebnisse und nächsten Schritt festhalten; dann `pause` ausführen. `in-progress` bezeichnet aktive Belegung und wird dabei entfernt. Der Boardstatus `In Progress` bzw. `Review` bleibt als Warteschlange bestehen. Bei Review-Übergabe ist die Implementierung abgeschlossen; der Implementierer nimmt stattdessen eine andere Aufgabe. Reviewer sind eine Rolle innerhalb der drei Teams, kein viertes Team.
 
 ## Team 1 – Analyst
 
@@ -81,7 +92,7 @@ Ziel: Für jede Anforderung Akzeptanzkriterien und Fidelity-Tests, die zuverläs
    - Fehlgeschlagener Test: Er muss aus dem richtigen Grund scheitern (Funktion fehlt), nicht wegen Tippfehler, falschem Selektor oder Zeitüberschreitung.
    - Vollständigkeit: Jede Aussage des Issues ist durch ein Kriterium abgedeckt.
    Danach `status: verifiziert` und Datum in der Spezifikation.
-6. **Übergeben:** PR `spec/<n>` mit `Refs #<n>` (nicht `Closes`), Merge Gate abwarten, mergen. Labels `needs-analysis` → `specified`, Board „Spezifiziert“. Bei `test-defect`: Test korrigieren, Issue schließen. `tools/task.sh finish`.
+6. **Übergeben:** PR `spec/<n>` mit `Refs #<n>` (nicht `Closes`), unabhängiges Review nach „Auswahl und Wiederaufnahme“, Merge Gate abwarten, mergen. Labels `needs-analysis` → `specified`, Board „Spezifiziert“. Bei `test-defect`: Test korrigieren, Issue schließen. `tools/task.sh finish`.
 
 Team 1 ändert nie Anwendungscode und nie die Baseline. Ein ersetztes Kriterium bekommt eine neue ID; die alte ID entfernt nur der Maintainer aus der Baseline.
 
@@ -118,8 +129,8 @@ Ziel: Genau ein Bug-Issue pro Agent beheben. Code kommt nur über das Merge Gate
    ```bash
    cd fidelity && npm test; npm run gate -- --require "REQ-<n>-AC<m>"
    ```
-5. **Review:** Ein frischer Reviewer-Agent ohne Kontext der Umsetzung prüft Diff, Issue und Spezifikation auf Korrektheit, Sicherheit und Wartbarkeit (z. B. Subagent oder `/code-review`). Befunde beheben oder im PR begründen.
-6. **PR:** Behobene IDs an `fidelity/baseline.txt` anhängen. Rebase auf `origin/main`, Push, PR nach [Vorlage](.github/pull_request_template.md) mit `Closes #<n>`, Zeile `Fidelity: <IDs>` und vollständig abgehakter Checkliste (`gh pr create --body-file …`; nachträgliche Textänderungen starten das Gate nicht neu). Board „Merge Gate“.
+5. **Review vorbereiten:** Alle Implementierer-Sitzungs-IDs festhalten. Nach Übergabe prüft eine andere, unbeteiligte Agentensitzung Diff, Issue und Spezifikation auf Korrektheit, Sicherheit und Wartbarkeit. Ein Implementierer darf sein Ticket nicht selbst reviewen. Befunde beheben oder im PR begründen und den geänderten Commit erneut unabhängig prüfen lassen.
+6. **PR:** Behobene IDs an `fidelity/baseline.txt` anhängen. Rebase auf `origin/main`, betroffene Prüfungen wiederholen, Push. Draft-PR nach [Vorlage](.github/pull_request_template.md) mit `Closes #<n>` und `Fidelity: <IDs>` öffnen, Implementierer-IDs eintragen; Review-Punkt erst nach tatsächlicher unabhängiger Prüfung abhaken. Board „Review“, Übergabe dokumentieren und `pause`. Der Reviewer trägt seinen Nachweis ein, vervollständigt die Checkliste und markiert den PR als bereit (`gh pr ready <PR>`). Änderungen am PR-Text lösen das Gate ebenfalls erneut aus.
 7. **Merge Gate:** Rot → im selben Branch beheben und pushen. Grün → mergen, `tools/task.sh finish fix <n>`.
 
 ## Merge Gate

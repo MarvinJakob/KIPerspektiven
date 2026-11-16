@@ -2,6 +2,14 @@ Closes #<Ticket>
 
 Fidelity: REQ-<n>-AC<m>
 
+Implementer-Agents: <alle beteiligten Agentensitzungs-IDs, durch Komma getrennt>
+Reviewer-Agent: <andere Agentensitzungs-ID, erst nach tatsächlichem Review eintragen>
+Reviewed-Commit: <vollständiger Head-SHA des unabhängig geprüften Commits>
+
+<!-- Kein Implementierer darf sein Ticket selbst reviewen. Der Reviewer dokumentiert Ergebnis,
+     Befunde, Sitzungs-ID und Commit zusätzlich als PR-Kommentar. Nach Codeänderungen erneut prüfen.
+     Bis zur Abnahme als Draft auf dem Board in Review zur Übernahme freigeben. -->
+
 ## Änderung
 
 <!-- Was wurde geändert und warum, in zwei bis vier Sätzen. -->

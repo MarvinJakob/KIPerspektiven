@@ -171,7 +171,10 @@ Mehrere Agenten (Claude Code, Codex u. a.) arbeiten gleichzeitig auf einem Windo
 | Mechanismus | Wirkung |
 |---|---|
 | `tools/task.sh claim <team> <n>` | legt Branch `<team>/<n>` und Worktree `.worktrees/<team>-<n>` aus `origin/main` an; `git worktree add -b` ist atomar, ein zweiter Agent erhält Exitcode 2 |
-| Label `in-progress` | macht die Belegung auf GitHub sichtbar und schließt das Issue von der Auswahl anderer Agenten aus |
+| Label `in-progress` | bezeichnet aktive Belegung; Boardstatus `In Progress` kann auch eine freigegebene Aufgabe zur Wiederaufnahme bezeichnen |
+| `tools/task.sh pause` / `resume` | erhält Branch und Worktree für Übergaben; atomare Übernahme nur freigegebener Aufgaben mit eindeutiger Agentensitzungs-ID |
+| Board `Blocked` | konkrete Rückfrage im Issue; nach Antwort und Rückkehr nach `In Progress` übernimmt ein freier Agent |
+| Board `Review` | ein anderer, an der Implementierung unbeteiligter Agent prüft den aktuellen Commit; IDs und Commit stehen im PR |
 | Branch-Präfix `spec/`, `verify/`, `fix/` | das Merge Gate prüft die Team-Grenzen (welche Dateien geändert werden dürfen) |
 | `fidelity/baseline.txt` mit `merge=union` | parallele Ergänzungen der Baseline ohne Merge-Konflikt |
 | Port `20000 + <n>`, Datenbank in `app/.build/` des Worktrees | lokale Server der Agenten stören sich nicht |
@@ -191,7 +194,7 @@ Mehrere Agenten (Claude Code, Codex u. a.) arbeiten gleichzeitig auf einem Windo
 | Branch `release` | zuletzt released Stand, nur per Fast-Forward durch das Release Gate |
 | Team-Branches | `spec/<n>`, `verify/<n>`, `fix/<n>`, kurzlebig |
 | Tags `vJJJJ.MM.TT-<Lauf>` | GitHub-Release je ausgeliefertem Stand |
-| Projekt „AI Perspectives“ | Board mit Feld Status: Neu, In Arbeit, Spezifiziert, Bug offen, Merge Gate, Funktioniert |
+| Projekt „AI Perspectives“ | Board mit Feld Status einschließlich Ready, In Progress, Review und Blocked; bisherige Namen In Arbeit/Merge Gate werden von den Werkzeugen unterstützt; weitere fachliche Stati bleiben erhalten |
 | Labels | `requirement`, `needs-analysis`, `specified`, `done`, `bug`, `works`, `test-defect`, `release-blocker`, `in-progress`, `blocked` |
 
 ### Workflows

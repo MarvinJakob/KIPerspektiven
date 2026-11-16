@@ -12,7 +12,7 @@ name: Merge Gate
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
 
 permissions:
   contents: read
@@ -144,10 +144,19 @@ jobs:
     name: Review
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Prozesswerkzeuge prüfen
+        run: |
+          node --test tools/workflow.test.mjs
+          bash tools/task.test.sh
       - name: Checkliste im PR-Text
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           DRAFT: ${{ github.event.pull_request.draft }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           [[ "$DRAFT" != "true" ]] || { echo "::error::Entwurf: erst nach „Ready for review“ mergebar."; exit 1; }
           printf '%s\n' "$PR_BODY" | grep -qE '^\s*- \[[xX]\] .*Review' \
@@ -157,6 +166,7 @@ jobs:
             exit 1
           fi
           echo "Checkliste vollständig."
+          node tools/check-review.mjs
 
   fidelity:
     name: Fidelity
