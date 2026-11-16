@@ -148,7 +148,7 @@ Workflow [merge-gate.yml](.github/workflows/merge-gate.yml), Pflichtprüfung „
 
 ## Release Gate
 
-Workflow [release.yml](.github/workflows/release.yml), startet nur der Maintainer (oder ein Agent auf ausdrücklichen Auftrag): `gh workflow run release.yml`. Ablauf: Build → ganze Testsuite → Final Check (keine offenen `release-blocker`) → Branch `release` → Hetzner-Snapshot und Deployment → Smoke-Test gegen Produktion → erst am Ende Tag und GitHub-Release. Rückkehr: Workflow [rollback.yml](.github/workflows/rollback.yml). Details: [ARCHITECTURE.md](ARCHITECTURE.md#7-auslieferung).
+Workflow [release.yml](.github/workflows/release.yml) startet automatisch nach jedem Push/Merge auf `main`. Fertig implementierte Tickets werden damit nach bestandenem Merge Gate und Merge automatisch auf Hetzner bereitgestellt. Ablauf: Build → ganze Testsuite → Final Check (keine offenen `release-blocker`) → Hetzner-Snapshot und Deployment → Smoke-Test gegen Produktion → Branch `release` → Tag und GitHub-Release. Bei Fehlern bleibt `release` unverändert, damit ein erneuter Lauf das Deployment wiederholen kann. Ein manueller Start bleibt für den Maintainer (oder einen Agenten auf ausdrücklichen Auftrag) möglich: `gh workflow run release.yml`. Rückkehr: Workflow [rollback.yml](.github/workflows/rollback.yml). Details: [ARCHITECTURE.md](ARCHITECTURE.md#7-auslieferung).
 
 ## Befehle
 

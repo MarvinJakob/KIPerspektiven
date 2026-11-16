@@ -3,15 +3,17 @@
 #   1. Build        Image aus den gestapelten Commits von main neu bauen
 #   2. Test         ganze Unit-Test-Suite und ganze Fidelity-Suite (keine Regression gegen die Baseline)
 #   3. Final Check  keine offenen release-blocker, Fast-Forward auf release möglich, Stand noch nicht released
-#   4. release      Branch release auf den geprüften Commit vorziehen
-#   5. Package      Hetzner-Snapshot, Image auf dem Server bauen und starten, Smoke-Test gegen Produktion
+#   4. Package      Hetzner-Snapshot, Image auf dem Server bauen und starten, Smoke-Test gegen Produktion
+#   5. release      erst nach erfolgreichem Deployment Branch release auf den geprüften Commit vorziehen
 #   6. Publish      erst ganz am Ende: Tag und GitHub-Release im Repository
 #
-# Start: Actions → Release Gate → Run workflow (oder `gh workflow run release.yml`).
+# Start: automatisch nach jedem Push/Merge auf main; zusätzlich manuell per Run workflow.
 # Secrets und Variablen: ARCHITECTURE.md, Abschnitt „Secrets und Variablen“.
 name: Release Gate
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       ref:
@@ -24,6 +26,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
 
 # Releases laufen nacheinander und werden nicht abgebrochen
 concurrency:
@@ -40,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.ref || github.sha }}
       - id: stand
         run: |
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
@@ -118,8 +121,8 @@ jobs:
           echo "skip=false" >> "$GITHUB_OUTPUT"
 
   release-branch:
-    name: 4 Release-Branch
-    needs: [build, final-check]
+    name: 5 Release-Branch
+    needs: [build, final-check, package]
     if: needs.final-check.outputs.skip == 'false'
     runs-on: ubuntu-latest
     permissions:
@@ -134,8 +137,9 @@ jobs:
         run: git push origin "$COMMIT:refs/heads/release"
 
   package:
-    name: 5 Package und Deployment
-    needs: [build, release-branch]
+    name: 4 Package und Deployment
+    needs: [build, final-check]
+    if: needs.final-check.outputs.skip == 'false'
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -147,7 +151,7 @@ jobs:
           ref: ${{ needs.build.outputs.commit }}
 
       - name: Snapshot des Servers
-        if: inputs.snapshot
+        if: github.event_name == 'push' || inputs.snapshot
         uses: ./.github/actions/hcloud-snapshot
         with:
           token: ${{ secrets.HCLOUD_TOKEN }}
@@ -182,7 +186,7 @@ jobs:
 
   publish:
     name: 6 Publish
-    needs: [build, package]
+    needs: [build, package, release-branch]
     runs-on: ubuntu-latest
     permissions:
       contents: write

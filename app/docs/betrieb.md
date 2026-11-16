@@ -80,16 +80,16 @@ cd /opt/ki-web && docker compose exec -it backend /server user create --email AD
 
 ## Automatisches Deployment
 
-Seit dem Umzug nach `MarvinJakob/AIPerspectives` (2026-11-16) liefert das **Release Gate** aus, nicht mehr jeder Merge. Der Workflow [.github/workflows/release.yml](../../.github/workflows/release.yml) wird manuell gestartet (*Actions → Release Gate → Run workflow* oder `gh workflow run release.yml`) und
+Das **Release Gate** im Repository `MarvinJakob/AIPerspectives` startet automatisch nach jedem Push/Merge auf `main`. Damit werden implementierte Tickets nach bestandenem Merge Gate und Merge auf Hetzner bereitgestellt. Der Workflow [.github/workflows/release.yml](../../.github/workflows/release.yml) kann zusätzlich manuell gestartet werden (*Actions → Release Gate → Run workflow* oder `gh workflow run release.yml`) und
 
-1. baut das Image aus dem aktuellen Stand von `main`,
+1. baut das Image aus dem auslösenden Commit auf `main` (manuell aus dem gewählten `ref`),
 2. führt alle Unit-Tests und die ganze Fidelity-Suite aus (keine Regression gegen `fidelity/baseline.txt`),
 3. prüft, dass keine Issues mit `release-blocker` offen sind und `release` per Fast-Forward vorgezogen werden kann,
-4. zieht den Branch `release` auf den geprüften Commit vor,
-5. legt über die Hetzner Cloud API einen Snapshot des Servers an (die drei jüngsten bleiben), ruft `deploy/deploy.sh release <Commit>` auf und prüft REQ-0 gegen `DEPLOY_URL`,
+4. legt über die Hetzner Cloud API einen Snapshot des Servers an (die drei jüngsten bleiben), ruft `deploy/deploy.sh release <Commit>` auf und prüft REQ-0 gegen `DEPLOY_URL`,
+5. zieht erst nach erfolgreichem Deployment und Smoke-Test den Branch `release` auf den geprüften Commit vor,
 6. legt erst am Ende Tag und GitHub-Release an.
 
-Ist die neue Version nicht gesund, startet `deploy.sh` wieder die bisherige Version und der Lauf schlägt fehl. Rückkehr ohne Kommandozeile: Workflow [Rollback](../../.github/workflows/rollback.yml). Ablauf: [ARCHITECTURE.md, Abschnitt 7](../../ARCHITECTURE.md#7-auslieferung).
+Ist die neue Version nicht gesund, startet `deploy.sh` wieder die bisherige Version und der Lauf schlägt fehl. `release` bleibt bei fehlgeschlagenem Deployment oder Smoke-Test unverändert, sodass ein erneuter Lauf den Stand nochmals bereitstellt. Laufende Deployments werden durch weitere Merges nicht abgebrochen; wartende Läufe werden zum neuesten wartenden Stand zusammengefasst. Rückkehr ohne Kommandozeile: Workflow [Rollback](../../.github/workflows/rollback.yml). Ablauf: [ARCHITECTURE.md, Abschnitt 7](../../ARCHITECTURE.md#7-auslieferung).
 
 Einstellungen unter *Settings → Secrets and variables → Actions* von `MarvinJakob/AIPerspectives`:
 

@@ -18,7 +18,7 @@ AI Perspectives ist eine öffentliche, zweisprachige Webseite (DE/EN) mit Themen
 | Datenbank | SQLite (WAL) im Docker-Volume, Migrationen mit goose |
 | Betrieb | Docker Compose (Caddy + Backend) auf einem Hetzner-Cloud-Server |
 | Qualität | Unit-Tests (Go, Vitest), Fidelity-Tests (Playwright) gegen die laufende Anwendung |
-| Auslieferung | GitHub Actions: Merge Gate je PR, Release Gate auf Anforderung |
+| Auslieferung | GitHub Actions: Merge Gate je PR, Release Gate automatisch nach Push/Merge auf `main` |
 
 ```mermaid
 flowchart LR
@@ -203,7 +203,7 @@ Mehrere Agenten (Claude Code, Codex u. a.) arbeiten gleichzeitig auf einem Windo
 |---|---|---|
 | [merge-gate.yml](.github/workflows/merge-gate.yml) | PR nach `main` | Team-Grenzen, Build, Unit-Tests, Security, Review-Checkliste, Fidelity; Abschlussjob „Merge Gate“ |
 | [fidelity-run.yml](.github/workflows/fidelity-run.yml) | Push auf `main`, manuell | ganze Fidelity-Suite auf `main`, Artefakt `fidelity-main` für Team 2 |
-| [release.yml](.github/workflows/release.yml) | manuell | Release Gate bis Hetzner und GitHub-Release |
+| [release.yml](.github/workflows/release.yml) | Push auf `main`, manuell | Release Gate bis Hetzner und GitHub-Release |
 | [rollback.yml](.github/workflows/rollback.yml) | manuell | vorherige oder angegebene Version auf dem Server starten |
 
 Composite Actions: `unit-tests`, `fidelity` (startet das Image oder prüft eine URL, wertet mit `gate.mjs` aus), `ssh-setup`, `hcloud-snapshot`.
@@ -215,19 +215,21 @@ flowchart LR
     S((main)) --> B[1 Build<br/>Image neu bauen]
     B --> T[2 Test<br/>Unit + ganze Fidelity-Suite]
     T --> F[3 Final Check<br/>keine release-blocker,<br/>Fast-Forward möglich]
-    F --> R[4 Branch release]
-    R --> P[5 Package<br/>Hetzner-Snapshot,<br/>deploy.sh release,<br/>Smoke-Test REQ-0]
-    P --> X[6 Publish<br/>Tag + GitHub-Release]
+    F --> P[4 Package<br/>Hetzner-Snapshot,<br/>deploy.sh release,<br/>Smoke-Test REQ-0]
+    P --> R[5 Branch release]
+    R --> X[6 Publish<br/>Tag + GitHub-Release]
 ```
 
-1. **Build:** Das Image wird aus dem Stand von `main` (oder `ref`) neu gebaut.
+Der Workflow startet nach jedem Push/Merge auf `main`, zusätzlich bleibt der manuelle Start möglich. Ein geschlossenes Ticket ohne Merge löst kein Deployment aus. Automatische Läufe prüfen genau den auslösenden Commit und aktivieren den Snapshot auch ohne manuelle Eingabewerte.
+
+1. **Build:** Das Image wird aus dem auslösenden Commit auf `main` (oder dem manuell gewählten `ref`) neu gebaut.
 2. **Test:** ganze Unit-Test-Suite und ganze Fidelity-Suite; jede Baseline-ID muss bestehen.
 3. **Final Check:** keine offenen Issues mit `release-blocker`; `release` ist Vorfahre des Commits; ist der Stand schon released, endet der Lauf ohne Deployment.
-4. **release:** Der Branch `release` wird auf den geprüften Commit vorgezogen.
-5. **Package:** Snapshot des Servers über die Hetzner Cloud API (die drei jüngsten bleiben), dann [app/deploy/deploy.sh](app/deploy/deploy.sh) `release <Commit>`: `app/` per `git archive` und SSH nach `/opt/ki-web/build/<Version>`, Image `ki-web:<Version>` auf dem Server bauen, mit `docker compose up --wait` starten, `https://DOMAIN/api/health` prüfen. Ist die neue Version nicht gesund, startet das Skript die bisherige wieder und der Lauf schlägt fehl. Danach REQ-0 gegen `DEPLOY_URL`.
+4. **Package:** Snapshot des Servers über die Hetzner Cloud API (die drei jüngsten bleiben), dann [app/deploy/deploy.sh](app/deploy/deploy.sh) `release <Commit>`: `app/` per `git archive` und SSH nach `/opt/ki-web/build/<Version>`, Image `ki-web:<Version>` auf dem Server bauen, mit `docker compose up --wait` starten, `https://DOMAIN/api/health` prüfen. Ist die neue Version nicht gesund, startet das Skript die bisherige wieder und der Lauf schlägt fehl. Danach REQ-0 gegen `DEPLOY_URL`.
+5. **release:** Erst nach erfolgreichem Deployment und Smoke-Test wird der Branch `release` auf den geprüften Commit vorgezogen. Bei Fehlern bleibt er unverändert; ein erneuter Lauf überspringt das fehlgeschlagene Deployment deshalb nicht.
 6. **Publish:** erst ganz am Ende Tag und GitHub-Release mit generierten Release Notes.
 
-Releases laufen nacheinander (`concurrency: release-production`). **Rollback:** Workflow „Rollback“ oder lokal `app/deploy/deploy.sh rollback | switch <Version>`; die fünf jüngsten Versionen liegen auf dem Server. Migrationen sind additiv, damit die vorherige Version mit dem neuen Schema läuft. Weitere Details: [app/docs/betrieb.md](app/docs/betrieb.md).
+Releases und Rollbacks laufen nacheinander (`concurrency: release-production`); ein laufendes Deployment wird nicht durch weitere Merges abgebrochen. Mehrere wartende Releases werden von GitHub zum neuesten wartenden Stand zusammengefasst, der die vorherigen Merges enthält. **Rollback:** Workflow „Rollback“ oder lokal `app/deploy/deploy.sh rollback | switch <Version>`; die fünf jüngsten Versionen liegen auf dem Server. Migrationen sind additiv, damit die vorherige Version mit dem neuen Schema läuft. Weitere Details: [app/docs/betrieb.md](app/docs/betrieb.md).
 
 ### Secrets und Variablen
 
