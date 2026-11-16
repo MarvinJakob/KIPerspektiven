@@ -34,7 +34,7 @@ flowchart LR
         M
     end
     G -. nächtliche Sicherung restic .-> S[(Hetzner<br/>Object Storage)]
-    GA[GitHub Actions<br/>Release Gate] -- SSH: Build + Start --> H
+    GA[GitHub Actions<br/>Release Gate] -- SSH: geprüftes Image + Start --> H
     GA -- Hetzner Cloud API: Snapshot --> H
 ```
 
@@ -210,7 +210,7 @@ Die letzte Vorgabe bezieht sich auf die Veröffentlichung des fertigen Releases.
 | Branch `main` | Integrationsstand („Code Stream“), nur über PR mit grünem Merge Gate |
 | Branch `release` | zuletzt released Stand, nur per Fast-Forward durch das Release Gate |
 | Team-Branches | `spec/<n>`, `verify/<n>`, `fix/<n>`, kurzlebig |
-| Tags `vJJJJ.MM.TT-<Lauf>` | GitHub-Release je ausgeliefertem Stand |
+| Tags `vJJJJ.MM.TT-<Commit>-<Image>` | wiederholbares GitHub-Release je ausgeliefertem Artefakt |
 | Projekt „AI Perspectives“ | Board mit Feld Status einschließlich Ready, In Progress, Review und Blocked; bisherige Namen In Arbeit/Merge Gate werden von den Werkzeugen unterstützt; weitere fachliche Stati bleiben erhalten |
 | Labels | `requirement`, `needs-analysis`, `specified`, `done`, `bug`, `works`, `test-defect`, `release-blocker`, `in-progress`, `blocked` |
 
@@ -224,6 +224,9 @@ Branch-Schutz für `main`: Pull Request und Statusprüfung `Merge Gate` sind ver
 | [fidelity-run.yml](.github/workflows/fidelity-run.yml) | Push auf `main`, manuell | ganze Fidelity-Suite auf `main`, Artefakt `fidelity-main` für Team 2 |
 | [release.yml](.github/workflows/release.yml) | Push auf `main`, manuell | Release Gate bis Hetzner und GitHub-Release |
 | [rollback.yml](.github/workflows/rollback.yml) | manuell | vorherige oder angegebene Version auf dem Server starten |
+| [deploy-access.yml](.github/workflows/deploy-access.yml) | manuell | GitHub-Secrets, Hetzner-API und SSH lesend prüfen |
+| [reconcile.yml](.github/workflows/reconcile.yml) | Push, Issue-Abschluss, stündlich | Labels aus gemergten Spezifikationen/Baseline abgleichen, Testabhängigkeiten freigeben |
+| [release-followup.yml](.github/workflows/release-followup.yml) | abgeschlossener Release | deduplizierte, autorisierte Wartungsaufgabe bei Fehlern |
 
 Composite Actions: `unit-tests`, `fidelity` (startet das Image oder prüft eine URL, wertet mit `gate.mjs` aus), `ssh-setup`, `hcloud-snapshot`.
 
@@ -234,7 +237,7 @@ flowchart LR
     S((main)) --> B[1 Build<br/>Image neu bauen]
     B --> T[2 Test<br/>Unit + ganze Fidelity-Suite]
     T --> F[3 Final Check<br/>keine release-blocker,<br/>Fast-Forward möglich]
-    F --> P[4 Package<br/>Hetzner-Snapshot,<br/>deploy.sh release,<br/>Smoke-Test REQ-0]
+    F --> P[4 Package<br/>Hetzner-Snapshot,<br/>geprüftes Image laden,<br/>Smoke-Test REQ-0]
     P --> R[5 Branch release]
     R --> X[6 Publish<br/>Tag + GitHub-Release]
 ```
@@ -243,10 +246,10 @@ Der Workflow startet nach jedem Push/Merge auf `main`, zusätzlich bleibt der ma
 
 1. **Build:** Das Image wird aus dem auslösenden Commit auf `main` (oder dem manuell gewählten `ref`) neu gebaut.
 2. **Test:** ganze Unit-Test-Suite und ganze Fidelity-Suite; jede Baseline-ID muss bestehen.
-3. **Final Check:** keine offenen Issues mit `release-blocker`; `release` ist Vorfahre des Commits; ist der Stand schon released, endet der Lauf ohne Deployment.
-4. **Package:** Snapshot des Servers über die Hetzner Cloud API (die drei jüngsten bleiben), dann [app/deploy/deploy.sh](app/deploy/deploy.sh) `release <Commit>`: `app/` per `git archive` und SSH nach `/opt/ki-web/build/<Version>`, Image `ki-web:<Version>` auf dem Server bauen, mit `docker compose up --wait` starten, `https://DOMAIN/api/health` prüfen. Ist die neue Version nicht gesund, startet das Skript die bisherige wieder und der Lauf schlägt fehl. Danach REQ-0 gegen `DEPLOY_URL`.
+3. **Final Check:** keine offenen Issues mit `release-blocker`; der Commit gehört zu `main` und `release` ist sein Vorfahre. Ein vorhandener Release-Branch allein überspringt keine erneute Produktionsprüfung oder noch fehlende Veröffentlichung.
+4. **Package:** SSH prüfen und aktive Version merken, verpflichtenden Hetzner-Snapshot erstellen (die drei jüngsten bleiben). [app/deploy/deploy.sh](app/deploy/deploy.sh) `deploy <Commit> <Image-TAR> <Image-ID> <Version>` überträgt die Konfiguration aus diesem Commit und das in CI getestete Image. Docker lädt dieses Image, prüft ID und Commit-Label und aktiviert es ohne erneuten Build. Nach Healthcheck folgen REQ-0 gegen `DEPLOY_URL`. Bei Deployment- oder Smoke-Fehler wird die zuvor gemerkte Version wiederhergestellt; ohne Vorgänger ist bei einer Erstinstallation eine explizite Wiederherstellung nötig.
 5. **release:** Erst nach erfolgreichem Deployment und verpflichtendem Smoke-Test wird der Branch `release` auf den geprüften Commit vorgezogen. Eine fehlende HTTPS-`DEPLOY_URL` sperrt den Lauf bereits vor dem Deployment. Bei Fehlern bleibt der Branch unverändert; ein erneuter Lauf überspringt das fehlgeschlagene Deployment deshalb nicht.
-6. **Publish:** erst ganz am Ende Tag und GitHub-Release mit generierten Release Notes.
+6. **Publish:** erst ganz am Ende Tag und GitHub-Release mit Commit, Image-ID und Laufnachweis. Derselbe Artefaktstand erhält bei Wiederholung denselben Tag. Ein vorhandener Release-Branch überspringt keine Produktionsprüfung; eine fehlgeschlagene Veröffentlichung kann erneut ausgeführt werden.
 
 Releases und Rollbacks laufen nacheinander (`concurrency: release-production`); ein laufendes Deployment wird nicht durch weitere Merges abgebrochen. Mehrere wartende Releases werden von GitHub zum neuesten wartenden Stand zusammengefasst, der die vorherigen Merges enthält. **Rollback:** Workflow „Rollback“ oder lokal `app/deploy/deploy.sh rollback | switch <Version>`; die fünf jüngsten Versionen liegen auf dem Server. Migrationen sind additiv, damit die vorherige Version mit dem neuen Schema läuft. Weitere Details: [app/docs/betrieb.md](app/docs/betrieb.md).
 
@@ -263,7 +266,13 @@ Einzurichten unter *Settings → Secrets and variables → Actions* von `MarvinJ
 | `DEPLOY_URL` | Variable | öffentliche Adresse, z. B. `https://marvinjakob.de` |
 | `HCLOUD_SERVER_NAME` | Variable | Name des Servers in der Hetzner Cloud |
 
-Fehlen `HETZNER_CLOUD_API` oder `HCLOUD_SERVER_NAME`, läuft das Release ohne Snapshot mit Warnung. Das Image wird auf dem Server gebaut; eine Container-Registry ist nicht nötig.
+Fehlen `HETZNER_CLOUD_API` oder `HCLOUD_SERVER_NAME`, stoppt das Release vor der Aktivierung. Das getestete Image wird als Actions-Artefakt übertragen; eine Container-Registry ist nicht nötig. Deployment-Schlüssel bleiben ausschließlich in GitHub Actions. Der Workflow „Deployment-Zugang“ prüft sie ohne Deployment und gibt nur den öffentlichen Schlüsselfingerprint aus.
+
+### Worker-Betrieb
+
+`tools/work.sh` lädt den aktuellen Prozess aus `origin/main` in einen eigenen unveränderlichen Checkout. `--check` prüft Zugänge/Werkzeuge und zeigt die Warteschlange, `--once` startet eine frische Sitzung, `--watch` überwacht neue Arbeit. `tools/work-watch.ps1` lädt unter Windows bei geändertem `main` automatisch den neuen Prozess. Wartung benötigt `maintenance` und `maintenance-approved`. Fehler stoppen den Supervisor; abgestürzte Besitzer werden nur nach explizitem Maintainer-Nachweis freigegeben. Lebenszeichen und Operationssperren zeigt `task.sh status`.
+
+`tools/reconcile.mjs --apply --board` repariert unterbrochene Übergaben anhand eingecheckter Spezifikationen und Baseline; es verändert keine fremden Arbeitsdateien oder lokalen Sperren. `test-defect.mjs` trennt Testkorrekturen von wartenden Bugs. Reviews werden mit `review.mjs` aus der unabhängigen Sitzung als GitHub-Review für den konkreten Commit dokumentiert und vom Gate verifiziert. Einzelheiten und Befehle: [AGENTS.md](AGENTS.md).
 
 ---
 

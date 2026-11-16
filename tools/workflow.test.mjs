@@ -46,6 +46,18 @@ test('keiner der Implementierer darf selbst reviewen', () => {
   }
 });
 test('neuer Commit erfordert erneutes Review', () => assert.throws(() => checkReview(body, 'b'.repeat(40)), /Head-Commits/));
+
+test('Gate verlangt echten GitHub-Review-Nachweis mit passender Sitzung und Commit', () => {
+  const evidence = { id: 123, commit_id: head, state: 'COMMENTED', submitted_at: '2026-11-16',
+    body: `Reviewer-Agent: session-3\nReviewed-Commit: ${head}\nReview-Result: accepted\n\nKeine offenen Befunde.` };
+  const documented = `${body}\nReview-ID: 123`;
+  checkReview(documented, head, evidence);
+  for (const change of [{ id: 124 }, { commit_id: 'b'.repeat(40) }, { state: 'DISMISSED' },
+    { body: evidence.body.replace('session-3', 'session-1') }, { submitted_at: null }]) {
+    assert.throws(() => checkReview(documented, head, { ...evidence, ...change }));
+  }
+  assert.throws(() => checkReview(body, head, evidence), /Review-ID/);
+});
 test('fehlende, doppelte und Platzhalter-Nachweise werden zurückgewiesen', () => {
   for (const invalid of [body.replace('session-3', '<Reviewer>'), body.replace('session-3', 'pending'),
     body.replace('Reviewer-Agent: session-3\n', ''), `${body}\nReviewer-Agent: session-4`, body.replace('- [x] Tests', '- [ ] Tests')]) {

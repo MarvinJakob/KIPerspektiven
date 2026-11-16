@@ -7,6 +7,8 @@
 #   deploy/deploy.sh rollback                    zur vorherigen Version zurückkehren
 #   deploy/deploy.sh status                      Versionen, Container und Healthcheck anzeigen
 #   deploy/deploy.sh current                     nur den Commit der laufenden Version ausgeben (leer, wenn keine läuft)
+#   deploy/deploy.sh version                     nur die aktive Image-Version ausgeben
+#   deploy/deploy.sh deploy COMMIT TAR IMAGE_ID VERSION  exakt das in CI getestete Image übertragen und starten
 #
 # Umgebung: DEPLOY_HOST (z. B. root@78.47.14.178), optional DEPLOY_SSH_KEY und DEPLOY_DIR (Standard /opt/ki-web).
 # Läuft unter Linux, macOS und Git Bash. Gebaut wird der eingecheckte Stand des Commits, nicht die Arbeitskopie.
@@ -15,6 +17,7 @@ set -euo pipefail
 : "${DEPLOY_HOST:?DEPLOY_HOST setzen, z. B. root@78.47.14.178}"
 DEPLOY_DIR=${DEPLOY_DIR:-/opt/ki-web}
 SSH=(ssh -o BatchMode=yes)
+SSH+=(-o StrictHostKeyChecking=yes -o ConnectTimeout=15)
 if [[ -n "${DEPLOY_SSH_KEY:-}" ]]; then SSH+=(-i "$DEPLOY_SSH_KEY"); fi
 
 # Teil, der auf dem Server läuft. Aufruf: remote FUNKTION [ARGUMENTE]
@@ -37,18 +40,32 @@ build() {
     -t "$(image "$version")" "build/$version"
 }
 
+promote() {
+  local expected=$1 version=$2 commit=$3 actual revision
+  actual=$(docker image inspect -f '{{.Id}}' "$expected")
+  [[ "$actual" == "$expected" ]] || { echo 'Image-ID stimmt nicht mit CI überein' >&2; exit 1; }
+  revision=$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$expected")
+  [[ "$revision" == "$commit" ]] || { echo 'Image-Commit stimmt nicht mit dem geprüften Commit überein' >&2; exit 1; }
+  docker tag "$expected" "$(image "$version")"
+  switch "$version"
+  [[ "$(docker compose ps -q backend | xargs docker inspect -f '{{.Image}}')" == "$expected" ]] \
+    || { echo 'Laufendes Image stimmt nicht mit CI überein' >&2; exit 1; }
+}
+
+version() { envget VERSION; }
+
 # Startet VERSION mit der zugehörigen compose.yaml und Caddyfile. Gibt 1 zurück, wenn
 # der Docker-Healthcheck oder /api/health über HTTPS nicht erfolgreich ist.
 activate() {
   local version=$1
   # Caddyfile per cat überschreiben, damit der Bind-Mount im laufenden Caddy-Container dieselbe Datei behält
-  cp "build/$version/compose.yaml" compose.yaml
-  mkdir -p deploy
-  cat "build/$version/deploy/Caddyfile" > deploy/Caddyfile
-  envset VERSION "$version"
+  cp "build/$version/compose.yaml" compose.yaml || return 1
+  mkdir -p deploy || return 1
+  cat "build/$version/deploy/Caddyfile" > deploy/Caddyfile || return 1
+  envset VERSION "$version" || return 1
   echo "Starte $(image "$version") ..."
   docker compose up -d --remove-orphans --wait --wait-timeout 180 || return 1
-  docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile > /dev/null 2>&1 || true
+  docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile > /dev/null 2>&1 || return 1
   status || return 1
 }
 
@@ -124,11 +141,28 @@ EOF
 
 remote() { "${SSH[@]}" "$DEPLOY_HOST" "DEPLOY_DIR='$DEPLOY_DIR' bash -s -- $*" <<< "$SERVER"; }
 
+# Arguments enter a remote shell: validate every externally supplied path/version before use.
+[[ "$DEPLOY_DIR" =~ ^/[A-Za-z0-9_./-]+$ && "$DEPLOY_DIR" != / && "$DEPLOY_DIR" != *..* ]] \
+  || { echo 'Ungültiges DEPLOY_DIR' >&2; exit 1; }
+valid_version() { [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$1" != *..* ]]; }
+
 case "${1:-}" in
+  deploy)
+    commit=$(git rev-parse --verify "${2:?Commit fehlt}^{commit}")
+    archive=${3:?Image-Archiv fehlt}
+    expected=${4:?Image-ID fehlt}
+    version=${5:?Version fehlt}
+    [[ -f "$archive" && "$expected" =~ ^sha256:[a-f0-9]{64}$ ]] && valid_version "$version" \
+      || { echo 'Ungültiges Image-Archiv, Image-ID oder Version' >&2; exit 1; }
+    git -C "$(git rev-parse --show-toplevel)" -c core.autocrlf=false -c core.eol=lf archive --format=tar "$commit" app \
+      | "${SSH[@]}" "$DEPLOY_HOST" "mkdir -p '$DEPLOY_DIR/build/$version' && tar -x -C '$DEPLOY_DIR/build/$version' --strip-components=1"
+    "${SSH[@]}" "$DEPLOY_HOST" 'docker load' < "$archive"
+    remote promote "$expected" "$version" "$commit"
+    ;;
   release)
     commit=$(git rev-parse --verify "${2:-HEAD}^{commit}")
     version=${3:-$(git rev-parse --short=7 "$commit")}
-    [[ "$version" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "Ungültige Version: $version" >&2; exit 1; }
+    valid_version "$version" || { echo "Ungültige Version: $version" >&2; exit 1; }
     echo "Übertrage app/ aus $commit als Version $version nach $DEPLOY_HOST:$DEPLOY_DIR/build/$version"
     # core.autocrlf=false: unter Windows würde git archive sonst CRLF-Zeilenenden in Skripte und Quellen schreiben
     git -C "$(git rev-parse --show-toplevel)" -c core.autocrlf=false -c core.eol=lf archive --format=tar "$commit" app \
@@ -138,12 +172,14 @@ case "${1:-}" in
     remote prune
     ;;
   switch)
-    [[ -n "${2:-}" ]] || { echo "Aufruf: deploy/deploy.sh switch VERSION" >&2; exit 1; }
+    valid_version "${2:-}" || { echo "Aufruf: deploy/deploy.sh switch VERSION (gültige Version erforderlich)" >&2; exit 1; }
     remote switch "$2"
     ;;
   rollback) remote rollback ;;
   status) remote status ;;
   current) remote current ;;
+  version) remote version ;;
+  prune) remote prune ;;
   *)
     sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
     exit 1

@@ -1,0 +1,36 @@
+name: Prozessabgleich
+on:
+  push:
+    branches: [main]
+  issues:
+    types: [closed, reopened]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+concurrency:
+  group: process-reconcile
+  cancel-in-progress: false
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    env:
+      BOARD_TOKEN: ${{ secrets.PROCESS_BOARD_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: node tools/reconcile.mjs --apply
+        env:
+          GH_TOKEN: ${{ github.token }}
+      # Projects require a separately scoped token; the local worker also reconciles the board.
+      - if: env.BOARD_TOKEN != ''
+        run: node tools/reconcile.mjs --apply --board
+        env:
+          GH_TOKEN: ${{ secrets.PROCESS_BOARD_TOKEN }}

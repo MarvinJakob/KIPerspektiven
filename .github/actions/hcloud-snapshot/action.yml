@@ -1,6 +1,6 @@
 # Legt vor einem Release einen Snapshot des Hetzner-Cloud-Servers an (Hetzner Cloud API, Secret HETZNER_CLOUD_API)
 # und behält nur die jüngsten `keep` Snapshots mit dem Label managed-by=release-gate.
-# Fehlt Token oder Servername, wird der Schritt mit Warnung übersprungen.
+# Ein angeforderter Snapshot ist verpflichtend; fehlende Konfiguration ist ein Fehler.
 name: Hetzner-Snapshot
 description: Snapshot des Produktionsservers vor dem Deployment
 
@@ -36,8 +36,8 @@ runs:
       run: |
         set -euo pipefail
         if [[ -z "$HCLOUD_TOKEN" || -z "$NAME" ]]; then
-          echo "::warning::HETZNER_CLOUD_API oder HCLOUD_SERVER_NAME fehlt, kein Snapshot vor dem Release."
-          exit 0
+          echo "::error::HETZNER_CLOUD_API oder HCLOUD_SERVER_NAME fehlt; angeforderter Snapshot ist verpflichtend."
+          exit 1
         fi
         API=https://api.hetzner.cloud/v1
         api() { curl -fsS -H "Authorization: Bearer $HCLOUD_TOKEN" -H 'Content-Type: application/json' "$@"; }

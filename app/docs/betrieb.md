@@ -85,11 +85,11 @@ Das **Release Gate** im Repository `MarvinJakob/AIPerspectives` startet automati
 1. baut das Image aus dem auslösenden Commit auf `main` (manuell aus dem gewählten `ref`),
 2. führt alle Unit-Tests und die ganze Fidelity-Suite aus (keine Regression gegen `fidelity/baseline.txt`),
 3. prüft, dass keine Issues mit `release-blocker` offen sind und `release` per Fast-Forward vorgezogen werden kann,
-4. legt über die Hetzner Cloud API einen Snapshot des Servers an (die drei jüngsten bleiben), ruft `deploy/deploy.sh release <Commit>` auf und prüft REQ-0 gegen `DEPLOY_URL`,
+4. prüft SSH, legt verpflichtend einen Hetzner-Snapshot an (die drei jüngsten bleiben), überträgt mit `deploy/deploy.sh deploy` das exakt getestete Image und prüft REQ-0 gegen `DEPLOY_URL`,
 5. zieht erst nach erfolgreichem Deployment und Smoke-Test den Branch `release` auf den geprüften Commit vor,
 6. legt erst am Ende Tag und GitHub-Release an.
 
-Ist die neue Version nicht gesund, startet `deploy.sh` wieder die bisherige Version und der Lauf schlägt fehl. `release` bleibt bei fehlgeschlagenem Deployment oder Smoke-Test unverändert, sodass ein erneuter Lauf den Stand nochmals bereitstellt. Laufende Deployments werden durch weitere Merges nicht abgebrochen; wartende Läufe werden zum neuesten wartenden Stand zusammengefasst. Rückkehr ohne Kommandozeile: Workflow [Rollback](../../.github/workflows/rollback.yml). Ablauf: [ARCHITECTURE.md, Abschnitt 7](../../ARCHITECTURE.md#7-auslieferung).
+Bei fehlgeschlagenem Start oder Produktions-Smoke-Test wird die zuvor gemerkte Version wieder gestartet und geprüft; der Lauf bleibt rot. Ohne Vorgängerversion ist bei einer Erstinstallation eine explizite Wiederherstellung nötig. `release` bleibt bis zum bestandenen Smoke-Test unverändert. Wiederholungen prüfen Produktion erneut und veröffentlichen dieselbe Commit-/Image-Kombination unter demselben Tag. Laufende Deployments werden durch weitere Merges nicht abgebrochen; wartende Läufe werden zum neuesten wartenden Stand zusammengefasst. Rückkehr ohne Kommandozeile: Workflow [Rollback](../../.github/workflows/rollback.yml), ebenfalls mit Produktions-Smoke. Ablauf: [ARCHITECTURE.md, Abschnitt 7](../../ARCHITECTURE.md#7-auslieferung).
 
 Einstellungen unter *Settings → Secrets and variables → Actions* von `MarvinJakob/AIPerspectives`:
 
@@ -98,31 +98,30 @@ Einstellungen unter *Settings → Secrets and variables → Actions* von `Marvin
 | `DEPLOY_HOST` | Secret | `root@78.47.14.178` |
 | `HETZNER_CLOUD_SSH` | Secret | Privater Schlüssel nur für dieses Deployment (ed25519). Der öffentliche Teil steht auf dem Server in `/root/.ssh/authorized_keys`. |
 | `DEPLOY_KNOWN_HOSTS` | Secret | Host-Schlüssel des Servers, z. B. aus `ssh-keyscan -t ed25519 78.47.14.178` nach Abgleich des Fingerprints |
-| `HETZNER_CLOUD_API` | Secret | Hetzner-Cloud-API-Token (Lesen und Schreiben) für den Snapshot vor dem Release |
+| `HETZNER_CLOUD_API` | Secret | Hetzner-Cloud-API-Token (Lesen und Schreiben) für den verpflichtenden Snapshot |
 | `DEPLOY_URL` | Variable | `https://marvinjakob.de` |
 | `HCLOUD_SERVER_NAME` | Variable | `docker-ce-ubuntu-2gb-nbg1-1` |
 
-Eine Registry ist nicht nötig, weil das Image auf dem Server gebaut wird. Den Schlüssel bei Verdacht auf Missbrauch auf dem Server aus `authorized_keys` löschen und neu erzeugen. Im alten Repository `MarvinJakob/aiboard` darf kein Deploy-Workflow mehr aktiv sein, sonst liefern zwei Repositorys auf denselben Server aus.
+Eine Registry ist nicht nötig: Das getestete Image wird als Actions-Artefakt übertragen und auf Hetzner geladen, dort nicht erneut gebaut. Zugangstest ohne Deployment: `gh workflow run deploy-access.yml`. Er verwendet nur die GitHub-Secrets, prüft API/Server und SSH und zeigt den öffentlichen Schlüsselfingerprint. Fehlende Snapshot-Konfiguration ist ein Fehler. Den Schlüssel bei Verdacht auf Missbrauch auf dem Server aus `authorized_keys` löschen und neu erzeugen. Im alten Repository `MarvinJakob/aiboard` darf kein Deploy-Workflow mehr aktiv sein, sonst liefern zwei Repositorys auf denselben Server aus.
 
 ## Neue Version bereitstellen
 
-Ohne Pull Request, etwa für einen erneuten Versuch, lokal im Repository mit dem eingecheckten Stand des gewünschten Commits:
+Für einen erneuten Versuch eines bereits nach `main` gemergten Standes:
 
 ```bash
-export DEPLOY_HOST=root@78.47.14.178 DEPLOY_SSH_KEY=.ssh/hetzner
-app/deploy/deploy.sh release origin/main
+gh workflow run release.yml -f ref=main
 ```
 
-Das Skript [deploy/deploy.sh](../deploy/deploy.sh)
+Der Workflow verwendet [deploy/deploy.sh](../deploy/deploy.sh):
 
-1. überträgt `app/` des Commits per `git archive` nach `/opt/ki-web/build/<VERSION>`. `VERSION` ist der kurze Commit-Hash, ein drittes Argument legt einen anderen Namen fest.
-2. baut darauf das Image `ghcr.io/marvinjakob/ki-web:<VERSION>` mit den Labels `org.opencontainers.image.revision` (Commit) und `org.opencontainers.image.version`.
+1. überträgt `app/` des geprüften Commits nach `/opt/ki-web/build/<VERSION>`. Die Version enthält Commit- und Image-ID-Anteile.
+2. lädt das CI-Image per `docker load`, prüft die vollständige Image-ID und das Commit-Label und taggt es für Compose.
 3. kopiert `compose.yaml` und `deploy/Caddyfile` der Version nach `/opt/ki-web` und setzt `VERSION`.
 4. startet die Container mit `docker compose up -d --wait` und prüft danach `https://DOMAIN/api/health`. Erst wenn beides erfolgreich ist, wird die bisherige Version zu `PREVIOUS_VERSION`.
-5. startet bei einem Fehler wieder die bisherige Version und endet mit Fehler. Schlägt schon der Build fehl, läuft die bisherige Version ohne Unterbrechung weiter.
-6. lädt die Caddy-Konfiguration neu, zeigt den Status und räumt Builds älter als die fünf jüngsten auf.
+5. startet bei einem Fehler wieder die bisherige Version und endet mit Fehler. Der Workflow stellt sie auch nach einem fehlgeschlagenen Produktions-Smoke-Test wieder her.
+6. räumt Builds älter als die fünf jüngsten erst nach erfolgreichem Smoke-Test auf; laufende und vorherige Version bleiben erhalten.
 
-Ein Build dauert auf dem Server einige Minuten. Beim Austausch des Backend-Containers ist die Seite wenige Sekunden nicht erreichbar. Datenbank und Medien liegen in Volumes und bleiben erhalten.
+Beim Austausch des Backend-Containers ist die Seite wenige Sekunden nicht erreichbar. Datenbank und Medien liegen in Volumes und bleiben erhalten. Der alte Befehl `deploy.sh release` bleibt für ausdrücklich beauftragte Notfallwartung verfügbar, ist aber kein Ersatz für das Release Gate.
 
 Die Migrationen laufen beim Start des Backends automatisch.
 

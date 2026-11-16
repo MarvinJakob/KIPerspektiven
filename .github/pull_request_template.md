@@ -5,6 +5,7 @@ Fidelity: REQ-<n>-AC<m>
 Implementer-Agents: <alle beteiligten Agentensitzungs-IDs, durch Komma getrennt>
 Reviewer-Agent: <andere Agentensitzungs-ID, erst nach tatsächlichem Review eintragen>
 Reviewed-Commit: <vollständiger Head-SHA des unabhängig geprüften Commits>
+Review-ID: <GitHub-Review-ID; setzt tools/review.mjs aus der unabhängigen Sitzung>
 
 <!-- Kein Implementierer darf sein Ticket selbst reviewen. Der Reviewer dokumentiert Ergebnis,
      Befunde, Sitzungs-ID und Commit zusätzlich als PR-Kommentar. Nach Codeänderungen erneut prüfen.

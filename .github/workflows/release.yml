@@ -1,67 +1,62 @@
-# Release Gate: bringt den aktuellen Stand von main („Code Stream“) als Release auf den Hetzner-Server.
-#
-#   1. Build        Image aus den gestapelten Commits von main neu bauen
-#   2. Test         ganze Unit-Test-Suite und ganze Fidelity-Suite (keine Regression gegen die Baseline)
-#   3. Final Check  keine offenen release-blocker, Fast-Forward auf release möglich, Stand noch nicht released
-#   4. Package      Hetzner-Snapshot, Image auf dem Server bauen und starten, Smoke-Test gegen Produktion
-#   5. release      erst nach erfolgreichem Deployment Branch release auf den geprüften Commit vorziehen
-#   6. Publish      erst ganz am Ende: Tag und GitHub-Release im Repository
-#
-# Start: automatisch nach jedem Push/Merge auf main; zusätzlich manuell per Run workflow.
-# Secrets und Variablen: ARCHITECTURE.md, Abschnitt „Secrets und Variablen“.
 name: Release Gate
-
 on:
   push:
     branches: [main]
   workflow_dispatch:
     inputs:
       ref:
-        description: Commit oder Branch, der released wird
+        description: Geprüfter Commit aus main
         default: main
-      snapshot:
-        description: Vor dem Deployment einen Hetzner-Snapshot anlegen
-        type: boolean
-        default: true
-
 permissions:
   contents: read
   issues: read
-
-# Releases laufen nacheinander und werden nicht abgebrochen
 concurrency:
   group: release-production
   cancel-in-progress: false
-
 jobs:
   build:
     name: 1 Build
     runs-on: ubuntu-latest
     outputs:
       commit: ${{ steps.stand.outputs.commit }}
-      version: ${{ steps.stand.outputs.version }}
+      version: ${{ steps.identity.outputs.version }}
+      image-id: ${{ steps.identity.outputs.image-id }}
+      tag: ${{ steps.identity.outputs.tag }}
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0
       - id: stand
         run: |
-          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "version=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+          commit=$(git rev-parse HEAD)
+          git merge-base --is-ancestor "$commit" origin/main || { echo '::error::Release-Commit muss aus main stammen.'; exit 1; }
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
           context: app
           tags: ki-web:ci
+          labels: org.opencontainers.image.revision=${{ steps.stand.outputs.commit }}
           outputs: type=docker,dest=${{ runner.temp }}/image.tar
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - id: identity
+        env:
+          COMMIT: ${{ steps.stand.outputs.commit }}
+        run: |
+          docker load -i "$RUNNER_TEMP/image.tar"
+          image=$(docker image inspect -f '{{.Id}}' ki-web:ci)
+          digest=${image#sha256:}
+          version="${COMMIT:0:12}-${digest:0:12}"
+          echo "image-id=$image" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$(git show -s --date=format:%Y.%m.%d --format=%cd "$COMMIT")-$version" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: image
           path: ${{ runner.temp }}/image.tar
-          retention-days: 1
-
+          retention-days: 7
   unit-tests:
     name: 2 Test (Unit)
     needs: build
@@ -71,7 +66,10 @@ jobs:
         with:
           ref: ${{ needs.build.outputs.commit }}
       - uses: ./.github/actions/unit-tests
-
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: node --test tools/*.test.mjs fidelity/scripts/*.test.mjs
   fidelity:
     name: 2 Test (Fidelity)
     needs: build
@@ -87,59 +85,31 @@ jobs:
       - run: docker load -i "$RUNNER_TEMP/image.tar"
       - uses: ./.github/actions/fidelity
         with:
-          image: ki-web:ci
+          image: ${{ needs.build.outputs.image-id }}
           report-name: fidelity-release
-
   final-check:
     name: 3 Final Check
     needs: [build, unit-tests, fidelity]
     runs-on: ubuntu-latest
-    outputs:
-      skip: ${{ steps.check.outputs.skip }}
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ needs.build.outputs.commit }}
           fetch-depth: 0
-      - id: check
-        env:
+      - env:
           GH_TOKEN: ${{ github.token }}
           COMMIT: ${{ needs.build.outputs.commit }}
         run: |
           blockers=$(gh issue list --state open --label release-blocker --json number,title --jq '.[] | "#\(.number) \(.title)"')
-          if [[ -n "$blockers" ]]; then
-            echo "::error::Offene release-blocker:"; echo "$blockers"; exit 1
-          fi
+          [[ -z "$blockers" ]] || { echo '::error::Offene release-blocker'; echo "$blockers"; exit 1; }
+          git merge-base --is-ancestor "$COMMIT" origin/main
           if git rev-parse --verify -q origin/release > /dev/null; then
-            if [[ "$(git rev-parse origin/release)" == "$COMMIT" ]]; then
-              echo "Dieser Stand ist bereits released, es gibt nichts zu tun."
-              echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
-            fi
-            git merge-base --is-ancestor origin/release "$COMMIT" \
-              || { echo "::error::release ist nicht Vorfahre von $COMMIT, kein Fast-Forward möglich."; exit 1; }
+            git merge-base --is-ancestor origin/release "$COMMIT" || { echo '::error::Kein Fast-Forward auf release möglich.'; exit 1; }
           fi
-          echo "skip=false" >> "$GITHUB_OUTPUT"
-
-  release-branch:
-    name: 5 Release-Branch
-    needs: [build, final-check, package]
-    if: needs.final-check.outputs.skip == 'false'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.build.outputs.commit }}
-      - name: release vorziehen (nur Fast-Forward)
-        env:
-          COMMIT: ${{ needs.build.outputs.commit }}
-        run: git push origin "$COMMIT:refs/heads/release"
-
+          # The release ref alone does not prove deployment/publication; retries recheck both.
   package:
-    name: 4 Package und Deployment
+    name: 4 Geprüftes Image ausliefern
     needs: [build, final-check]
-    if: needs.final-check.outputs.skip == 'false'
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -149,49 +119,68 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ needs.build.outputs.commit }}
-
-      - name: Produktionsprüfung muss konfiguriert sein
+      - uses: actions/download-artifact@v5
+        with:
+          name: image
+          path: ${{ runner.temp }}
+      - name: Produktionskonfiguration prüfen
         env:
           DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
-          [[ "$DEPLOY_URL" == https://* ]] || { echo "::error::DEPLOY_URL muss für den verpflichtenden Smoke-Test eine HTTPS-URL enthalten."; exit 1; }
-
-      - name: Snapshot des Servers
-        if: github.event_name == 'push' || inputs.snapshot
+          [[ "$DEPLOY_URL" == https://* && -n "$DEPLOY_HOST" ]] || { echo '::error::HTTPS-Produktionsadresse und SSH-Ziel fehlen.'; exit 1; }
+      - uses: ./.github/actions/ssh-setup
+        with:
+          ssh-key: ${{ secrets.HETZNER_CLOUD_SSH }}
+          known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      - name: SSH-Zugang und bisherige Version prüfen
+        id: previous
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          previous=$(bash app/deploy/deploy.sh version)
+          [[ -z "$previous" || "$previous" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || exit 1
+          echo "version=$previous" >> "$GITHUB_OUTPUT"
+      - name: Verpflichtender Snapshot
         uses: ./.github/actions/hcloud-snapshot
         with:
           token: ${{ secrets.HETZNER_CLOUD_API }}
           server-name: ${{ vars.HCLOUD_SERVER_NAME }}
           description: vor Release ${{ needs.build.outputs.version }}
-
-      - uses: ./.github/actions/ssh-setup
-        with:
-          ssh-key: ${{ secrets.HETZNER_CLOUD_SSH }}
-          known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-
-      - name: Image auf dem Server bauen und starten
+      - name: Geprüftes Image laden und aktivieren
+        id: deploy
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           COMMIT: ${{ needs.build.outputs.commit }}
           VERSION: ${{ needs.build.outputs.version }}
-        # Bei ungesunder neuer Version startet deploy.sh die bisherige Version und endet mit Fehler
-        run: app/deploy/deploy.sh release "$COMMIT" "$VERSION"
-
-      - name: SSH-Schlüssel entfernen
-        if: always()
-        run: rm -f ~/.ssh/deploy
-
-      - name: Smoke-Test gegen Produktion (REQ-0)
+          IMAGE_ID: ${{ needs.build.outputs.image-id }}
+        run: bash app/deploy/deploy.sh deploy "$COMMIT" "$RUNNER_TEMP/image.tar" "$IMAGE_ID" "$VERSION"
+      - name: Produktions-Smoke-Test
         uses: ./.github/actions/fidelity
         with:
           base-url: ${{ vars.DEPLOY_URL }}
           grep: '^REQ-0-'
           required-ids: REQ-0-AC1 REQ-0-AC2 REQ-0-AC3
           report-name: fidelity-production
-
+      - name: Bei Deployment- oder Smoke-Fehler vorherige Version wiederherstellen
+        if: failure() && steps.deploy.outcome != 'skipped' && steps.deploy.outcome != ''
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          PREVIOUS: ${{ steps.previous.outputs.version }}
+        run: |
+          [[ -n "$PREVIOUS" ]] || { echo '::error::Erstinstallation ohne vorherige Version: manuelle Wiederherstellung erforderlich.'; exit 1; }
+          bash app/deploy/deploy.sh switch "$PREVIOUS"
+          bash app/deploy/deploy.sh status
+      - name: Alte Images nach erfolgreicher Produktionsprüfung aufräumen
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: bash app/deploy/deploy.sh prune
+      - name: SSH-Schlüssel entfernen
+        if: always()
+        run: rm -f ~/.ssh/deploy
   publish:
-    name: 6 Publish
-    needs: [build, package, release-branch]
+    name: 5 Release-Stand und Veröffentlichung
+    needs: [build, package]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -200,20 +189,17 @@ jobs:
         with:
           ref: ${{ needs.build.outputs.commit }}
           fetch-depth: 0
-      - name: Tag und GitHub-Release
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Release-Branch vorziehen
+        env:
+          COMMIT: ${{ needs.build.outputs.commit }}
+        run: git push origin "$COMMIT:refs/heads/release"
+      - name: Wiederholbare Veröffentlichung
         env:
           GH_TOKEN: ${{ github.token }}
-          COMMIT: ${{ needs.build.outputs.commit }}
-          VERSION: ${{ needs.build.outputs.version }}
-          DEPLOY_URL: ${{ vars.DEPLOY_URL }}
-        run: |
-          tag="v$(TZ=Europe/Berlin date +%Y.%m.%d)-${GITHUB_RUN_NUMBER}"
-          gh release create "$tag" --target "$COMMIT" --title "$tag" --generate-notes \
-            --notes "Bereitgestellt auf ${DEPLOY_URL:-Hetzner} als Image-Version \`ki-web:$VERSION\` (Commit \`$COMMIT\`)."
-          {
-            echo "### Release $tag"
-            echo "| | |"; echo "|---|---|"
-            echo "| Commit | \`$COMMIT\` |"
-            echo "| Image | \`ki-web:$VERSION\` |"
-            echo "| Adresse | ${DEPLOY_URL:-–} |"
-          } >> "$GITHUB_STEP_SUMMARY"
+          RELEASE_COMMIT: ${{ needs.build.outputs.commit }}
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+          RELEASE_IMAGE: ${{ needs.build.outputs.image-id }}
+        run: node tools/publish-release.mjs

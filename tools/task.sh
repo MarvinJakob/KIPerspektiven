@@ -48,7 +48,10 @@ lock_task() {
   operation_ref="refs/agent-task-locks/$team-$issue"
   operation_oid=$(printf '%s\n%s\n%s\n%s\n' "$agent_id" "$BASHPID" "$RANDOM" "$RANDOM" | git -C "$root" hash-object -w --stdin)
   if ! git -C "$root" update-ref "$operation_ref" "$operation_oid" 0000000000000000000000000000000000000000 2> /dev/null; then
-    echo "BELEGT: $branch wird gerade geändert"; exit 2
+    if git -C "$root" show-ref --verify --quiet "$operation_ref"; then
+      echo "BELEGT: $branch wird gerade geändert"; exit 2
+    fi
+    die "Git konnte die Operationssperre nicht anlegen (Berechtigungen/Dateisystem prüfen)"
   fi
   trap 'git -C "$root" update-ref -d "$operation_ref" "$operation_oid"' EXIT
 }
@@ -62,8 +65,10 @@ owned() {
 label() { # $1 add|remove; Issue 0 (REQ-0) hat kein Ticket
   [[ "$issue" == 0 ]] && return 0
   gh issue edit "$issue" -R "$REPO" "--$1-label" in-progress > /dev/null \
-    || echo "WARNUNG: Label in-progress an #$issue nicht geändert (GH_TOKEN prüfen)" >&2
+    || die "Label in-progress an #$issue nicht geändert; lokale Belegung bleibt zur Wiederherstellung erhalten"
 }
+
+heartbeat() { date +%s > "$state/heartbeat"; }
 
 case "$cmd" in
   claim)
@@ -72,16 +77,22 @@ case "$cmd" in
     lock_task
     [[ ! -d "$state" ]] || { echo "BELEGT: $branch besitzt einen Zwischenstand oder Besitzer"; exit 2; }
     git -C "$root" fetch -q --prune origin
-    if git -C "$root" ls-remote --exit-code --heads origin "$branch" > /dev/null 2>&1; then
+    remote_code=0
+    git -C "$root" ls-remote --exit-code --heads origin "$branch" > /dev/null || remote_code=$?
+    if [[ "$remote_code" == 0 ]]; then
       echo "BELEGT: $branch existiert bereits auf origin"; exit 2
     fi
+    [[ "$remote_code" == 2 ]] || die "Remote-Belegung konnte nicht geprüft werden"
     mkdir -p "$root/.worktrees"
-    if ! git -C "$root" worktree add -q -b "$branch" "$dir" origin/main 2> /dev/null; then
+    if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
       echo "BELEGT: $branch existiert bereits lokal"; exit 2
     fi
+    git -C "$root" worktree add -q -b "$branch" "$dir" origin/main \
+      || die "Worktree konnte nicht angelegt werden (kein Belegungsnachweis)"
     mkdir -p "$(dirname "$state")"
     mkdir "$state" "$state/active"
     printf '%s\n' "$agent_id" > "$state/active/owner"
+    heartbeat
     label add
     echo "Belegt: $branch"
     echo "$dir"
@@ -104,25 +115,56 @@ case "$cmd" in
     check_args
     identity
     lock_task
-    [[ -d "$dir" && -f "$state/paused" ]] || { echo "NICHT FREIGEGEBEN: $branch"; exit 2; }
+    [[ -f "$state/paused" && ( -d "$dir" || -f "$state/finishing-head" ) ]] || { echo "NICHT FREIGEGEBEN: $branch"; exit 2; }
     if ! mkdir "$state/active" 2> /dev/null; then echo "BELEGT: $branch"; exit 2; fi
     if [[ ! -f "$state/paused" ]]; then rmdir "$state/active"; exit 2; fi
     printf '%s\n' "$agent_id" > "$state/active/owner"
+    heartbeat
     rm "$state/paused"
     label add
     echo "Fortgesetzt durch $agent_id: $branch"
-    echo "$dir"
+    if [[ -f "$state/finishing-head" ]]; then
+      echo "Nur Abschluss fortsetzen: tools/task.sh finish $team $issue"
+      pwd
+    else
+      echo "$dir"
+    fi
+    ;;
+
+  heartbeat)
+    check_args
+    lock_task
+    owned
+    heartbeat
+    ;;
+
+  status)
+    common=$(git rev-parse --path-format=absolute --git-common-dir)
+    for task_state in "$common"/agent-tasks/*; do
+      [[ -d "$task_state" ]] || continue
+      task_owner=paused
+      [[ ! -f "$task_state/active/owner" ]] || task_owner=$(cat "$task_state/active/owner")
+      updated=unknown
+      [[ ! -f "$task_state/heartbeat" ]] || updated=$(cat "$task_state/heartbeat")
+      printf '%s owner=%s heartbeat=%s\n' "${task_state##*/}" "$task_owner" "$updated"
+    done
+    git for-each-ref --format='operation-lock %(refname)' refs/agent-task-locks/
     ;;
 
   finish)
     check_args
     lock_task
-    # Alte Worktrees ohne Sitzungsdatei bleiben kompatibel; neue darf nur der Besitzer abschließen.
-    if [[ -d "$state" ]]; then owned; fi
-    if [[ "${4:-}" != "--abandon" ]]; then
+    [[ -d "$state" ]] || die "Legacy-Aufgabe ohne Besitzerdaten: dokumentierte Wiederherstellung durch Maintainer erforderlich"
+    owned
+    if [[ -f "$state/finishing-head" ]]; then
+      if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
+        [[ "$(git -C "$root" rev-parse "$branch")" == "$(cat "$state/finishing-head")" ]] || die "Branch seit Abschlussprüfung verändert"
+      fi
+    elif [[ "${4:-}" != "--abandon" ]]; then
       # Nur aufräumen, wenn nichts verloren geht: PR gemergt oder keine eigenen Commits
-      merged=$(gh pr list -R "$REPO" --head "$branch" --state merged --json number --jq 'length' 2> /dev/null || echo 0)
-      ahead=$(git -C "$root" rev-list --count "origin/main..$branch" 2> /dev/null || echo 0)
+      current_head=$(git -C "$root" rev-parse "$branch")
+      merged=$(gh pr list -R "$REPO" --head "$branch" --state merged --json headRefOid --jq "[.[] | select(.headRefOid == \"$current_head\")] | length")
+      ahead=$(git -C "$root" rev-list --count "origin/main..$branch")
       if [[ "$merged" == 0 && "$ahead" != 0 ]]; then
         die "$branch hat $ahead Commit(s) ohne gemergten PR. Erst mergen oder bewusst mit --abandon verwerfen."
       fi
@@ -130,6 +172,9 @@ case "$cmd" in
     if [[ -d "$dir" ]]; then
       [[ -z "$(git -C "$dir" status --porcelain)" || "${4:-}" == "--abandon" ]] \
         || die "Ungesicherte Änderungen in $dir. Committen oder mit --abandon verwerfen."
+    fi
+    if [[ ! -f "$state/finishing-head" ]]; then git -C "$root" rev-parse "$branch" > "$state/finishing-head"; fi
+    if [[ -d "$dir" ]]; then
       git -C "$root" worktree remove --force "$dir"
     fi
     git -C "$root" branch -D "$branch" > /dev/null 2>&1 || true
@@ -137,6 +182,8 @@ case "$cmd" in
     git -C "$root" worktree prune
     label remove
     if [[ -d "$state/active" ]]; then rm "$state/active/owner"; rmdir "$state/active"; fi
+    if [[ -f "$state/heartbeat" ]]; then rm "$state/heartbeat"; fi
+    if [[ -f "$state/finishing-head" ]]; then rm "$state/finishing-head"; fi
     if [[ -d "$state" ]]; then rmdir "$state"; fi
     echo "Abgeschlossen: $branch"
     ;;

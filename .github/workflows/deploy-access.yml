@@ -1,0 +1,39 @@
+name: Deployment-Zugang
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  access:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/ssh-setup
+        with:
+          ssh-key: ${{ secrets.HETZNER_CLOUD_SSH }}
+          known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      - name: Hetzner-API und Serverzuordnung prüfen
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HETZNER_CLOUD_API }}
+          SERVER: ${{ vars.HCLOUD_SERVER_NAME }}
+        run: |
+          [[ -n "$HCLOUD_TOKEN" && -n "$SERVER" ]] || { echo '::error::Hetzner-API-Konfiguration fehlt'; exit 1; }
+          curl -fsS -H "Authorization: Bearer $HCLOUD_TOKEN" --get --data-urlencode "name=$SERVER" \
+            https://api.hetzner.cloud/v1/servers | jq -e '.servers | length == 1' > /dev/null
+          echo 'Hetzner-API-Zugang und Serverzuordnung erfolgreich.'
+      - name: SSH-Schlüssel und Anmeldung prüfen
+        if: '!cancelled()'
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          [[ -n "$DEPLOY_HOST" ]] || { echo '::error::DEPLOY_HOST fehlt'; exit 1; }
+          ssh-keygen -y -P '' -f "$DEPLOY_SSH_KEY" > ~/.ssh/deploy.pub
+          echo 'Fingerprint des verwendeten Deployment-Schlüssels:'
+          ssh-keygen -lf ~/.ssh/deploy.pub
+          ssh -i "$DEPLOY_SSH_KEY" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 "$DEPLOY_HOST" 'test -d /opt/ki-web && docker info > /dev/null && echo Deployment-Zugang-erfolgreich'
+      - name: Temporäre Schlüssel entfernen
+        if: always()
+        run: rm -f ~/.ssh/deploy ~/.ssh/deploy.pub

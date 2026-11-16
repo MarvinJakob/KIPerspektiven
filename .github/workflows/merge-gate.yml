@@ -129,11 +129,15 @@ jobs:
         run: |
           node --test tools/*.test.mjs fidelity/scripts/*.test.mjs
           bash tools/task.test.sh
+          bash tools/deploy.test.sh
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 -shellcheck= -pyflakes=
       - name: Checkliste im PR-Text
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           DRAFT: ${{ github.event.pull_request.draft }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           [[ "$DRAFT" != "true" ]] || { echo "::error::Entwurf: erst nach „Ready for review“ mergebar."; exit 1; }
           printf '%s\n' "$PR_BODY" | grep -qE '^\s*- \[[xX]\] .*Review' \

@@ -6,7 +6,15 @@ task="$source_root/tools/task.sh"
 mkdir -p "$source_root/.build"
 fixture=$(mktemp -d "$source_root/.build/task-test.XXXXXX")
 mkdir -p "$fixture/bin"
-printf '#!/usr/bin/env bash\nif [[ "$*" == *"pr list"* ]]; then echo 0; fi\nexit 0\n' > "$fixture/bin/gh"
+cat > "$fixture/bin/gh" <<'GH'
+#!/usr/bin/env bash
+if [[ "$*" == *"pr list"* ]]; then echo 0; fi
+if [[ "$*" == *"--remove-label"* && -n "${GH_FAIL_REMOVE_ONCE:-}" && ! -f "$GH_FAIL_REMOVE_ONCE" ]]; then
+  touch "$GH_FAIL_REMOVE_ONCE"
+  exit 1
+fi
+exit 0
+GH
 chmod +x "$fixture/bin/gh"
 export PATH="$fixture/bin:$PATH"
 export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null
@@ -100,5 +108,38 @@ run_as maintainer-A claim maint 103 > /dev/null
 run_as maintainer-A pause maint 103 > /dev/null
 run_as maintainer-B resume maint 103 > /dev/null
 run_as maintainer-B finish maint 103 > /dev/null
+
+# A real worktree creation error is not reported as an occupied ticket.
+mkdir -p "$fixture/repo/.worktrees/fix-104"
+printf 'keep\n' > "$fixture/repo/.worktrees/fix-104/untracked"
+expect_code 1 run_as implementer-A claim fix 104
+[[ -f "$fixture/repo/.worktrees/fix-104/untracked" ]] || exit 1
+
+# Only the owner may refresh the recovery heartbeat.
+run_as implementer-A claim fix 105 > /dev/null
+expect_code 1 run_as reviewer-B heartbeat fix 105
+run_as implementer-A heartbeat fix 105
+[[ -s .git/agent-tasks/fix-105/heartbeat ]] || exit 1
+
+# A failed label write after local cleanup can be retried without the deleted branch/worktree.
+export GH_FAIL_REMOVE_ONCE="$fixture/remove-failed"
+expect_code 1 run_as implementer-A finish fix 105
+[[ -f .git/agent-tasks/fix-105/finishing-head ]] || exit 1
+[[ ! -d "$fixture/repo/.worktrees/fix-105" ]] || exit 1
+run_as implementer-A finish fix 105 > /dev/null
+[[ ! -d .git/agent-tasks/fix-105 ]] || exit 1
+unset GH_FAIL_REMOVE_ONCE
+
+# Recovery can hand an interrupted terminal cleanup to a fresh session, even without a worktree.
+run_as implementer-A claim fix 106 > /dev/null
+export GH_FAIL_REMOVE_ONCE="$fixture/remove-failed-again"
+expect_code 1 run_as implementer-A finish fix 106
+rm .git/agent-tasks/fix-106/active/owner
+rmdir .git/agent-tasks/fix-106/active
+touch .git/agent-tasks/fix-106/paused
+run_as reviewer-B resume fix 106 > /dev/null
+run_as reviewer-B finish fix 106 > /dev/null
+[[ ! -d .git/agent-tasks/fix-106 ]] || exit 1
+unset GH_FAIL_REMOVE_ONCE
 
 echo 'Task-Tests bestanden: Besitzer, Checkpoint, konkurrierende Wiederaufnahme, Finish/Claim-Sperre und Wartung.'

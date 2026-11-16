@@ -19,6 +19,8 @@ flowchart LR
 
 ## Auftrag
 
+**Einheitlicher Start:** Vor `work` den aktuellen Prozess laden: `bash tools/work.sh --check`. Aus einem alten Checkout ohne diesen Befehl: `git fetch origin main` und `git show origin/main:tools/work.sh | bash -s -- --check`. Der Bootstrap verwendet einen unveränderlichen, separaten Checkout von `origin/main`, nennt dessen Commit und prüft Werkzeuge, GitHub und Board. Alte Arbeitskopien und ihre ungesicherten Änderungen bleiben unverändert. Alle Aufgaben-Skripte aus diesem Prozessstand verwenden; Änderungen weiterhin ausschließlich im eigenen Aufgaben-Worktree.
+
 Der Auftrag im Chat nennt das Team, optional mit Issue: `Team 1`, `Team 2`, `Team 3`, `Team 3 #45`. Ohne Issue prüft der Agent zuerst die offenen Board-Tickets in `Review`, `In Progress` und `Ready` (siehe „Auswahl und Wiederaufnahme“), dann den Backlog seines Teams. Gibt es keine freie passende Aufgabe, meldet er das und endet. Eine spätere automatische Aktivierung braucht eine separate Betriebssteuerung.
 
 **Auftrag `work`:** Der Agent ordnet sich selbst einem Team zu. Die Stufen bestimmen das Team (frei heißt: ohne `in-progress` und `blocked`):
@@ -29,7 +31,9 @@ Der Auftrag im Chat nennt das Team, optional mit Issue: `Team 1`, `Team 2`, `Tea
 4. Team 3: freies `bug`-Issue.
 5. Team 1: freie Anforderung mit `needs-analysis`.
 
-Reihenfolge: zuerst Stufe 1, dann „Auswahl und Wiederaufnahme“ über alle Teams (Board-Tickets in `Review`, dann `In Progress`, dann `Ready`), dann der Backlog. Innerhalb eines Board-Status und im Backlog gilt die Reihenfolge der Stufen, bei gleicher Stufe das älteste Issue. Bei `Review` und `In Progress` ergibt sich das Team aus der dokumentierten Übergabe bzw. dem Branch-Präfix (`spec/`, `verify/`, `fix/`), sonst aus der Stufe. Tickets ohne eindeutige Team-Zuordnung (z. B. `maint`) übernimmt ein `work`-Agent nicht.
+Nach Release-Blockern und vor neuem fachlichem Backlog übernimmt `work` auch Wartung mit **beiden** Labels `maintenance` und `maintenance-approved` als `maint`. `maintenance-approved` setzt der Maintainer für einen ausdrücklichen, im Issue dokumentierten Auftrag. Die Release-Nacharbeit darf dieses Label im eng beschriebenen Umfang ihres automatisch angelegten Tickets setzen. Neue Berechtigungen, fachliche Entscheidungen und nicht autorisierte Infrastrukturänderungen bleiben Rückfragen. `waiting-for-test` wird bei der Auswahl ebenso ausgeschlossen wie `blocked`.
+
+Reihenfolge: zuerst Stufe 1, dann „Auswahl und Wiederaufnahme“ einschließlich freigegebener Wartung (Board-Tickets in `Review`, dann `In Progress`, dann `Ready`), dann der Backlog. Bei gleicher Priorität das älteste Issue. Bei `Review` und `In Progress` ergibt sich das Team aus der dokumentierten Übergabe bzw. dem Branch-Präfix (`spec/`, `verify/`, `fix/`, `codex/maint-`), sonst aus den Labels. Wartung ohne `maintenance-approved` übernimmt `work` nicht.
 
 Liefert `tools/task.sh claim` bzw. `resume` Exitcode `2`, versucht er die nächste Aufgabe derselben Stufe, dann die nächste Stufe. Jeder andere Fehler (z. B. Exitcode `1`, Boardzugriff) zählt nicht als „belegt“: melden und enden. Er nennt im Chat das gewählte Team und das Issue und arbeitet danach genau wie ein Agent dieses Teams. Nach `finish` oder `pause` wählt er die nächste Aufgabe erneut nach Auftrag `work`; Tickets, an denen er selbst implementiert hat, reviewt er nicht. Gibt es nirgends eine freie Aufgabe, meldet er das und endet.
 
@@ -57,6 +61,7 @@ Liefert `tools/task.sh claim` bzw. `resume` Exitcode `2`, versucht er die nächs
 7. **Sparsam arbeiten:** Nur lesen, was die Aufgabe braucht: dieses Dokument, das Issue, die Spezifikation `fidelity/specs/REQ-<n>.md` und den betroffenen Code. `content/`, `res/` und `mock/` sind nur dann Vorgaben, wenn der Auftrag sie ausdrücklich als fachliche Quelle nennt; `content/archive/` ist veraltet und wird nie gelesen. Issue-Kommentare kurz und sachlich.
 8. **Commits:** [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/) mit Issue-Nummer, z. B. `fix: Themenseite liefert 404 für Entwürfe (#45)`. Vor dem Push `git fetch origin && git rebase origin/main`, danach betroffene Prüfungen wiederholen.
 9. **Parallele Server:** Jeder Agent startet die Anwendung auf eigenem Port `20000 + <Issue-Nummer>` und mit eigener Datenbank im Worktree (siehe [Befehle](#befehle)).
+10. **Lebenszeichen und Wiederherstellung:** Während einer Belegung regelmäßig `bash tools/task.sh heartbeat <team> <n>` ausführen. `task.sh status` zeigt Besitzer, letztes Lebenszeichen und Operationssperren. Ein altes Lebenszeichen allein erlaubt niemals eine Übernahme. Nach nachgewiesenem Abbruch genehmigt der Maintainer am Issue `Recover-Task: <team>/<n>`, `Owner: <bisherige ID>` und `Operation-Lock: <aktueller Objektwert oder none>` auf getrennten Zeilen. `node tools/recover-task.mjs <team> <n> <Kommentar-ID>` prüft Autor, Issue, Besitzer und Lebenszeichen, bewahrt Dateien und gibt zur Wiederaufnahme frei. Legacy-Aufgaben ohne Besitzerdaten werden nicht automatisch migriert.
 
 ## Labels und Board
 
@@ -73,6 +78,9 @@ Labels bestimmen das zuständige Team. Das Board bestimmt zusätzlich den Bearbe
 | `release-blocker` | Regression einer Baseline-ID, sperrt das Release → Team 3 zuerst | Bug offen |
 | `in-progress` | aktuell von einem Agenten belegt (setzt `tools/task.sh`) | In Progress oder Review |
 | `blocked` | wartet auf eine Antwort des Maintainers | Blocked |
+| `waiting-for-test` | wartet auf separat beauftragte Testkorrektur | In Progress |
+| `maintenance` + `maintenance-approved` | ausdrücklich autorisierte Infrastrukturarbeit → maint | Ready / Review |
+| `release-failure` | Nacharbeit eines fehlgeschlagenen Produktionsrelease | Ready / Blocked |
 
 PRs vor Abnahme: Board-Status `Review`. Nach Abnahme bleibt das Ticket dort bis zum grünen Merge Gate und Merge.
 
@@ -86,6 +94,14 @@ Vor jeder neuen Aufgabe `bash tools/board.sh list` sowie die aktuellen Issue-Kom
 4. **Backlog:** Weitere Aufgaben nach den unten beschriebenen Teamregeln wählen. `Blocked` wird nur auf neue Antworten geprüft, nicht ohne Klärung implementiert. Die Rückkehr nach `In Progress` durch den Maintainer erlaubt, das noch vorhandene `blocked`-Label nach Lesen der Antwort zu entfernen.
 
 Für eine Übergabe alle Änderungen committen, den Branch pushen und im Issue/PR Team, Branch, Commit, Implementierer-IDs, Prüfergebnisse und nächsten Schritt festhalten; dann `pause` ausführen. `in-progress` bezeichnet aktive Belegung und wird dabei entfernt. Der Boardstatus `In Progress` bzw. `Review` bleibt als Warteschlange bestehen. Bei Review-Übergabe ist die Implementierung abgeschlossen; der Implementierer nimmt stattdessen eine andere Aufgabe. Reviewer sind eine Rolle innerhalb der drei Teams, kein viertes Team.
+
+**Review-Nachweis:** Der unabhängige Reviewer führt nach Prüfung des exakten Commits `node tools/review.mjs <PR> <SHA> <Bericht-Datei>` in seiner eigenen Sitzung aus. Das Werkzeug erstellt ein GitHub-Review mit Sitzungs-ID, Commit und Ergebnis und ergänzt dessen `Review-ID` im PR. Das Gate prüft den gespeicherten Review-Datensatz, Repository-Berechtigung, Sitzung und Commit. Nach Codeänderungen ist ein neuer Nachweis erforderlich. Gemeinsame GitHub-Zugänge beweisen keine kryptographische Trennung der Agentensitzungen; Sitzungs-IDs müssen wahrheitsgemäß sein. Für eine stärkere Identitätsgrenze sind getrennte Reviewer-Zugänge erforderlich.
+
+**Abschlussabgleich:** `node tools/reconcile.mjs` zeigt notwendige Korrekturen; `--apply --board` führt sie wiederholbar aus. Der Workflow „Prozessabgleich“ gleicht Labels und erledigte Anforderungen nach Push, Issue-Abschluss und stündlich ab. Er arbeitet ausschließlich mit auf `main` eingecheckten Spezifikationen und Baseline-IDs. Offene Folge-PRs schützen laufende Arbeit. Fremde lokale Branches, Worktrees und Besitzersperren werden nie entfernt. Der Eigentümer führt weiterhin `finish` aus. Board-Abgleich läuft über den lokalen Worker oder optional ein separat berechtigtes Actions-Secret `PROCESS_BOARD_TOKEN`.
+
+Ein unterbrochener `finish` hinterlässt `finishing-head` und kann wiederholt werden. Nach ausdrücklicher Recovery-Freigabe darf eine neue Sitzung mit `resume` auch diesen Abschluss ohne vorhandenen Worktree übernehmen; die Ausgabe weist dann ausschließlich auf `finish` hin. In diesem Zustand keine weitere Implementierung beginnen.
+
+**Betriebssteuerung:** `bash tools/work.sh --once` startet eine frische Worker-Sitzung für genau eine Aufgabe; `--watch` reagiert auf neue Issues, Antworten, PRs und Fidelity-Ergebnisse. Unter Windows startet `tools/work-watch.ps1` bei einem neuen `main`-Stand den Bootstrap erneut. Standard ist `codex exec --approve-for-me`; keine Sandbox-/Approval-Umgehung. Andere Clients lassen sich mit `WORK_AGENT_COMMAND` und `WORK_AGENT_ARGS` (JSON-Array) konfigurieren. Es läuft höchstens ein Supervisor pro gemeinsamem Repository, echte Fehler stoppen ihn. Kein automatisches Übernehmen aktiver oder verwaister Aufgaben. `Ctrl+C` lässt den aktiven Worker seine Übergabe abschließen. Eine weitere Reviewer-Sitzung übernimmt die nächste freigegebene Prüfung.
 
 ## Team 1 – Analyst
 
@@ -137,7 +153,7 @@ Ziel: Genau ein Bug-Issue pro Agent beheben. Code kommt nur über das Merge Gate
    ```
    Belegen: `bash tools/task.sh claim fix <n>`.
 2. **Reproduzieren:** Issue, Spezifikation und Test lesen. App im Worktree starten, `npx playwright test --grep "<ID>"` muss rot sein. Ist es grün: Kommentar mit Commit ins Issue, schließen, `finish`.
-3. **Beheben:** Nur in `app/`, so klein wie möglich, nach den Konventionen in [app/README.md](app/README.md). Schnittstellenänderungen beginnen in `app/api/openapi.yaml`, Migrationen nur additiv. Geänderte Logik bekommt Unit-Tests. Tests und Spezifikationen von Team 1 werden nie angepasst; passt ein Test nicht zur Anforderung → Kommentar, Label `test-defect`, Blocker.
+3. **Beheben:** Nur in `app/`, so klein wie möglich, nach den Konventionen in [app/README.md](app/README.md). Schnittstellenänderungen beginnen in `app/api/openapi.yaml`, Migrationen nur additiv. Geänderte Logik bekommt Unit-Tests. Tests und Spezifikationen von Team 1 werden nie angepasst. Passt ein Test nicht zur Anforderung: `node tools/test-defect.mjs <Bug-Issue> <Befund-Datei>` legt ein separates, freies `test-defect`-Issue an und verknüpft es. Das Bug-Issue erhält `waiting-for-test`, nicht allein deswegen `blocked`. Eigenen Zwischenstand sichern und `pause`. Nach abgeschlossenen Testkorrekturen entfernt der Abgleich `waiting-for-test`; echte zusätzliche Maintainer-Blocker bleiben erhalten.
 4. **Lokal prüfen:** relevante Unit-Tests, die IDs des Issues grün, ganze Fidelity-Suite ohne Regression:
    ```bash
    cd fidelity && npm test; npm run gate -- --require "REQ-<n>-AC<m>"
@@ -165,7 +181,9 @@ Die Fidelity-Suite wird vollständig auf Desktop und Mobil ausgeführt und mit e
 
 ## Release Gate
 
-Workflow [release.yml](.github/workflows/release.yml) startet automatisch nach jedem Push/Merge auf `main`. Fertig implementierte Tickets werden damit nach bestandenem Merge Gate und Merge automatisch auf Hetzner bereitgestellt. Ablauf: Build → ganze Testsuite → Final Check (keine offenen `release-blocker`) → Hetzner-Snapshot und Deployment → verpflichtender Smoke-Test gegen die konfigurierte HTTPS-Produktionsadresse → Branch `release` → Tag und GitHub-Release. Ohne `DEPLOY_URL` endet der Lauf vor dem Deployment mit Fehler. Bei Fehlern bleibt `release` unverändert, damit ein erneuter Lauf das Deployment wiederholen kann. Ein manueller Start bleibt für den Maintainer (oder einen Agenten auf ausdrücklichen Auftrag) möglich: `gh workflow run release.yml`. Rückkehr: Workflow [rollback.yml](.github/workflows/rollback.yml). Details: [ARCHITECTURE.md](ARCHITECTURE.md#7-auslieferung).
+Workflow [release.yml](.github/workflows/release.yml) startet nach Push/Merge auf `main`. Ablauf: ein Image bauen → Unit- und Fidelity-Tests gegen dessen Image-ID → Final Check (Commit aus `main`, keine `release-blocker`, Fast-Forward) → GitHub-SSH-Zugang prüfen → verpflichtender Hetzner-Snapshot → exakt dieses Image übertragen und Image-ID/Commit prüfen → Produktions-Smoke → Branch `release` → wiederholbar Tag und Release veröffentlichen. Hetzner baut kein zweites Image. Version und Tag enthalten Commit- und Image-ID-Anteile. Ein vorhandener Release-Branch allein überspringt weder Deployment noch Veröffentlichung.
+
+GitHub Actions verwendet ausschließlich `HETZNER_CLOUD_SSH`, `HETZNER_CLOUD_API`, `DEPLOY_HOST` und `DEPLOY_KNOWN_HOSTS` aus `production`; Werte werden nie ausgelesen oder lokal kopiert. `gh workflow run deploy-access.yml` prüft API, Serverzuordnung und SSH ohne Deployment. Fehlende Snapshot-Konfiguration sperrt das Release. Bei Deployment- oder Produktions-Smoke-Fehler wird die vorherige Version wieder aktiviert und geprüft; bei einer Erstinstallation ohne Vorgänger ist explizite Wiederherstellung nötig. Manuell: `gh workflow run release.yml -f ref=main`. Rollback: [rollback.yml](.github/workflows/rollback.yml). Ein fehlgeschlagener Release erzeugt deduplizierte, für `work` autorisierte Nacharbeit; Zugangsklärungen werden blockiert, nicht wiederholt geraten. Details: [ARCHITECTURE.md](ARCHITECTURE.md#7-auslieferung).
 
 ## Befehle
 
