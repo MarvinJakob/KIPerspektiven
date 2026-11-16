@@ -78,7 +78,7 @@ Die Passwort-Hashparameter bleiben unverändert (Argon2id, 64 MiB, zwei Durchlä
 
 Die Testbarriere steht vor `accounts.Login`, das die Datenbankabfrage und die echte Argon2-Prüfung enthält (`apiServer.login`). Mit `-cpu 1,2,8` liefen die Parallelitätstests jeweils mehrfach ohne Fehler.
 
-Der Race-Detector braucht CGO und einen C-Compiler. Lokal unter Windows ist kein C-Compiler vorhanden. Die CI führt die Parallelitätstests deshalb bei jedem Pull Request zusätzlich mit `-race` aus (`.github/actions/pruefungen/action.yml`, Befehl in der [README](../README.md#code-erzeugen-und-testen)).
+Der Race-Detector braucht CGO und einen C-Compiler. Lokal unter Windows ist kein C-Compiler vorhanden. Die CI führt die Parallelitätstests deshalb bei jedem Pull Request zusätzlich mit `-race` aus (`.github/actions/unit-tests/action.yml`, Befehl in der [README](../README.md#code-erzeugen-und-testen)).
 
 ## Lasttest
 
