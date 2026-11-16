@@ -46,7 +46,9 @@ statistics-ip.key
 *.db
 *.db-wal
 *.db-shm
-data/
+# Laufzeitdaten der Anwendung (Standard DATABASE_PATH=data/app.db). Nur unter app/, damit
+# Inhaltsordner wie content/topics/data/ versioniert bleiben.
+/app/**/data/
 
 # Logs
 *.log
