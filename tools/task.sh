@@ -12,7 +12,8 @@
 # AGENT_ID ist eine eindeutige Sitzungs-ID (bei Codex automatisch CODEX_THREAD_ID).
 # pause löscht weder Branch noch Worktree. Fragen und Übergabe vorher im Issue dokumentieren.
 #
-# team: spec (Team 1), verify (Team 2), fix (Team 3). issue: Nummer des GitHub-Issues (REQ-0: 0).
+# team: spec (Team 1), verify (Team 2), fix (Team 3), maint (ausdrücklicher Wartungsauftrag).
+# maint verwendet codex/maint-<issue>; issue: Nummer des GitHub-Issues (REQ-0: 0).
 #
 # Exitcodes von claim: 0 belegt (Pfad des Worktrees in der letzten Zeile), 2 bereits von einem anderen
 # Agenten belegt → nächste Aufgabe wählen, 1 Fehler.
@@ -29,9 +30,10 @@ root=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
 agent_id=${AGENT_ID:-${CODEX_THREAD_ID:-${CODEX_SESSION_ID:-}}}
 
 check_args() {
-  [[ "$team" =~ ^(spec|verify|fix)$ ]] || die "team muss spec, verify oder fix sein"
+  [[ "$team" =~ ^(spec|verify|fix|maint)$ ]] || die "team muss spec, verify, fix oder maint sein"
   [[ "$issue" =~ ^[0-9]+$ ]] || die "issue muss eine Nummer sein"
   branch="$team/$issue"
+  if [[ "$team" == maint ]]; then branch="codex/maint-$issue"; fi
   dir="$root/.worktrees/$team-$issue"
   state="$(git rev-parse --path-format=absolute --git-common-dir)/agent-tasks/$team-$issue"
 }

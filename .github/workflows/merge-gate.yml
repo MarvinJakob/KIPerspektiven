@@ -38,30 +38,7 @@ jobs:
           BRANCH: ${{ github.head_ref }}
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
-          changed=$(git diff --name-only "$BASE"...HEAD)
-          echo "Geänderte Dateien:"; echo "$changed" | sed 's/^/  /'
-          fail() { echo "::error::$1"; exit 1; }
-          only() { # alle Dateien müssen einem der Muster entsprechen
-            local bad
-            bad=$(echo "$changed" | grep -Ev "$1" || true)
-            [[ -z "$bad" ]] || fail "Branch $BRANCH darf nur $2 ändern, nicht: $(echo $bad)"
-          }
-          none() { # keine Datei darf dem Muster entsprechen
-            local bad
-            bad=$(echo "$changed" | grep -E "$1" || true)
-            [[ -z "$bad" ]] || fail "Branch $BRANCH darf $2 nicht ändern: $(echo $bad)"
-          }
-          case "$BRANCH" in
-            spec/*)   only '^fidelity/(specs|tests)/' 'fidelity/specs und fidelity/tests (Team 1)' ;;
-            verify/*) only '^fidelity/baseline\.txt$' 'fidelity/baseline.txt (Team 2)' ;;
-            fix/*)    none '^(fidelity/(specs|tests|scripts)/|fidelity/playwright\.config\.ts$|\.github/|AGENTS\.md$)' \
-                           'Fidelity-Tests, Gate und Prozessdateien (Team 3)' ;;
-            *)        echo "Kein Team-Branch: keine Dateigrenzen (Wartung durch den Maintainer)." ;;
-          esac
-          # Die Baseline wächst nur. Entfernen ist Wartung durch den Maintainer, kein Team-Branch.
-          if [[ "$BRANCH" =~ ^(spec|verify|fix)/ ]] && git diff "$BASE"...HEAD -- fidelity/baseline.txt | grep -E '^-REQ-' ; then
-            fail "Team-Branches dürfen keine IDs aus fidelity/baseline.txt entfernen."
-          fi
+          node tools/check-scope.mjs
 
       - name: Geforderte Fidelity-IDs bestimmen
         id: ids
@@ -150,7 +127,7 @@ jobs:
           node-version: 24
       - name: Prozesswerkzeuge prüfen
         run: |
-          node --test tools/workflow.test.mjs
+          node --test tools/*.test.mjs fidelity/scripts/*.test.mjs
           bash tools/task.test.sh
       - name: Checkliste im PR-Text
         env:

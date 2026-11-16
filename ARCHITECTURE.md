@@ -158,7 +158,9 @@ fidelity/
 |---|---|
 | Backlog | alle Tests in `tests/`; fehlschlagende Tests außerhalb der Baseline sind erlaubt |
 | Baseline | bestandene IDs; schlägt eine fehl, ist das eine Regression und sperrt Merge und Release |
-| Gate | `node scripts/gate.mjs [--require "<IDs>"] [--no-baseline]`; Exitcode 1 bei Regression, fehlender geforderter ID oder Testtitel ohne ID |
+| Gate | `node scripts/gate.mjs [--require "<IDs>"] [--inventory inventory.json] [--no-baseline]`; Exitcode 1 bei Regression, fehlender geforderter ID oder ungültigem/unvollständigem Lauf |
+
+CI erzeugt vor der Ausführung mit Playwright ein Inventar der erwarteten Tests. Jede ID muss auf Desktop und Mobil vollständig ausgeführt werden. Globale Fehler, fehlende Tests, Skip und erwartete Fehlschläge sperren das Gate; instabile Ergebnisse gelten nicht als funktionierend. Bekannte fachliche Fehlschläge außerhalb der Baseline bleiben erlaubt. Teilläufe müssen ihre geforderten IDs ausdrücklich nennen. Bericht und Inventar werden gemeinsam als Artefakt aufbewahrt.
 
 `REQ-0` (Healthcheck, Startseite, 404) ist die Grundfunktion und läuft auch als Smoke-Test gegen die Produktion.
 
@@ -176,11 +178,26 @@ Mehrere Agenten (Claude Code, Codex u. a.) arbeiten gleichzeitig auf einem Windo
 | Board `Blocked` | konkrete Rückfrage im Issue; nach Antwort und Rückkehr nach `In Progress` übernimmt ein freier Agent |
 | Board `Review` | ein anderer, an der Implementierung unbeteiligter Agent prüft den aktuellen Commit; IDs und Commit stehen im PR |
 | Branch-Präfix `spec/`, `verify/`, `fix/` | das Merge Gate prüft die Team-Grenzen (welche Dateien geändert werden dürfen) |
+| `tools/task.sh claim maint <n>` | nur bei ausdrücklichem Wartungsauftrag: Branch `codex/maint-<n>`, Worktree `.worktrees/maint-<n>`; unabhängiges Review und Merge Gate bleiben Pflicht |
 | `fidelity/baseline.txt` mit `merge=union` | parallele Ergänzungen der Baseline ohne Merge-Konflikt |
 | Port `20000 + <n>`, Datenbank in `app/.build/` des Worktrees | lokale Server der Agenten stören sich nicht |
 | Squash-Merge, Branch-Löschung nach Merge | `main` bleibt linear, Sperren verschwinden mit `tools/task.sh finish` |
 
 **Zugang:** `GH_TOKEN` (GitHub, Scopes `repo`, `workflow`, `project`) und `HCLOUD_TOKEN` (Hetzner Cloud, Lesen und Schreiben) als Windows-Benutzervariablen. Werkzeuge: Git (mit Git Bash), GitHub CLI, Go (Version aus `app/backend/go.mod`), Node 24, Playwright mit Chromium.
+
+### Abgleich mit dem Mock `software_development`
+
+Der Auftrag vom 16. November 2026 macht den Text und beide Prozessgrafiken dieses Mocks zur fachlichen Quelle des Entwicklungsprozesses.
+
+| Vorgabe | Umsetzung |
+|---|---|
+| Analysten schreiben und verifizieren Referenzszenarien einschließlich Sonderfällen und Fehlerbehandlung | Team 1, Spezifikationen und ausführbare Fidelity-Tests mit Gegenprobe |
+| Tester prüfen vorhandenen Code und dokumentieren funktionierendes und fehlendes Verhalten | Team 2, vollständiger Testlauf, `works`-/Bug-Tickets und wachsende Baseline |
+| Ein Fixer pro Fall, Mindeststandards vor Integration | atomare Aufgabenbelegung, eigener Worktree, Änderungen nur in `app/` und append-only Baseline; Merge Gate mit Build, Review, Security und Fidelity |
+| Gesamte Testsuite und Final Check vor Release | Release Gate baut den festgelegten Commit neu, prüft alle Tests und sperrt bei Regressionen oder offenen Release-Blockern |
+| Veröffentlichung erst am Ende | Integrations-PRs und `main` sind das gemeinsame Arbeitsrepository. Release-Branch, Tag und GitHub-Release werden erst nach Deployment und verpflichtendem Smoke-Test veröffentlicht. |
+
+Die letzte Vorgabe bezieht sich auf die Veröffentlichung des fertigen Releases. Entwicklungsbranches und verifizierte Tests müssen vorher im gemeinsamen Repository verfügbar sein, damit die drei Teams über Backlog und Tests arbeiten können. Der vom Final Check festgelegte Commit ist der Release-Kandidat; der öffentliche Branch `release` wird erst nach erfolgreicher Produktprüfung aktualisiert.
 
 ---
 
@@ -196,6 +213,8 @@ Mehrere Agenten (Claude Code, Codex u. a.) arbeiten gleichzeitig auf einem Windo
 | Tags `vJJJJ.MM.TT-<Lauf>` | GitHub-Release je ausgeliefertem Stand |
 | Projekt „AI Perspectives“ | Board mit Feld Status einschließlich Ready, In Progress, Review und Blocked; bisherige Namen In Arbeit/Merge Gate werden von den Werkzeugen unterstützt; weitere fachliche Stati bleiben erhalten |
 | Labels | `requirement`, `needs-analysis`, `specified`, `done`, `bug`, `works`, `test-defect`, `release-blocker`, `in-progress`, `blocked` |
+
+Branch-Schutz für `main`: Pull Request und Statusprüfung `Merge Gate` sind verpflichtend, der Branch muss vor Merge aktuell sein. Die Regel gilt auch für Administratoren; Force-Push und Branch-Löschung sind gesperrt. Die unabhängige Agentenprüfung wird zusätzlich durch den Review-Nachweis im PR abgesichert.
 
 ### Workflows
 
@@ -226,7 +245,7 @@ Der Workflow startet nach jedem Push/Merge auf `main`, zusätzlich bleibt der ma
 2. **Test:** ganze Unit-Test-Suite und ganze Fidelity-Suite; jede Baseline-ID muss bestehen.
 3. **Final Check:** keine offenen Issues mit `release-blocker`; `release` ist Vorfahre des Commits; ist der Stand schon released, endet der Lauf ohne Deployment.
 4. **Package:** Snapshot des Servers über die Hetzner Cloud API (die drei jüngsten bleiben), dann [app/deploy/deploy.sh](app/deploy/deploy.sh) `release <Commit>`: `app/` per `git archive` und SSH nach `/opt/ki-web/build/<Version>`, Image `ki-web:<Version>` auf dem Server bauen, mit `docker compose up --wait` starten, `https://DOMAIN/api/health` prüfen. Ist die neue Version nicht gesund, startet das Skript die bisherige wieder und der Lauf schlägt fehl. Danach REQ-0 gegen `DEPLOY_URL`.
-5. **release:** Erst nach erfolgreichem Deployment und Smoke-Test wird der Branch `release` auf den geprüften Commit vorgezogen. Bei Fehlern bleibt er unverändert; ein erneuter Lauf überspringt das fehlgeschlagene Deployment deshalb nicht.
+5. **release:** Erst nach erfolgreichem Deployment und verpflichtendem Smoke-Test wird der Branch `release` auf den geprüften Commit vorgezogen. Eine fehlende HTTPS-`DEPLOY_URL` sperrt den Lauf bereits vor dem Deployment. Bei Fehlern bleibt der Branch unverändert; ein erneuter Lauf überspringt das fehlgeschlagene Deployment deshalb nicht.
 6. **Publish:** erst ganz am Ende Tag und GitHub-Release mit generierten Release Notes.
 
 Releases und Rollbacks laufen nacheinander (`concurrency: release-production`); ein laufendes Deployment wird nicht durch weitere Merges abgebrochen. Mehrere wartende Releases werden von GitHub zum neuesten wartenden Stand zusammengefasst, der die vorherigen Merges enthält. **Rollback:** Workflow „Rollback“ oder lokal `app/deploy/deploy.sh rollback | switch <Version>`; die fünf jüngsten Versionen liegen auf dem Server. Migrationen sind additiv, damit die vorherige Version mit dem neuen Schema läuft. Weitere Details: [app/docs/betrieb.md](app/docs/betrieb.md).

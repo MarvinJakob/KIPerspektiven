@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Wertet einen Fidelity-Lauf (results.json von Playwright) gegen die Baseline aus.
 //
-//   node scripts/gate.mjs [--require "REQ-12-AC1 REQ-12-AC2"] [--results results.json] [--no-baseline]
+//   node scripts/gate.mjs [--require "REQ-12-AC1 REQ-12-AC2"] [--results results.json] [--inventory inventory.json] [--no-baseline]
 //
 // Ergebnis je Test-ID (REQ-<n>-AC<m>, Anfang des Testtitels): bestanden nur, wenn der Test in allen
 // Projekten (desktop, mobil) bestanden hat.
@@ -16,9 +16,9 @@
 import { appendFileSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { evaluateReport } from './report.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const ID = /^(REQ-\d+-AC\d+)\b/;
 
 function arg(name, fallback = '') {
   const i = process.argv.indexOf(name);
@@ -36,23 +36,9 @@ const baseline = process.argv.includes('--no-baseline')
       .filter(Boolean);
 
 const report = JSON.parse(readFileSync(resultsPath, 'utf8'));
-const byId = new Map(); // ID -> { passed: boolean, file }
-const invalid = [];
-
-function walk(suite, file) {
-  for (const spec of suite.specs ?? []) {
-    const match = ID.exec(spec.title);
-    if (!match) {
-      invalid.push(`${file}: „${spec.title}“`);
-      continue;
-    }
-    const passed = spec.tests.length > 0 && spec.tests.every((t) => t.status === 'expected' || t.status === 'flaky');
-    const previous = byId.get(match[1]);
-    byId.set(match[1], { passed: (previous?.passed ?? true) && passed, file });
-  }
-  for (const child of suite.suites ?? []) walk(child, file);
-}
-for (const suite of report.suites ?? []) walk(suite, suite.file ?? suite.title);
+const inventoryPath = arg('--inventory');
+const inventory = inventoryPath ? JSON.parse(readFileSync(inventoryPath, 'utf8')) : undefined;
+const { byId, invalid } = evaluateReport(report, inventory);
 
 const status = (id) => (byId.has(id) ? (byId.get(id).passed ? 'bestanden' : 'fehlgeschlagen') : 'fehlt');
 const regressions = baseline.filter((id) => status(id) !== 'bestanden');
@@ -80,7 +66,7 @@ if (required.length) {
   lines.push('');
 }
 if (regressions.length) lines.push('**Regressionen**', '', ...regressions.map((id) => `- ${id}: ${status(id)}`), '');
-if (invalid.length) lines.push('**Testtitel ohne gültige ID**', '', ...invalid.map((t) => `- ${t}`), '');
+if (invalid.length) lines.push('**Ungültiger oder unvollständiger Testlauf**', '', ...invalid.map((t) => `- ${t}`), '');
 if (newlyWorking.length) lines.push('**Neu funktionierend**', '', ...newlyWorking.map((id) => `- ${id}`), '');
 if (fails.length) lines.push('<details><summary>Funktionieren nicht</summary>', '', ...fails.map((id) => `- ${id}`), '', '</details>', '');
 

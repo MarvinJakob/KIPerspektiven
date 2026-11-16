@@ -150,6 +150,12 @@ jobs:
         with:
           ref: ${{ needs.build.outputs.commit }}
 
+      - name: Produktionsprüfung muss konfiguriert sein
+        env:
+          DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+        run: |
+          [[ "$DEPLOY_URL" == https://* ]] || { echo "::error::DEPLOY_URL muss für den verpflichtenden Smoke-Test eine HTTPS-URL enthalten."; exit 1; }
+
       - name: Snapshot des Servers
         if: github.event_name == 'push' || inputs.snapshot
         uses: ./.github/actions/hcloud-snapshot
@@ -176,7 +182,6 @@ jobs:
         run: rm -f ~/.ssh/deploy
 
       - name: Smoke-Test gegen Produktion (REQ-0)
-        if: vars.DEPLOY_URL != ''
         uses: ./.github/actions/fidelity
         with:
           base-url: ${{ vars.DEPLOY_URL }}

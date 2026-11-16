@@ -71,7 +71,11 @@ runs:
         GREP: ${{ inputs.grep }}
       # Fehlschläge sind im Backlog erwartet. Ob sie zulässig sind, entscheidet der nächste Schritt.
       run: |
-        if [[ -n "$GREP" ]]; then npx playwright test --grep "$GREP" || true; else npx playwright test || true; fi
+        rm -f results.json inventory.json
+        args=()
+        if [[ -n "$GREP" ]]; then args+=(--grep "$GREP"); fi
+        npx playwright test "${args[@]}" --list --reporter=json > inventory.json
+        npx playwright test "${args[@]}" || true
         test -s results.json || { echo "::error::Playwright hat keine results.json geschrieben."; exit 1; }
 
     - name: Gate auswerten
@@ -83,7 +87,12 @@ runs:
         GREP: ${{ inputs.grep }}
       # Teillauf (grep, z. B. Smoke-Test in Produktion): nur die geforderten IDs zählen, nicht die ganze Baseline
       run: |
-        if [[ -n "$GREP" ]]; then node scripts/gate.mjs --no-baseline; else node scripts/gate.mjs; fi
+        if [[ -n "$GREP" ]]; then
+          [[ -n "$REQUIRED_IDS" ]] || { echo "::error::Teilläufe brauchen explizite required-ids."; exit 1; }
+          node scripts/gate.mjs --inventory inventory.json --no-baseline
+        else
+          node scripts/gate.mjs --inventory inventory.json
+        fi
 
     - name: Bericht hochladen
       if: always()
@@ -93,6 +102,7 @@ runs:
         path: |
           fidelity/playwright-report/
           fidelity/results.json
+          fidelity/inventory.json
         retention-days: 14
         if-no-files-found: ignore
 

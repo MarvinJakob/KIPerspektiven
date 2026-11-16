@@ -39,9 +39,10 @@ Der Auftrag im Chat nennt das Team, optional mit Issue: `Team 1`, `Team 2`, `Tea
    | 3 Fixer | `fix/<n>` | `app/`, `fidelity/baseline.txt` (nur anhängen) | `fidelity/specs`, `fidelity/tests`, `fidelity/scripts`, `.github/`, `AGENTS.md` |
 
    Prozess- und Infrastrukturdateien (`AGENTS.md`, `ARCHITECTURE.md`, `.github/`, `tools/`) ändert nur der Maintainer bzw. ein ausdrücklicher Auftrag.
+   Solche Wartungsaufträge werden mit `bash tools/task.sh claim maint <n>` belegt: Branch `codex/maint-<n>`, Worktree `.worktrees/maint-<n>`. Für `pause`, `resume` und `finish` ebenfalls `maint` verwenden. Dies ist kein viertes Team; unabhängiges Review und Merge Gate gelten unverändert.
 5. **Abschluss:** PR erst öffnen, wenn die lokalen Prüfungen bestehen; vor unabhängiger Abnahme als Draft. Mergen nur mit grünem **Merge Gate** (`gh pr checks <PR> --watch`, dann `gh pr merge <PR> --squash --delete-branch`). Nie `--admin`, nie Checks umgehen. Danach `bash tools/task.sh finish <team> <n>`.
 6. **Blocker:** Ist eine Aufgabe ohne Rückfrage nicht lösbar, die konkrete Frage, den Entscheidungsbedarf und den bisherigen Stand ins Issue kommentieren, Label `blocked` setzen und Board-Status `Blocked` wählen: `bash tools/board.sh block <n> <Fragen-Datei>`. Vorhandene Änderungen als Zwischenstand committen und die Übergabe mit Team, Branch, Commit, beteiligten Implementierer-IDs und nächstem Schritt im Issue dokumentieren. Danach `bash tools/task.sh pause <team> <n>`; Server beenden, nächste Aufgabe. **Kein `finish --abandon`: Branch und Worktree bleiben erhalten.** Der Maintainer beantwortet die Frage im Kommentar und verschiebt nach `In Progress`. Ein freier Agent liest die Antworten, entfernt `blocked` mit `bash tools/board.sh unblock <n>` und übernimmt mit `resume`. Fehlt die erforderliche Antwort, die konkrete noch offene Frage kommentieren und wieder nach `Blocked` verschieben. Nicht raten.
-7. **Sparsam arbeiten:** Nur lesen, was die Aufgabe braucht: dieses Dokument, das Issue, die Spezifikation `fidelity/specs/REQ-<n>.md` und den betroffenen Code. `content/` (außer als fachliche Quelle einer Anforderung), `res/` und `mock/` sind keine Vorgaben; `content/archive/` ist veraltet und wird nie gelesen. Issue-Kommentare kurz und sachlich.
+7. **Sparsam arbeiten:** Nur lesen, was die Aufgabe braucht: dieses Dokument, das Issue, die Spezifikation `fidelity/specs/REQ-<n>.md` und den betroffenen Code. `content/`, `res/` und `mock/` sind nur dann Vorgaben, wenn der Auftrag sie ausdrücklich als fachliche Quelle nennt; `content/archive/` ist veraltet und wird nie gelesen. Issue-Kommentare kurz und sachlich.
 8. **Commits:** [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/) mit Issue-Nummer, z. B. `fix: Themenseite liefert 404 für Entwürfe (#45)`. Vor dem Push `git fetch origin && git rebase origin/main`, danach betroffene Prüfungen wiederholen.
 9. **Parallele Server:** Jeder Agent startet die Anwendung auf eigenem Port `20000 + <Issue-Nummer>` und mit eigener Datenbank im Worktree (siehe [Befehle](#befehle)).
 
@@ -102,11 +103,11 @@ Ziel: Feststellen, was funktioniert und was nicht, und dafür Tickets anlegen. T
 
 1. **Testlauf holen:** Der Workflow „Fidelity-Lauf“ testet `main` nach jedem Push. Neuesten abgeschlossenen Lauf laden und auswerten:
    ```bash
-   gh run list -w fidelity-run.yml -b main -L 1 --json databaseId,headSha,status,conclusion
+   gh run list -w fidelity-run.yml -b main --status completed -L 1 --json databaseId,headSha,status,conclusion
    gh run download <databaseId> -n fidelity-main -D .worktrees/fidelity-<databaseId>
-   node fidelity/scripts/gate.mjs --results .worktrees/fidelity-<databaseId>/results.json
+   node fidelity/scripts/gate.mjs --results .worktrees/fidelity-<databaseId>/results.json --inventory .worktrees/fidelity-<databaseId>/inventory.json
    ```
-   Läuft gerade einer, den vorherigen abgeschlossenen nehmen. Nur bei Bedarf selbst einen starten (`gh workflow run fidelity-run.yml`).
+   Nur vollständige Berichte samt Inventar auswerten. Globale Fehler, fehlende Projekte oder übersprungene Tests sind ein defekter Testlauf und kein fachliches Bug-Ticket. `headSha` im Nachweis festhalten; nur Kriterien bewerten, die in diesem Commit bereits enthalten waren. Fehlen aktuelle Kriterien, den nächsten abgeschlossenen Lauf nehmen. Nur bei Bedarf selbst einen starten (`gh workflow run fidelity-run.yml`).
 2. **Arbeit bestimmen:** Eine Anforderung `REQ-<n>` ist zu bearbeiten, wenn sie (a) neu funktionierende IDs hat, (b) fehlschlagende IDs ohne offenes Bug-Issue (`gh issue list -l bug --search "REQ-<n>-AC in:title"`), (c) Regressionen oder (d) alle IDs in der Baseline hat, aber noch offen ist. Belegen: `bash tools/task.sh claim verify <n>`, sonst nächste Anforderung.
 3. **Funktioniert nicht:** Pro Fehlerursache ein Issue nach [bug.yml](.github/ISSUE_TEMPLATE/bug.yml): Titel `[REQ-<n>-AC<m>] …`, alle betroffenen IDs, erwartetes und tatsächliches Verhalten, Link zum Lauf. Label `bug`, Board „Bug offen“. Regression einer Baseline-ID zusätzlich `release-blocker`. Wirkt der Test selbst falsch oder instabil: Label `test-defect` statt `bug`.
 4. **Funktioniert:** Neu bestandene IDs im Worktree an `fidelity/baseline.txt` anhängen, PR `verify/<n>` (das Merge Gate prüft, dass sie bestehen), mergen. Ein Issue nach [funktioniert.yml](.github/ISSUE_TEMPLATE/funktioniert.yml) mit Label `works` anlegen und sofort schließen (`gh issue close <nr> --reason completed`).
@@ -146,9 +147,13 @@ Workflow [merge-gate.yml](.github/workflows/merge-gate.yml), Pflichtprüfung „
 | Review | die Checkliste im PR-Text vollständig abgehakt ist, inklusive unabhängigem Review |
 | Fidelity | alle Baseline-IDs bestehen und alle im PR geforderten bzw. neu in die Baseline aufgenommenen IDs bestehen |
 
+`main` muss auf GitHub durch eine Branch-Regel geschützt sein: Pull Requests und Statusprüfung `Merge Gate` erforderlich, Branch vor Merge aktuell, Regeln auch für Administratoren, kein Force-Push und keine Branch-Löschung. Ein vorhandener Workflow allein verhindert keinen ungeprüften Merge.
+
+Die Fidelity-Suite wird vollständig auf Desktop und Mobil ausgeführt und mit einem vorab erzeugten Testinventar abgeglichen. Globale Fehler, leere oder unvollständige Läufe, Skip und erwartete Fehlschläge sperren das Gate. Instabile Tests gelten nicht als funktionierend. Nur regulär bestandene IDs können Baseline oder Erfolgsnachweis werden; bekannte fachliche Fehlschläge außerhalb der Baseline bleiben Backlog.
+
 ## Release Gate
 
-Workflow [release.yml](.github/workflows/release.yml) startet automatisch nach jedem Push/Merge auf `main`. Fertig implementierte Tickets werden damit nach bestandenem Merge Gate und Merge automatisch auf Hetzner bereitgestellt. Ablauf: Build → ganze Testsuite → Final Check (keine offenen `release-blocker`) → Hetzner-Snapshot und Deployment → Smoke-Test gegen Produktion → Branch `release` → Tag und GitHub-Release. Bei Fehlern bleibt `release` unverändert, damit ein erneuter Lauf das Deployment wiederholen kann. Ein manueller Start bleibt für den Maintainer (oder einen Agenten auf ausdrücklichen Auftrag) möglich: `gh workflow run release.yml`. Rückkehr: Workflow [rollback.yml](.github/workflows/rollback.yml). Details: [ARCHITECTURE.md](ARCHITECTURE.md#7-auslieferung).
+Workflow [release.yml](.github/workflows/release.yml) startet automatisch nach jedem Push/Merge auf `main`. Fertig implementierte Tickets werden damit nach bestandenem Merge Gate und Merge automatisch auf Hetzner bereitgestellt. Ablauf: Build → ganze Testsuite → Final Check (keine offenen `release-blocker`) → Hetzner-Snapshot und Deployment → verpflichtender Smoke-Test gegen die konfigurierte HTTPS-Produktionsadresse → Branch `release` → Tag und GitHub-Release. Ohne `DEPLOY_URL` endet der Lauf vor dem Deployment mit Fehler. Bei Fehlern bleibt `release` unverändert, damit ein erneuter Lauf das Deployment wiederholen kann. Ein manueller Start bleibt für den Maintainer (oder einen Agenten auf ausdrücklichen Auftrag) möglich: `gh workflow run release.yml`. Rückkehr: Workflow [rollback.yml](.github/workflows/rollback.yml). Details: [ARCHITECTURE.md](ARCHITECTURE.md#7-auslieferung).
 
 ## Befehle
 

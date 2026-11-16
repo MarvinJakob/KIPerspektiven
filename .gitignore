@@ -33,6 +33,7 @@ __pycache__/
 /fidelity/test-results/
 /fidelity/blob-report/
 /fidelity/results.json
+/fidelity/inventory.json
 
 # Daten, Medien und Geheimnisse
 statistics-ip.key

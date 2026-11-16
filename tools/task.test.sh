@@ -95,4 +95,10 @@ touch "$TASK_FINISH_BARRIER/release"
 wait "$finisher"
 run_as next-agent claim fix 102 > /dev/null
 [[ "$(cat .git/agent-tasks/fix-102/active/owner)" == next-agent ]] || exit 1
-echo 'Task-Tests bestanden: Besitzer, Checkpoint, konkurrierende Wiederaufnahme und Finish/Claim-Sperre.'
+run_as maintainer-A claim maint 103 > /dev/null
+[[ "$(git -C "$fixture/repo/.worktrees/maint-103" branch --show-current)" == codex/maint-103 ]] || exit 1
+run_as maintainer-A pause maint 103 > /dev/null
+run_as maintainer-B resume maint 103 > /dev/null
+run_as maintainer-B finish maint 103 > /dev/null
+
+echo 'Task-Tests bestanden: Besitzer, Checkpoint, konkurrierende Wiederaufnahme, Finish/Claim-Sperre und Wartung.'
