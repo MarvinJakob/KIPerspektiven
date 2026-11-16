@@ -1,0 +1,189 @@
+# Merge Gate: Jeder Pull Request nach main muss alle Prüfungen bestehen (AGENTS.md, „Merge Gate“).
+# Als Pflichtprüfung in der Branch-Regel für main reicht der Abschlussjob „Merge Gate“.
+#
+#   scope     Team-Grenzen: Welche Dateien darf der Branch-Präfix (spec/, verify/, fix/) ändern?
+#   build     Docker-Image wie in Produktion (beide Frontends und Backend)
+#   tests     Unit- und Komponententests (Backend mit Race-Detector, beide Frontends)
+#   security  govulncheck, npm audit, Dependency Review, Secret-Scan
+#   review    Checkliste im PR-Text vollständig abgehakt (unabhängiges Review ist erfolgt)
+#   fidelity  Fidelity-Suite gegen das gebaute Image: keine Regression der Baseline, geforderte IDs bestehen
+name: Merge Gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: merge-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  scope:
+    name: Team-Grenzen
+    runs-on: ubuntu-latest
+    outputs:
+      required-ids: ${{ steps.ids.outputs.required }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Geänderte Dateien gegen Team-Regeln prüfen
+        env:
+          BRANCH: ${{ github.head_ref }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          changed=$(git diff --name-only "$BASE"...HEAD)
+          echo "Geänderte Dateien:"; echo "$changed" | sed 's/^/  /'
+          fail() { echo "::error::$1"; exit 1; }
+          only() { # alle Dateien müssen einem der Muster entsprechen
+            local bad
+            bad=$(echo "$changed" | grep -Ev "$1" || true)
+            [[ -z "$bad" ]] || fail "Branch $BRANCH darf nur $2 ändern, nicht: $(echo $bad)"
+          }
+          none() { # keine Datei darf dem Muster entsprechen
+            local bad
+            bad=$(echo "$changed" | grep -E "$1" || true)
+            [[ -z "$bad" ]] || fail "Branch $BRANCH darf $2 nicht ändern: $(echo $bad)"
+          }
+          case "$BRANCH" in
+            spec/*)   only '^fidelity/(specs|tests)/' 'fidelity/specs und fidelity/tests (Team 1)' ;;
+            verify/*) only '^fidelity/baseline\.txt$' 'fidelity/baseline.txt (Team 2)' ;;
+            fix/*)    none '^(fidelity/(specs|tests|scripts)/|fidelity/playwright\.config\.ts$|\.github/|AGENTS\.md$)' \
+                           'Fidelity-Tests, Gate und Prozessdateien (Team 3)' ;;
+            *)        echo "Kein Team-Branch: keine Dateigrenzen (Wartung durch den Maintainer)." ;;
+          esac
+          # Die Baseline wächst nur. Entfernen ist Wartung durch den Maintainer, kein Team-Branch.
+          if [[ "$BRANCH" =~ ^(spec|verify|fix)/ ]] && git diff "$BASE"...HEAD -- fidelity/baseline.txt | grep -E '^-REQ-' ; then
+            fail "Team-Branches dürfen keine IDs aus fidelity/baseline.txt entfernen."
+          fi
+
+      - name: Geforderte Fidelity-IDs bestimmen
+        id: ids
+        env:
+          BRANCH: ${{ github.head_ref }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # 1. Zeile „Fidelity: REQ-12-AC1, REQ-12-AC2“ im PR-Text  2. neu in die Baseline aufgenommene IDs
+          from_body=$(printf '%s\n' "$PR_BODY" | grep -iE '^\s*Fidelity:' | grep -oE 'REQ-[0-9]+-AC[0-9]+' || true)
+          from_baseline=$(git diff "$BASE"...HEAD -- fidelity/baseline.txt | grep -oE '^\+REQ-[0-9]+-AC[0-9]+' | cut -c2- || true)
+          required=$(printf '%s\n%s\n' "$from_body" "$from_baseline" | grep -v '^$' | sort -u | tr '\n' ' ' || true)
+          echo "Geforderte IDs: ${required:-keine}"
+          if [[ "$BRANCH" == fix/* && -z "$required" ]]; then
+            echo "::error::Team-3-PRs nennen im PR-Text die Test-IDs ihres Tickets, z. B. „Fidelity: REQ-12-AC2“."
+            exit 1
+          fi
+          echo "required=$required" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - name: Image bauen
+        uses: docker/build-push-action@v6
+        with:
+          context: app
+          tags: ki-web:ci
+          outputs: type=docker,dest=${{ runner.temp }}/image.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image
+          path: ${{ runner.temp }}/image.tar
+          retention-days: 1
+
+  tests:
+    name: Unit-Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/unit-tests
+
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: app/backend/go.mod
+          cache-dependency-path: app/backend/go.sum
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Bekannte Schwachstellen in Go-Abhängigkeiten (govulncheck)
+        working-directory: app/backend
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - name: Bekannte Schwachstellen in npm-Abhängigkeiten
+        run: |
+          for dir in app/frontend app/frontend-redaktion fidelity; do
+            echo "== $dir"; (cd "$dir" && npm audit --audit-level=high)
+          done
+      - name: Neue Abhängigkeiten prüfen
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+      - name: Secret-Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  review:
+    name: Review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkliste im PR-Text
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          DRAFT: ${{ github.event.pull_request.draft }}
+        run: |
+          [[ "$DRAFT" != "true" ]] || { echo "::error::Entwurf: erst nach „Ready for review“ mergebar."; exit 1; }
+          printf '%s\n' "$PR_BODY" | grep -qE '^\s*- \[[xX]\] .*Review' \
+            || { echo "::error::Im PR-Text fehlt der abgehakte Punkt zum unabhängigen Review (.github/pull_request_template.md)."; exit 1; }
+          if printf '%s\n' "$PR_BODY" | grep -E '^\s*- \[ \]'; then
+            echo "::error::Nicht alle Punkte der Merge-Gate-Checkliste sind abgehakt. PR-Text anpassen und den Lauf neu starten."
+            exit 1
+          fi
+          echo "Checkliste vollständig."
+
+  fidelity:
+    name: Fidelity
+    needs: [scope, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          name: image
+          path: ${{ runner.temp }}
+      - run: docker load -i "$RUNNER_TEMP/image.tar"
+      - uses: ./.github/actions/fidelity
+        with:
+          image: ki-web:ci
+          required-ids: ${{ needs.scope.outputs.required-ids }}
+
+  merge-gate:
+    name: Merge Gate
+    if: always()
+    needs: [scope, build, tests, security, review, fidelity]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ergebnis
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$RESULTS" | jq -e 'all(.[]; .result == "success")' > /dev/null \
+            || { echo "::error::Merge Gate nicht bestanden."; exit 1; }
+          echo "Merge Gate bestanden."

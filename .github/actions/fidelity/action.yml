@@ -1,0 +1,102 @@
+# Fidelity-Tests (fidelity/, AGENTS.md Team 1) gegen eine laufende Anwendung und Auswertung mit scripts/gate.mjs.
+# Ohne base-url startet die Action das geladene Image `image` lokal mit Entwicklungs-Seed.
+# Mit base-url prüft sie eine bereits laufende Umgebung, z. B. die Produktion nach dem Deployment.
+name: Fidelity-Tests
+description: Playwright-Suite ausführen und gegen fidelity/baseline.txt bewerten
+
+inputs:
+  image:
+    description: Lokal vorhandenes Docker-Image, das gestartet wird (wenn base-url leer ist)
+    default: ki-web:ci
+  base-url:
+    description: Bereits laufende Anwendung statt eines lokalen Containers
+    default: ''
+  grep:
+    description: Optional nur Tests, deren Titel diesem regulären Ausdruck entspricht (z. B. ^REQ-0-)
+    default: ''
+  required-ids:
+    description: Test-IDs, die zusätzlich zur Baseline bestehen müssen (Leerzeichen-getrennt)
+    default: ''
+  report-name:
+    description: Name des hochgeladenen Playwright-Berichts
+    default: fidelity-report
+
+outputs:
+  works:
+    description: Bestandene Test-IDs
+    value: ${{ steps.gate.outputs.works }}
+  fails:
+    description: Nicht bestandene Test-IDs (offener Backlog)
+    value: ${{ steps.gate.outputs.fails }}
+  newly-working:
+    description: Bestandene Test-IDs, die noch nicht in der Baseline stehen
+    value: ${{ steps.gate.outputs.newly_working }}
+
+runs:
+  using: composite
+  steps:
+    - name: Anwendung starten
+      if: inputs.base-url == ''
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+      run: |
+        docker run -d --name fidelity-app -p 8080:8080 \
+          -e DEV_SEED=true -e SERVE_MEDIA=true -e PUBLIC_BASE_URL=http://localhost:8080 \
+          "$IMAGE"
+        for i in $(seq 1 60); do
+          curl -fsS http://localhost:8080/api/health > /dev/null 2>&1 && { echo "Anwendung bereit"; exit 0; }
+          sleep 1
+        done
+        docker logs fidelity-app
+        echo "::error::Die Anwendung ist nach 60 s nicht gesund."
+        exit 1
+
+    - uses: actions/setup-node@v5
+      with:
+        node-version: 24
+        cache: npm
+        cache-dependency-path: fidelity/package-lock.json
+
+    - name: Abhängigkeiten und Browser
+      shell: bash
+      working-directory: fidelity
+      run: npm ci && npx playwright install --with-deps chromium && npm run typecheck
+
+    - name: Fidelity-Suite
+      shell: bash
+      working-directory: fidelity
+      env:
+        BASE_URL: ${{ inputs.base-url || 'http://localhost:8080' }}
+        GREP: ${{ inputs.grep }}
+      # Fehlschläge sind im Backlog erwartet. Ob sie zulässig sind, entscheidet der nächste Schritt.
+      run: |
+        if [[ -n "$GREP" ]]; then npx playwright test --grep "$GREP" || true; else npx playwright test || true; fi
+        test -s results.json || { echo "::error::Playwright hat keine results.json geschrieben."; exit 1; }
+
+    - name: Gate auswerten
+      id: gate
+      shell: bash
+      working-directory: fidelity
+      env:
+        REQUIRED_IDS: ${{ inputs.required-ids }}
+        GREP: ${{ inputs.grep }}
+      # Teillauf (grep, z. B. Smoke-Test in Produktion): nur die geforderten IDs zählen, nicht die ganze Baseline
+      run: |
+        if [[ -n "$GREP" ]]; then node scripts/gate.mjs --no-baseline; else node scripts/gate.mjs; fi
+
+    - name: Bericht hochladen
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.report-name }}
+        path: |
+          fidelity/playwright-report/
+          fidelity/results.json
+        retention-days: 14
+        if-no-files-found: ignore
+
+    - name: Container-Log
+      if: failure() && inputs.base-url == ''
+      shell: bash
+      run: docker logs --tail 100 fidelity-app || true

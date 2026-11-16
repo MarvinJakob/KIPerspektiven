@@ -1,0 +1,39 @@
+name: Bug (fehlgeschlagener Fidelity-Test)
+description: Von Team 2 angelegt, wenn ein Fidelity-Test nicht besteht. Team 3 behebt genau dieses Ticket.
+title: "[REQ-<n>-AC<m>] <Was funktioniert nicht>"
+labels: [bug]
+body:
+  - type: input
+    id: ids
+    attributes:
+      label: Test-IDs
+      description: Alle fehlschlagenden IDs dieses Fehlers, Leerzeichen-getrennt
+      placeholder: REQ-12-AC2 REQ-12-AC3
+    validations:
+      required: true
+  - type: input
+    id: anforderung
+    attributes:
+      label: Anforderung
+      placeholder: "#12"
+    validations:
+      required: true
+  - type: textarea
+    id: ergebnis
+    attributes:
+      label: Erwartet und tatsächlich
+      description: Erwartetes Verhalten laut Spezifikation, tatsächliches Verhalten laut Testlauf (Fehlermeldung kürzen)
+    validations:
+      required: true
+  - type: textarea
+    id: reproduktion
+    attributes:
+      label: Reproduktion
+      value: |
+        cd fidelity
+        BASE_URL=http://localhost:8080 npx playwright test --grep "REQ-<n>-AC<m>"
+  - type: input
+    id: lauf
+    attributes:
+      label: Testlauf
+      description: Link zum Lauf „Fidelity-Lauf“ oder geprüfter Commit

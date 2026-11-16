@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, it } from 'vitest';
-import source from '../../../content/KI verstehen.md?raw';
+import source from '../../../content/topics/understanding/KI verstehen.md?raw';
 import published from './content/features/ki-verstehen.de.md?raw';
 import { topicImages } from './lib/topicImages';
 import { understandAiBody, understandAiDescription } from './pages/UnderstandAi';

@@ -1,0 +1,34 @@
+# Testlauf der ganzen Fidelity-Suite auf main – Grundlage für Team 2 (AGENTS.md, „Team 2 – Tester“).
+# Läuft nach jedem Push auf main und auf Anforderung. Das Artefakt fidelity-main enthält results.json
+# und den Playwright-Bericht. Die Zusammenfassung des Laufs listet funktionierende und offene Test-IDs.
+name: Fidelity-Lauf
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fidelity-main
+  cancel-in-progress: true
+
+jobs:
+  fidelity:
+    name: Fidelity-Suite auf main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: app
+          tags: ki-web:ci
+          load: true
+          cache-from: type=gha
+      - uses: ./.github/actions/fidelity
+        with:
+          image: ki-web:ci
+          report-name: fidelity-main

@@ -1,0 +1,42 @@
+# Rückkehr zu einer früheren Version auf dem Hetzner-Server (app/deploy/deploy.sh).
+# Ohne Angabe startet die vorherige Version (PREVIOUS_VERSION), sonst die angegebene Image-Version
+# (kurzer Commit-Hash, eine der fünf jüngsten). Der Branch release bleibt unverändert.
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Image-Version (kurzer Commit-Hash). Leer = vorherige Version
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-production
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    name: Rollback
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.DEPLOY_URL }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/ssh-setup
+        with:
+          ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      - name: Version wechseln
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ -z "$VERSION" ]]; then app/deploy/deploy.sh rollback; else app/deploy/deploy.sh switch "$VERSION"; fi
+          app/deploy/deploy.sh status
+      - name: SSH-Schlüssel entfernen
+        if: always()
+        run: rm -f ~/.ssh/deploy

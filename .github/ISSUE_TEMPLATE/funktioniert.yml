@@ -1,0 +1,24 @@
+name: Funktioniert (bestandene Fidelity-Tests)
+description: Von Team 2 angelegt und sofort geschlossen, wenn Akzeptanzkriterien einer Anforderung nachweislich funktionieren.
+title: "[REQ-<n>] funktioniert: <Kurzbeschreibung>"
+labels: [works]
+body:
+  - type: input
+    id: ids
+    attributes:
+      label: Bestandene Test-IDs
+      placeholder: REQ-12-AC1 REQ-12-AC2
+    validations:
+      required: true
+  - type: input
+    id: anforderung
+    attributes:
+      label: Anforderung
+      placeholder: "#12"
+    validations:
+      required: true
+  - type: input
+    id: lauf
+    attributes:
+      label: Testlauf
+      description: Link zum Lauf „Fidelity-Lauf“ oder geprüfter Commit

@@ -1,3 +1,21 @@
+# AI Perspectives – github.com/MarvinJakob/AIPerspectives
+# Das Repository ist öffentlich. Nichts einchecken, was Zugangsdaten, personenbezogene Daten oder
+# lokale Arbeitsstände enthält. Zugangsdaten kommen aus Umgebungsvariablen (GH_TOKEN, HCLOUD_TOKEN)
+# bzw. aus den GitHub-Secrets, siehe ARCHITECTURE.md.
+
+# Archiv: alte Agenten-Vorgaben und Konzepte bleiben nur lokal und gelten nicht mehr (AGENTS.md).
+# Nicht versioniert, damit sie in den Worktrees der Agenten gar nicht erst auftauchen.
+/content/archive/
+/archive/
+
+# Parallele Agenten: ein Git-Worktree pro Aufgabe (AGENTS.md, „Aufgabe übernehmen“)
+/.worktrees/
+
+# Lokale Einstellungen der Agenten-Werkzeuge
+.claude/
+.codex/
+.cursor/
+
 # Abhängigkeiten und Build-Artefakte
 node_modules/
 .build/
@@ -10,16 +28,25 @@ __pycache__/
 *.test
 *.out
 
+# Fidelity-Tests (Playwright): Berichte und Ergebnisse einzelner Läufe
+/fidelity/playwright-report/
+/fidelity/test-results/
+/fidelity/blob-report/
+/fidelity/results.json
+
 # Daten, Medien und Geheimnisse
 statistics-ip.key
 .token/
+.ssh/
+*.pem
+*.key
+.env
+.env.*
+!.env.example
 *.db
 *.db-wal
 *.db-shm
 data/
-.env
-.env.*
-!.env.example
 
 # Logs
 *.log
@@ -33,14 +60,6 @@ npm-debug.log*
 Thumbs.db
 desktop.ini
 
-# Office-Temporärdateien (z. B. geöffnetes KI Audit.docx)
+# Office-Temporärdateien (z. B. geöffnetes Word-Dokument)
 ~$*
 .~lock.*
-
-# Private SSH-Schlüssel
-.ssh/
-.token/
-
-# Lokale Einstellungen der Werkzeuge
-.claude/
-.worktrees/

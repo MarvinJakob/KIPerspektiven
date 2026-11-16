@@ -1,0 +1,70 @@
+# Legt vor einem Release einen Snapshot des Hetzner-Cloud-Servers an (Hetzner Cloud API, Token HCLOUD_TOKEN)
+# und behält nur die jüngsten `keep` Snapshots mit dem Label managed-by=release-gate.
+# Fehlt Token oder Servername, wird der Schritt mit Warnung übersprungen.
+name: Hetzner-Snapshot
+description: Snapshot des Produktionsservers vor dem Deployment
+
+inputs:
+  token:
+    description: Hetzner Cloud API-Token (Secret HCLOUD_TOKEN, Lesen und Schreiben)
+    required: true
+  server-name:
+    description: Name des Servers in der Hetzner Cloud (Variable HCLOUD_SERVER_NAME)
+    required: true
+  description:
+    description: Beschreibung des Snapshots
+    default: release
+  keep:
+    description: Anzahl der Release-Snapshots, die erhalten bleiben
+    default: '3'
+
+outputs:
+  image-id:
+    description: ID des angelegten Snapshots (leer, wenn übersprungen)
+    value: ${{ steps.snapshot.outputs.image_id }}
+
+runs:
+  using: composite
+  steps:
+    - id: snapshot
+      shell: bash
+      env:
+        HCLOUD_TOKEN: ${{ inputs.token }}
+        NAME: ${{ inputs.server-name }}
+        DESCRIPTION: ${{ inputs.description }}
+        KEEP: ${{ inputs.keep }}
+      run: |
+        set -euo pipefail
+        if [[ -z "$HCLOUD_TOKEN" || -z "$NAME" ]]; then
+          echo "::warning::HCLOUD_TOKEN oder HCLOUD_SERVER_NAME fehlt, kein Snapshot vor dem Release."
+          exit 0
+        fi
+        API=https://api.hetzner.cloud/v1
+        api() { curl -fsS -H "Authorization: Bearer $HCLOUD_TOKEN" -H 'Content-Type: application/json' "$@"; }
+
+        id=$(api "$API/servers?name=$NAME" | jq -r '.servers[0].id // empty')
+        [[ -n "$id" ]] || { echo "::error::Server $NAME nicht in der Hetzner Cloud gefunden."; exit 1; }
+
+        body=$(jq -nc --arg d "$DESCRIPTION" --arg s "$NAME" '{type:"snapshot", description:$d, labels:{"managed-by":"release-gate", server:$s}}')
+        created=$(api -X POST -d "$body" "$API/servers/$id/actions/create_image")
+        action=$(jq -r '.action.id' <<< "$created")
+        image=$(jq -r '.image.id' <<< "$created")
+        echo "Snapshot $image für Server $NAME ($id) gestartet"
+
+        # Höchstens 20 Minuten warten
+        for i in $(seq 1 120); do
+          state=$(api "$API/actions/$action" | jq -r '.action.status')
+          [[ "$state" == "success" ]] && break
+          [[ "$state" == "error" ]] && { echo "::error::Snapshot fehlgeschlagen."; exit 1; }
+          sleep 10
+        done
+        [[ "$state" == "success" ]] || { echo "::error::Snapshot nach 20 Minuten nicht fertig."; exit 1; }
+        echo "image_id=$image" >> "$GITHUB_OUTPUT"
+        echo "Snapshot $image fertig"
+
+        # Ältere Release-Snapshots dieses Servers löschen
+        api "$API/images?type=snapshot&label_selector=managed-by%3Drelease-gate,server%3D$NAME&sort=created:desc&per_page=50" \
+          | jq -r '.images[].id' | tail -n +"$((KEEP + 1))" | while read -r old; do
+            echo "Lösche alten Snapshot $old"
+            api -X DELETE "$API/images/$old" > /dev/null
+          done

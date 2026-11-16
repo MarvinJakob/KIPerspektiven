@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { switchLangPath } from './lib/lang';
 import themeScript from '../public/theme.js?raw';
-import landingSource from '../../../content/Landingpage_v03.md?raw';
+import landingSource from '../../../content/topics/home/Landingpage_v03.md?raw';
 import { installFakeApi, renderApp } from './test/fakeApi';
 
 beforeEach(() => {
@@ -42,7 +42,7 @@ const TEMPLATE_TOPICS = [
 const plain = (line: string) => line.replace(/\*/g, '');
 const emphasis = (line: string) => [...line.matchAll(/\*([^*]+)\*/g)].map((m) => m[1]);
 
-describe('Ticket #101: Startseite nach content/Landingpage_v03.md und mock/landing_v03', () => {
+describe('Ticket #101: Startseite nach content/topics/home/Landingpage_v03.md und mock/landing_v03', () => {
   it('zeigt den vollständigen Hero der Vorlage und alle vier Einstiege', async () => {
     const { router } = renderApp('/de');
     const [hook, display1, display2, lead] = templateSection('Titel').filter((l) => !l.startsWith('->'));

@@ -1,0 +1,28 @@
+name: Anforderung
+description: Neue fachliche Anforderung. Team 1 leitet daraus Akzeptanzkriterien und Fidelity-Tests ab.
+title: "<Kurzer Titel der Anforderung>"
+labels: [requirement, needs-analysis]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: User Story
+      description: Als <Rolle> möchte ich <Ziel>, damit <Mehrwert>.
+    validations:
+      required: true
+  - type: textarea
+    id: beschreibung
+    attributes:
+      label: Fachliche Beschreibung
+      description: Kurz und verständlich, was die Funktion leistet.
+    validations:
+      required: true
+  - type: textarea
+    id: kriterien
+    attributes:
+      label: Erste Akzeptanzkriterien (optional)
+      description: Team 1 präzisiert sie in fidelity/specs/REQ-<Nummer>.md.
+  - type: textarea
+    id: technik
+    attributes:
+      label: Technische Details (optional)

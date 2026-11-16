@@ -1,0 +1,7 @@
+# Dinge, die funktionieren: Test-IDs, die bestanden haben und nie wieder fehlschlagen dürfen.
+# Merge Gate und Release Gate schlagen fehl, wenn eine dieser IDs nicht besteht (scripts/gate.mjs).
+# Eine ID pro Zeile, nur anhängen, nie entfernen (außer Team 1 ersetzt das Akzeptanzkriterium).
+# Parallele Ergänzungen führt Git über .gitattributes (merge=union) ohne Konflikt zusammen.
+REQ-0-AC1
+REQ-0-AC2
+REQ-0-AC3

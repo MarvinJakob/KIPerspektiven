@@ -1,6 +1,6 @@
-# Prüfungen aus app/README.md für den ausgecheckten Stand: Backend, öffentliches Frontend und Redaktionsfrontend.
-# Genutzt von .github/workflows/deploy.yml im Pull Request und unmittelbar vor jedem Deployment.
-name: Prüfungen (app/README.md)
+# Unit- und Komponententests des ganzen Codes: Backend (go vet, go test, Race-Detector) und beide Frontends.
+# Genutzt vom Merge Gate (.github/workflows/merge-gate.yml) und vom Release Gate (.github/workflows/release.yml).
+name: Unit-Tests
 description: go vet, go test sowie Typprüfung und Tests beider Frontends
 
 runs:

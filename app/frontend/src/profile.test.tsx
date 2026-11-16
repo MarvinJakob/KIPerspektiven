@@ -1,14 +1,14 @@
 import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
-import personaSource from '../../../content/Persona.md?raw';
+import personaSource from '../../../content/topics/persona/Persona.md?raw';
 import { profile } from './i18n/profile';
 import { installFakeApi, renderApp } from './test/fakeApi';
 
 beforeEach(() => { installFakeApi(); });
 
 /**
- * Zerlegt content/Persona.md in Abschnitte (`# `) und Unterabschnitte (`## `) mit ihren nicht leeren Zeilen.
+ * Zerlegt content/topics/persona/Persona.md in Abschnitte (`# `) und Unterabschnitte (`## `) mit ihren nicht leeren Zeilen.
  * Der einfache Bindestrich zwischen Wörtern wird wie auf der Seite als Gedankenstrich gelesen.
  */
 function readPersona() {
@@ -42,7 +42,7 @@ const labelled = (line: string, label: string) => {
   return line.slice(prefix.length);
 };
 
-describe('Ticket 124: Profilseite nach content/Persona.md', () => {
+describe('Ticket 124: Profilseite nach content/topics/persona/Persona.md', () => {
   it('zeigt alle deutschen Inhalte der Persona wortgleich und in ihrer Reihenfolge', async () => {
     const persona = readPersona();
     const de = profile.de;

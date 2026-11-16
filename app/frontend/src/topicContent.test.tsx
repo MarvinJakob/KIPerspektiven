@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
-import source from '../../../content/KI in der Softwareentwicklung v2.md?raw';
+import source from '../../../content/topics/software/KI in der Softwareentwicklung v2.md?raw';
 import { TopicContent } from './components/TopicContent';
 import type { TFunction } from 'i18next';
 import { LangContext } from './lib/lang';

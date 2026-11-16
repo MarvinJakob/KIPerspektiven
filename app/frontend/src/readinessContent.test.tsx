@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import source from '../../../content/KI Readiness.md?raw';
+import source from '../../../content/topics/audit/KI Readiness.md?raw';
 import raw from '../../backend/internal/audit/content.json?raw';
 import type { AuditCategory, AuditOverview } from './api/client';
 import { installFakeApi, renderApp } from './test/fakeApi';

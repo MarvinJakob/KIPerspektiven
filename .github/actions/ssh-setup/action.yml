@@ -1,0 +1,27 @@
+# Richtet den SSH-Zugang zum Hetzner-Server für app/deploy/deploy.sh ein.
+# Der Schlüssel liegt danach in ~/.ssh/deploy. Aufrufer entfernen ihn mit `rm -f ~/.ssh/deploy` (if: always()).
+name: SSH-Zugang
+description: Deploy-Schlüssel und Host-Schlüssel des Servers ablegen
+
+inputs:
+  ssh-key:
+    description: Privater Deploy-Schlüssel (Secret DEPLOY_SSH_KEY)
+    required: true
+  known-hosts:
+    description: Host-Schlüssel des Servers (Secret DEPLOY_KNOWN_HOSTS)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        SSH_KEY: ${{ inputs.ssh-key }}
+        KNOWN_HOSTS: ${{ inputs.known-hosts }}
+      run: |
+        [[ -n "$SSH_KEY" && -n "$KNOWN_HOSTS" ]] || { echo "::error::DEPLOY_SSH_KEY oder DEPLOY_KNOWN_HOSTS fehlt (ARCHITECTURE.md, Abschnitt Secrets)."; exit 1; }
+        install -m 700 -d ~/.ssh
+        printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+        chmod 600 ~/.ssh/deploy
+        printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+        echo "DEPLOY_SSH_KEY=$HOME/.ssh/deploy" >> "$GITHUB_ENV"

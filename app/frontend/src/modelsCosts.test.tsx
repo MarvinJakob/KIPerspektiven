@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
-import source from '../../../content/Modelle und Kosten.md?raw';
+import source from '../../../content/topics/understanding/Modelle und Kosten.md?raw';
 import published from './content/topics/modelle-und-kosten.de.md?raw';
 import { topicStyle } from './lib/topicStyle';
 import { installFakeApi, renderApp } from './test/fakeApi';

@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
-import source from '../../../content/KI in Data Analytics.md?raw';
+import source from '../../../content/topics/data/KI in Data Analytics.md?raw';
 import published from './content/topics/data-analytics.de.md?raw';
 import { POSTS, installFakeApi, renderApp } from './test/fakeApi';
 

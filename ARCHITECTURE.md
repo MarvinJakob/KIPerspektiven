@@ -1,651 +1,286 @@
-# Architektur
+# Architektur – AI Perspectives
 
-> **Stand:** 2026-11-06 · **Grundlage:** Anforderungen 1 bis 7 und 11 in diesem Ordner sowie das [Design-Konzept](../Design.md)
+> **Stand:** 2026-11-16 · Repository [MarvinJakob/AIPerspectives](https://github.com/MarvinJakob/AIPerspectives) (Nachfolger von `MarvinJakob/aiboard`) · Arbeitsweise der Agenten: [AGENTS.md](AGENTS.md)
 
-Dieses Dokument beschreibt die technische Architektur der KI-Webseite. Es legt Technologien, Aufbau, Datenmodell, Schnittstellen und Betrieb fest. Die Gründe für wichtige Entscheidungen stehen in den Architekturentscheidungen (siehe Abschnitt 12).
+Dieses Dokument beschreibt den Aufbau der Anwendung (Abschnitte 1–4) und ihrer Umgebung: Tests, Entwicklung mit parallelen Agenten, GitHub, Auslieferung und Betrieb auf Hetzner (Abschnitte 5–10). Begründungen wichtiger Entscheidungen stehen in den ADRs unter [app/docs/adr](app/docs/adr).
 
 ---
 
 ## 1 Überblick
 
+AI Perspectives ist eine öffentliche, zweisprachige Webseite (DE/EN) mit Themenseiten, Blog, KI-Readiness-Selbsteinschätzung und Beratungsanfrage sowie einem Redaktionsbereich für Beiträge, Medien, Konten, Statistik und Anfragen.
+
 | Bereich | Technologie |
 |---|---|
-| Versionsverwaltung | Git, ein gemeinsames Repository für Frontend, Backend und Betrieb |
-| Frontends | Öffentliche Webseite und separates Redaktionsfrontend, jeweils mit React, TypeScript und Vite |
-| Backend | Go mit JSON-API über HTTP. Liefert beide Frontends aus. |
-| Schnittstelle | OpenAPI-Beschreibung als verbindlicher Vertrag zwischen Frontend und Backend |
-| Datenbank | SQLite (zunächst), später bei Bedarf PostgreSQL |
-| Betrieb | Docker Compose auf einem Hetzner-Cloud-Server |
+| Frontends | Öffentliche Webseite und Redaktion, je React + TypeScript + Vite |
+| Backend | Go (`net/http`), liefert API und beide Frontends aus einem Binary aus |
+| Schnittstelle | `app/api/openapi.yaml` als verbindlicher Vertrag, Code für Go und TypeScript daraus erzeugt |
+| Datenbank | SQLite (WAL) im Docker-Volume, Migrationen mit goose |
+| Betrieb | Docker Compose (Caddy + Backend) auf einem Hetzner-Cloud-Server |
+| Qualität | Unit-Tests (Go, Vitest), Fidelity-Tests (Playwright) gegen die laufende Anwendung |
+| Auslieferung | GitHub Actions: Merge Gate je PR, Release Gate auf Anforderung |
 
 ```mermaid
 flowchart LR
     B[Browser] -- HTTPS --> C[Caddy<br/>TLS, Kompression,<br/>Sicherheits-Header]
-    C -- /media/* --> M[(Medien<br/>Volume, nur lesend)]
-    C -- alles andere --> G[Go-Backend<br/>API + öffentliche Webseite<br/>+ Redaktionsfrontend]
-    G --> D[(SQLite<br/>Volume)]
+    C -- /media/* --> M[(Medien-Volume<br/>nur lesend)]
+    C -- alles andere --> G[Go-Backend<br/>API + Webseite + Redaktion]
+    G --> D[(SQLite-Volume)]
     G --> M
-    subgraph Hetzner Cloud Server
+    subgraph H[Hetzner Cloud Server]
         C
         G
         D
         M
     end
-    G -. nächtliche Sicherung .-> S[(Hetzner<br/>Object Storage)]
-    U[Externe Überwachung] -. prüft /api/health .-> C
+    G -. nächtliche Sicherung restic .-> S[(Hetzner<br/>Object Storage)]
+    GA[GitHub Actions<br/>Release Gate] -- SSH: Build + Start --> H
+    GA -- Hetzner Cloud API: Snapshot --> H
 ```
 
 **Grundprinzipien**
 
-- **Einfach starten.** Ein Server, zwei Container, eine Datei als Datenbank. Mehr Komponenten kommen erst, wenn sie gebraucht werden.
-- **Sicherheit im Backend.** Ob ein Beitrag öffentlich ist und ob jemand die Redaktion nutzen darf, entscheidet ausschließlich das Backend (Anforderungen 4, 5 und 6).
-- **Jede Ansicht hat eine echte URL.** Die Zurück-Taste des Browsers funktioniert immer (Design-Konzept, Prinzip *Agency*). Jede öffentliche URL liefert bereits beim ersten Aufruf passende Titel und Vorschau-Informationen.
-- **Keine Daten an Dritte.** Die Seite lädt keine externen Schriften, Skripte oder Tracker.
+- **Einfach.** Ein Server, zwei Container, eine Datei als Datenbank. Neue Komponenten erst bei Bedarf.
+- **Sicherheit im Backend.** Sichtbarkeit von Beiträgen, Rollen und Zugriffe entscheidet nur das Backend.
+- **Jede Ansicht hat eine echte URL** und liefert beim ersten Aufruf passende Meta-Tags.
+- **Keine Daten an Dritte.** Keine externen Schriften, Skripte, CDNs oder Tracker; die Content-Security-Policy erzwingt das.
+- **Anforderungen sind ausführbar.** Jede Anforderung hat Fidelity-Tests; was funktioniert, steht in der Baseline und darf nicht mehr kaputtgehen.
 
 ---
 
-## 2 Git-Repository
-
-### Struktur
+## 2 Repository
 
 ```
 /
-├── api/
-│   └── openapi.yaml     Verbindliche Beschreibung der Schnittstelle
-├── frontend/            Öffentliche Webseite (React, TypeScript, Vite)
-│   ├── src/
-│   │   └── api/         Aus openapi.yaml erzeugte Typen (nicht von Hand ändern)
-│   └── package.json
-├── frontend-redaktion/  Redaktionsfrontend mit eigenem Vite-Build
-├── backend/             Go-Modul
-│   ├── cmd/server/      Einstiegspunkt (main.go)
-│   ├── internal/        API, Fachlogik, Datenzugriff, Auth, Medien, Seitenauslieferung
-│   ├── migrations/      SQL-Migrationen
-│   └── go.mod
-├── deploy/
-│   ├── Caddyfile
-│   └── backup/          Sicherungsskript
-├── docs/
-│   └── adr/             Architekturentscheidungen
-├── requirements/        Anforderungen und Architektur
-├── Dockerfile           Baut beide Frontends und das Backend zu einem Image
-├── compose.yaml         Produktion
-├── compose.dev.yaml     Ergänzungen für die lokale Entwicklung
-├── renovate.json        Automatische Aktualisierung von Abhängigkeiten
-├── .env.example         Vorlage für Umgebungsvariablen (ohne Geheimnisse)
-└── README.md
+├── AGENTS.md              Arbeitsweise der Agenten-Teams (CLAUDE.md verweist darauf)
+├── ARCHITECTURE.md        dieses Dokument
+├── app/                   Anwendung (einziger Teil, der ausgeliefert wird)
+│   ├── api/openapi.yaml   Schnittstellenvertrag
+│   ├── frontend/          Öffentliche Webseite (React, Vite)
+│   ├── frontend-redaktion/ Redaktionsfrontend, Basispfad /redaktion
+│   ├── backend/           Go-Modul: cmd/server, internal/*, migrations/
+│   ├── deploy/            Caddyfile, deploy.sh, backup/
+│   ├── docs/              Betrieb, ADRs, Abnahmeprotokolle
+│   ├── Dockerfile         baut beide Frontends und das Backend zu einem Image
+│   ├── compose.yaml       Produktion; compose.dev.yaml für lokal
+│   └── .env.example       Vorlage für die Server-.env
+├── fidelity/              Fidelity-Tests (Abschnitt 5)
+├── tools/                 task.sh (Aufgaben-Sperre), board.sh (Projektstatus)
+├── .github/               Workflows, Composite Actions, Issue- und PR-Vorlagen
+├── content/
+│   ├── topics/<Thema>/    Quelltexte der Seiteninhalte (audit, data, home, persona, process, software,
+│   │                      understanding); Frontend-Tests gleichen die veröffentlichten Texte damit ab
+│   ├── improvements.md    Befunde aus Nutzertests (Verbesserungen)
+│   ├── new_functions.md   Vorschläge für neue Funktionen
+│   ├── research/          Recherchen (JJJJ-MM-TT Titel.md)
+│   ├── presentation/ output/  Präsentation, Druckvorlagen
+│   └── archive/           nur lokal (.gitignore): alte Agenten-Vorgaben, nicht mehr gültig
+├── res/                   Grafiken und Profilbilder (Quellen)
+├── mock/                  statische Design-Entwürfe
+└── requirements/          Ablage für Anforderungen (maßgeblich sind die Issues mit Label requirement)
 ```
 
-### Arbeitsweise
-
-- **Hauptzweig `main`** ist immer auslieferbar und geschützt. Änderungen kommen nur über Pull Requests mit erfolgreicher CI.
-- **Feature-Zweige** pro Anforderung, z. B. `feature/5-redaktionssystem`.
-- **Commit-Nachrichten** folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/) (`feat:`, `fix:`, `docs:` …).
-- **Releases** werden mit Git-Tags markiert (`v1.0.0`). Ein Tag löst den Bau des Docker-Images aus.
-- **Nicht ins Repository** gehören Datenbankdateien (`*.db`), hochgeladene Medien, `.env`-Dateien, Zugangsdaten und Build-Artefakte. Die `.gitignore` schließt sie aus. Erzeugter Code aus `openapi.yaml` wird dagegen eingecheckt, damit Änderungen im Pull Request sichtbar sind.
+**Nicht ins Repository** (`.gitignore`, das Repository ist öffentlich): Zugangsdaten und Schlüssel, `.env`, Datenbanken, Medien, Build-Artefakte, Testberichte, Worktrees (`.worktrees/`) und lokale Einstellungen der Werkzeuge. Erzeugter Code aus `openapi.yaml` und SQL wird eingecheckt.
 
 ---
 
-## 3 Frontends
+## 3 Anwendung
 
-Die öffentliche Webseite und das Redaktionsfrontend sind eigenständige React-Anwendungen mit eigenen Einstiegspunkten und Builds. Beide laufen unter derselben Domain und verwenden dieselbe Go-API. Das Redaktionsfrontend hat ein eigenes Layout und verwendet `/redaktion` als Basispfad. Die Sprachpräfixe der öffentlichen Webseite gelten für die öffentlichen Routen.
+### Frontends
+
+Zwei eigenständige React-Anwendungen unter derselben Domain, beide mit derselben Go-API.
 
 | Aspekt | Entscheidung |
 |---|---|
-| Sprache | TypeScript im `strict`-Modus |
-| Build | Vite, Ergebnis sind statische Dateien. Das Backend bettet sie beim Bau ein. |
-| Routing | React Router, jede Ansicht hat eine eigene URL |
-| Datenabruf | Typisierter Client mit [openapi-fetch](https://openapi-ts.dev/openapi-fetch/), TanStack Query für Caching und Ladezustände |
-| Mehrsprachigkeit | Sprache als URL-Präfix (`/de/…`, `/en/…`), Oberflächentexte mit i18next |
-| Gestaltung | CSS mit Design-Tokens als CSS-Variablen gemäß [Design-Konzept](../Design.md) |
-| Schriften | Selbst gehostete WOFF2-Dateien im Repository, kein Google Fonts und kein CDN |
-| Beitragsinhalt | Markdown, dargestellt mit `react-markdown` ohne rohes HTML |
-| Bilder | `<img>` mit `srcset` und `sizes`, `loading="lazy"` außerhalb des sichtbaren Bereichs |
-| Tests | Vitest und Testing Library für Komponenten, Playwright für Abnahmetests |
+| Sprache, Build | TypeScript `strict`, Vite; das Backend bettet die Builds per `go:embed` ein |
+| Routing | React Router, öffentliche Routen mit Sprachpräfix `/:lang/…` (`de`, `en`), Redaktion unter `/redaktion/…` |
+| Daten | typisierter Client mit openapi-fetch, TanStack Query |
+| Texte | i18next; Beitragsinhalte als Markdown ohne rohes HTML |
+| Gestaltung | CSS mit Design-Tokens, selbst gehostete Schriften, heller und dunkler Modus |
+| Tests | Vitest und Testing Library |
 
-### Routen
+Öffentliche Ansichten: Startseite, Themenseiten, KI verstehen, KI-Readiness mit Auswertung und Beratungsanfrage, Blog, Impressum, Datenschutz. Redaktion: Anmeldung, Beiträge (inkl. geplanter Veröffentlichung), Medien, Benutzer (`admin`), Statistik und Beratungsanfragen (`editor`, `admin`).
 
-| URL | Ansicht | Anforderung |
-|---|---|---|
-| `/:lang` | Startseite mit Beitrags-Karussell und Themenkarten | 1 |
-| `/:lang/themen/:slug` | Themenseite | 3 |
-| `/:lang/blog` | Blogübersicht | 4 |
-| `/:lang/blog/:slug` | Beitragsseite | 4 |
-| `/:lang/impressum` | Impressum | – |
-| `/:lang/datenschutz` | Datenschutzerklärung | – |
-| `/redaktion/anmelden` | Anmeldung im Redaktionsfrontend | 6 |
-| `/redaktion` | Beitragsliste der Redaktion | 5, 6 |
-| `/redaktion/beitraege/:id` | Beitrag bearbeiten | 5 |
-| `/redaktion/medien` | Medienverwaltung | 5 |
-| `/redaktion/benutzer` | Benutzerverwaltung für Admin-Konten | 11 |
-| `/redaktion/statistik` | Seitenaufrufe und Ergebnisse der Selbsteinschätzung für `editor` und `admin` | #130 |
-| `/redaktion/beratungsanfragen` | Anfragen für ein kostenloses Beratungsgespräch für `editor` und `admin` | #136 |
-
-- Die Kopfzeile mit Themenmenü, Bloglink, Sprachwahl und Kontoeinstieg ist eine gemeinsame Layout-Komponente aller öffentlichen Seiten (Anforderungen 2 und 7). Die Fußzeile verlinkt Impressum und Datenschutz.
-- Impressum und Datenschutzerklärung liegen als Markdown-Dateien je Sprache im Repository. Änderungen laufen über einen Pull Request.
-- Beim Sprachwechsel tauscht das Frontend nur das Präfix der URL. Fehlt eine Übersetzung, liefert das Backend die vorhandene Fassung mit ihrer Sprache, und das Frontend zeigt einen Hinweis (Anforderung 7).
-- Beim Seitenwechsel innerhalb der App setzt das Frontend Titel und Beschreibung im `<head>` selbst. Beim ersten Aufruf liefert sie bereits das Backend (siehe Abschnitt 6).
-- Der öffentliche Kontoeinstieg verlinkt auf `/redaktion/anmelden`. Das Backend leitet nicht angemeldete Zugriffe auf geschützte Redaktionsseiten dorthin um und prüft die Rolle bei geschützten Seiten und API-Aufrufen.
-- Nach der Anmeldung öffnet das Redaktionsfrontend für `editor` die Beitragsliste und für `admin` die Benutzerverwaltung.
-
----
-
-## 4 Backend
+### Backend
 
 | Aspekt | Entscheidung |
 |---|---|
-| Sprache | Go (aktuelle stabile Version) |
-| HTTP | Standardbibliothek `net/http` mit dem Routing ab Go 1.22 |
-| API-Code | Aus `openapi.yaml` erzeugt mit [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen) (Server-Interface für `net/http`) |
-| Datenbanktreiber | `modernc.org/sqlite` (reines Go, kein CGO, dadurch kleines statisches Image) |
-| Datenzugriff | SQL-Abfragen mit [sqlc](https://sqlc.dev/) in typsicheren Go-Code übersetzt |
-| Migrationen | [goose](https://github.com/pressly/goose), SQL-Dateien im Binary eingebettet, Ausführung beim Start |
-| Bildverarbeitung | Standardbibliothek `image` und `golang.org/x/image` (reines Go) |
-| Konfiguration | Umgebungsvariablen (z. B. `DATABASE_PATH`, `MEDIA_PATH`, `PUBLIC_BASE_URL`, `SESSION_SECRET`) |
-| Logging | `log/slog` im JSON-Format |
-| Tests | `go test` mit einer temporären SQLite-Datenbank je Test |
+| HTTP | Standardbibliothek `net/http`, API-Interface aus `openapi.yaml` (oapi-codegen) |
+| Daten | SQLite mit `modernc.org/sqlite` (ohne CGO), Abfragen typsicher mit sqlc, Store hinter Interface |
+| Migrationen | goose, eingebettet, laufen beim Start; nur additiv (Rollback-fähig) |
+| Konfiguration | Umgebungsvariablen, siehe [app/.env.example](app/.env.example) |
+| Logging | `log/slog` als JSON, ohne IP-Adressen und Anfrageinhalte |
+| Befehle | `server` (Start), `server user create`, `server healthcheck`, `server backup` |
 
-### Schichten
+Schichten in `app/backend/internal`: `http` (Handler, Middleware), `api` (erzeugt), `web` (Auslieferung, Meta-Tags, Sitemap), `service` (Fachlogik), `store` (Datenzugriff, erzeugt), `auth` (Argon2id, Sitzungen), `media` (Bildprüfung, Varianten), `audit`, `clientip`, `statisticskey`.
 
-```
-internal/
-├── http/        Handler, Routing, Middleware (Auth, CSRF, Logging)
-├── api/         Aus openapi.yaml erzeugter Code (nicht von Hand ändern)
-├── web/         Auslieferung beider Frontends, Meta-Tags, Sitemap, robots.txt
-├── service/     Fachlogik: Veröffentlichen, Zurücknehmen, Sprachauswahl
-├── media/       Prüfen, Skalieren und Speichern von Bildern
-├── store/       Datenzugriff (von sqlc erzeugt) hinter einem Interface
-└── auth/        Passwort-Hashing, Sitzungen
-```
+**Sicherheit:** Sitzungs-Cookies (`HttpOnly`, `Secure`, `SameSite=Lax`) statt JWT, CSRF-Token für schreibende Aufrufe, Rollen `editor`/`admin`, Begrenzung der Anmeldeversuche und Beratungsanfragen je IP im Arbeitsspeicher, Client-IP nur von der festen Caddy-Adresse (`TRUSTED_PROXIES`). Sicherheits-Header setzt Caddy.
 
-Der Datenzugriff liegt hinter einem Interface. So lässt sich SQLite später gegen PostgreSQL tauschen, ohne Handler und Fachlogik zu ändern.
+### Schnittstelle
 
-### Befehle des Binarys
+`app/api/openapi.yaml` ist die einzige verbindliche Beschreibung; Änderungen beginnen dort und werden mit `make generate` (bzw. den Einzelbefehlen in [app/README.md](app/README.md)) für Go und TypeScript erzeugt. Alle Endpunkte liegen unter `/api`: öffentlich (Themen, Beiträge, Health, Readiness-Ergebnisse, Beratungsanfragen), Anmeldung (`/api/auth/*`) und Redaktion (`/api/admin/*`, Rollenprüfung im Backend; `401` ohne Sitzung, `403` ohne Rolle).
 
-| Befehl | Zweck |
+### Seitenauslieferung
+
+Das Backend rendert die öffentliche `index.html` als Template mit Titel, Beschreibung, Open-Graph-Tags, Canonical und `hreflang` passend zur URL; unbekannte Pfade und Entwürfe liefern `404`. Assets mit Hash sind ein Jahr cachebar, `index.html` hat `no-cache`, Redaktionsseiten `no-store` und `noindex`. `/sitemap.xml` und `/robots.txt` erzeugt das Backend.
+
+---
+
+## 4 Daten
+
+| Daten | Ablage |
 |---|---|
-| `server` | Startet die Anwendung (Standard) |
-| `server user create --role admin` | Richtet das erste Admin-Konto bei der Inbetriebnahme ein. Redaktionskonten werden anschließend über das Redaktionsfrontend verwaltet. |
-| `server healthcheck` | Ruft `/api/health` auf. Wird vom Docker-Healthcheck genutzt, weil das Image kein `curl` enthält. |
-| `server backup` | Schreibt mit `VACUUM INTO` eine konsistente Kopie der Datenbank |
+| Beiträge, Themen, Übersetzungen, Konten, Sitzungen | SQLite `/data/db/app.db` im Volume `app_db` |
+| Bilder (neu kodiert, ohne Metadaten, Varianten 480/960/1600/og) | Volume `app_media`, von Caddy nur lesend unter `/media/*` ausgeliefert |
+| Statistik | Tagesaggregate und HMAC-Pseudonyme der IP, Schlüssel getrennt von der Datenbank ([ADR 0010](app/docs/adr/0010-statistik-ohne-kennung-und-einwilligung.md)) |
+| Readiness-Ergebnisse | nur mit Einwilligung, ohne Personenbezug |
+| Beratungsanfragen | E-Mail, Sprache, Zeitpunkt; Löschung durch die Redaktion ([ADR 0011](app/docs/adr/0011-beratungsanfragen-in-der-redaktion.md)) |
+| Audit-Inhalte | Datei im Repository (`internal/audit/content.json`) |
 
-### Sicherheit
-
-- **Passwörter** werden mit Argon2id gehasht.
-- **Sitzungen** liegen in der Datenbank. Das Cookie ist `HttpOnly`, `Secure` und `SameSite=Lax`. Beim Abmelden wird die Sitzung gelöscht (Anforderung 6). Abgelaufene Sitzungen löscht ein täglicher Aufräumjob.
-- **CSRF-Schutz** für alle schreibenden Anfragen über ein Token im Header.
-- **Anmeldeversuche** werden pro IP-Adresse begrenzt: höchstens zehn Fehlversuche in 15 Minuten. Laufende Versuche zählen bei der Zulassung mit. Zusätzlich läuft über alle IP-Adressen höchstens eine Argon2-Prüfung gleichzeitig, mit einer kurzen, begrenzten Warteschlange. Überzählige Anfragen erhalten vor der Prüfung `503` (Ticket #138, `app/docs/login-begrenzung.md`). Die Zähler liegen nur im Arbeitsspeicher.
-- **Rollen** trennt das Backend in `editor` für Beiträge und Medien sowie `admin` für die Benutzerverwaltung. Deaktivierte Konten können sich nicht anmelden. Beim Deaktivieren löscht das Backend alle Sitzungen des Kontos in derselben Transaktion und prüft bei geschützten Aufrufen den aktuellen Kontostatus.
-- **Sicherheits-Header** setzt Caddy (siehe Abschnitt 9).
+Einstellungen: `journal_mode=WAL`, `foreign_keys=ON`, `busy_timeout=5000`. Ein Wechsel zu PostgreSQL ist durch Store-Interface und goose vorbereitet ([ADR 0003](app/docs/adr/0003-sqlite-als-erste-datenbank.md)).
 
 ---
 
-## 5 Schnittstelle (OpenAPI)
+## 5 Fidelity-Tests
 
-Die Datei `api/openapi.yaml` ist die einzige verbindliche Beschreibung der API. Änderungen an der Schnittstelle beginnen immer dort.
+Fidelity-Tests prüfen von außen (Browser, HTTP), ob eine Anforderung **vollständig** umgesetzt ist. Sie werden von Team 1 geschrieben und verifiziert und sind unabhängig vom Code, den Team 3 ändert.
 
-- **Frontend:** [openapi-typescript](https://openapi-ts.dev/) erzeugt daraus die TypeScript-Typen, openapi-fetch nutzt sie für typsichere Aufrufe.
-- **Backend:** oapi-codegen erzeugt daraus die Go-Typen und ein Interface, das die Handler umsetzen müssen.
-- **CI:** Die CI erzeugt den Code neu und bricht ab, wenn er vom eingecheckten Stand abweicht. Passen Frontend und Backend nicht zusammen, schlägt der Build fehl.
+```
+fidelity/
+├── specs/REQ-<n>.md        Akzeptanzkriterien und Szenarien je Anforderung (Issue #<n>), Vorlage _VORLAGE.md
+├── tests/REQ-<n>.spec.ts   ein Playwright-Test je Kriterium, Titel beginnt mit REQ-<n>-AC<m>
+├── baseline.txt            „Dinge, die funktionieren“: IDs, die bestehen müssen (wächst nur, merge=union)
+├── scripts/gate.mjs        Auswertung eines Laufs gegen Baseline und geforderte IDs
+└── playwright.config.ts    BASE_URL, Projekte desktop und mobil, JSON-Bericht results.json
+```
 
-Die folgenden Tabellen geben einen Überblick. Alle Endpunkte liegen unter `/api` und sprechen JSON.
+| Begriff | Bedeutung |
+|---|---|
+| Backlog | alle Tests in `tests/`; fehlschlagende Tests außerhalb der Baseline sind erlaubt |
+| Baseline | bestandene IDs; schlägt eine fehl, ist das eine Regression und sperrt Merge und Release |
+| Gate | `node scripts/gate.mjs [--require "<IDs>"] [--no-baseline]`; Exitcode 1 bei Regression, fehlender geforderter ID oder Testtitel ohne ID |
 
-**Öffentlich (ohne Anmeldung)** – liefert ausschließlich veröffentlichte Beiträge.
-
-| Methode | Pfad | Zweck |
-|---|---|---|
-| GET | `/api/topics?lang=de` | Alle Themen mit Titel und Einführung |
-| GET | `/api/topics/{slug}?lang=de` | Ein Thema mit seinen veröffentlichten Beiträgen |
-| GET | `/api/posts?lang=de&featured=true` | Veröffentlichte Beiträge, neueste zuerst |
-| GET | `/api/posts/{slug}?lang=de` | Ein veröffentlichter Beitrag, sonst `404` |
-| GET | `/api/health` | Zustand der Anwendung und der Datenbank |
-| POST | `/api/readiness-results` | Ergebnis der Selbsteinschätzung nach Einwilligung anonym speichern oder aktualisieren (#130) |
-| DELETE | `/api/readiness-results/{key}` | Gespeichertes Ergebnis löschen, wenn die Einwilligung zurückgenommen wird (#130) |
-| POST | `/api/consultation-requests` | Kostenloses Beratungsgespräch mit E-Mail-Adresse anfragen (#136, ADR 0011) |
-
-Die öffentlichen Schreibzugriffe prüfen die Herkunft wie alle schreibenden Aufrufe und nehmen höchstens 4 KiB an. Beratungsanfragen nimmt das Backend je IP-Adresse höchstens fünfmal pro Stunde an (`429`); die Zähler liegen nur im Arbeitsspeicher.
-
-**Anmeldung**
-
-| Methode | Pfad | Zweck |
-|---|---|---|
-| POST | `/api/auth/login` | Anmelden, setzt Sitzungs-Cookie |
-| POST | `/api/auth/logout` | Abmelden, löscht die Sitzung serverseitig |
-| GET | `/api/auth/me` | Aktuelle Person und Rolle |
-
-Die API bietet keinen Endpunkt zur Selbstregistrierung.
-
-**Redaktion (nur mit Rolle `editor`)**
-
-| Methode | Pfad | Zweck |
-|---|---|---|
-| GET | `/api/admin/posts` | Alle Beiträge inklusive Entwürfe |
-| POST | `/api/admin/posts` | Neuen Entwurf anlegen |
-| GET | `/api/admin/posts/{id}` | Beitrag zum Bearbeiten laden |
-| PUT | `/api/admin/posts/{id}` | Texte, Übersetzungen, Titelbild und Themen speichern |
-| POST | `/api/admin/posts/{id}/publish` | Veröffentlichen |
-| POST | `/api/admin/posts/{id}/unpublish` | Veröffentlichung zurücknehmen |
-| GET | `/api/admin/media` | Hochgeladene Bilder auflisten |
-| POST | `/api/admin/media` | Bild hochladen (`multipart/form-data`) |
-| PUT | `/api/admin/media/{id}` | Alternativtexte je Sprache ändern |
-
-**Statistik (Rolle `editor` oder `admin`, #130)**
-
-| Methode | Pfad | Zweck |
-|---|---|---|
-| GET | `/api/admin/statistics/page-views?period=30d` | Seitenaufrufe je Tag für `7d`, `30d` (Vorauswahl) oder `all` |
-| GET | `/api/admin/statistics/readiness-results?period=30d&page=1` | Gespeicherte Ergebnisse, neueste zuerst, 50 je Seite |
-
-**Beratungsanfragen (Rolle `editor` oder `admin`, #136)**
-
-| Methode | Pfad | Zweck |
-|---|---|---|
-| GET | `/api/admin/consultation-requests` | Offene Anfragen, neueste zuerst |
-| DELETE | `/api/admin/consultation-requests/{id}` | Anfrage nach der Terminabstimmung löschen |
-
-Ein Beitrag lässt sich nur veröffentlichen, wenn Titel, Kurztext und Beitragstext gefüllt sind (Anforderung 5). Hat er ein Titelbild, braucht es einen Alternativtext in der Sprache des Beitrags. Für Entwürfe liefern die öffentlichen Endpunkte `404`, damit ihre Existenz nicht erkennbar ist (Anforderung 4).
-
-**Benutzerverwaltung (nur mit Rolle `admin`)**
-
-| Methode | Pfad | Zweck |
-|---|---|---|
-| GET | `/api/admin/users` | Redaktionskonten mit E-Mail-Adresse und Status auflisten |
-| POST | `/api/admin/users` | Redaktionskonto mit Rolle `editor` und Startpasswort anlegen |
-| PATCH | `/api/admin/users/{id}` | Ein Redaktionskonto deaktivieren oder reaktivieren |
-
-Die API gibt keine Passwörter oder Passwort-Hashes zurück. Geschützte API-Aufrufe ohne gültige Sitzung liefern `401`, Aufrufe mit unzureichender Rolle liefern `403`.
+`REQ-0` (Healthcheck, Startseite, 404) ist die Grundfunktion und läuft auch als Smoke-Test gegen die Produktion.
 
 ---
 
-## 6 Seitenauslieferung, Suchmaschinen und Link-Vorschauen
+## 6 Entwicklungsumgebung mit parallelen Agenten
 
-Das Go-Backend liefert beide Frontends aus. Für die öffentliche Webseite ergänzt es Meta-Tags für Suchmaschinen und Link-Vorschauen.
+Mehrere Agenten (Claude Code, Codex u. a.) arbeiten gleichzeitig auf einem Windows-Gerät im OneDrive-Ordner des Projekts. Die Trennung entsteht ohne Abstimmung zwischen den Agenten:
 
-### Ablauf
+| Mechanismus | Wirkung |
+|---|---|
+| `tools/task.sh claim <team> <n>` | legt Branch `<team>/<n>` und Worktree `.worktrees/<team>-<n>` aus `origin/main` an; `git worktree add -b` ist atomar, ein zweiter Agent erhält Exitcode 2 |
+| Label `in-progress` | macht die Belegung auf GitHub sichtbar und schließt das Issue von der Auswahl anderer Agenten aus |
+| Branch-Präfix `spec/`, `verify/`, `fix/` | das Merge Gate prüft die Team-Grenzen (welche Dateien geändert werden dürfen) |
+| `fidelity/baseline.txt` mit `merge=union` | parallele Ergänzungen der Baseline ohne Merge-Konflikt |
+| Port `20000 + <n>`, Datenbank in `app/.build/` des Worktrees | lokale Server der Agenten stören sich nicht |
+| Squash-Merge, Branch-Löschung nach Merge | `main` bleibt linear, Sperren verschwinden mit `tools/task.sh finish` |
 
-1. Beide Frontend-Builds werden getrennt mit `go:embed` in das Backend-Binary eingebettet.
-2. Dateien unter `/assets/*` und `/redaktion/assets/*` liefert das Backend mit `Cache-Control: public, max-age=31536000, immutable` aus. Vite versieht sie mit einem Hash im Dateinamen.
-3. Für öffentliche Seitenaufrufe rendert das Backend die öffentliche `index.html` als Go-Template (`html/template`) und setzt passend zur URL:
-   - `<title>` und `<meta name="description">`
-   - Open-Graph- und Twitter-Card-Tags (`og:title`, `og:description`, `og:image`, `og:url`, `og:locale`)
-   - `<link rel="canonical">`
-   - `<link rel="alternate" hreflang="…">` für jede vorhandene Übersetzung sowie `x-default` (Deutsch)
-   - `<html lang="…">`
-4. Die öffentliche `index.html` erhält `Cache-Control: no-cache`. Jede so ausgelieferte Seite mit Status `200` erhöht den Seitenaufrufzähler des Tages (GET ohne Prefetch, #130, ADR 0010).
-5. Für bekannte Redaktionsrouten liefert das Backend die separate `index.html` des Redaktionsfrontends nach der jeweiligen Zugriffskontrolle aus. Die Anmeldeseite ist öffentlich erreichbar. Redaktionsseiten erhalten `Cache-Control: no-store`.
-
-### Statuscodes
-
-- Existiert ein Thema oder ein veröffentlichter Beitrag nicht, antwortet das Backend mit HTTP `404`. Die React-App zeigt dann die Fehlerseite. Das gilt auch für Entwürfe (Anforderung 4).
-- Unbekannte Pfade liefern ebenfalls `404`.
-
-### Sitemap und robots.txt
-
-- `/sitemap.xml` erzeugt das Backend aus der Datenbank. Sie enthält Start-, Themen-, Blog- und Beitragsseiten je Sprache mit `lastmod` und `hreflang`-Verweisen.
-- `/robots.txt` sperrt `/redaktion` und `/api` und verweist auf die Sitemap.
-- Seiten unter `/redaktion` tragen zusätzlich `X-Robots-Tag: noindex`.
+**Zugang:** `GH_TOKEN` (GitHub, Scopes `repo`, `workflow`, `project`) und `HCLOUD_TOKEN` (Hetzner Cloud, Lesen und Schreiben) als Windows-Benutzervariablen. Werkzeuge: Git (mit Git Bash), GitHub CLI, Go (Version aus `app/backend/go.mod`), Node 24, Playwright mit Chromium.
 
 ---
 
-## 7 Bilder und Medien
+## 7 Auslieferung
 
-### Hochladen
+### GitHub
 
-- Erlaubt sind JPEG, PNG und WebP bis 10 MB. Das Backend prüft den Typ anhand des Dateiinhalts, nicht anhand der Endung.
-- Vor dem Dekodieren liest es nur die Bildmaße (`image.DecodeConfig`) und lehnt Bilder über 40 Megapixel ab. Das schützt vor Dateien, die beim Entpacken den Speicher sprengen.
-- Das Backend kodiert jedes Bild neu. Dabei entfallen Metadaten wie EXIF und GPS-Position.
+| Element | Zweck |
+|---|---|
+| Branch `main` | Integrationsstand („Code Stream“), nur über PR mit grünem Merge Gate |
+| Branch `release` | zuletzt released Stand, nur per Fast-Forward durch das Release Gate |
+| Team-Branches | `spec/<n>`, `verify/<n>`, `fix/<n>`, kurzlebig |
+| Tags `vJJJJ.MM.TT-<Lauf>` | GitHub-Release je ausgeliefertem Stand |
+| Projekt „AI Perspectives“ | Board mit Feld Status: Neu, In Arbeit, Spezifiziert, Bug offen, Merge Gate, Funktioniert |
+| Labels | `requirement`, `needs-analysis`, `specified`, `done`, `bug`, `works`, `test-defect`, `release-blocker`, `in-progress`, `blocked` |
 
-### Varianten
+### Workflows
 
-| Variante | Größe | Verwendung |
+| Workflow | Auslöser | Inhalt |
 |---|---|---|
-| `480`, `960`, `1600` | Breite in Pixel, Seitenverhältnis bleibt | `srcset` in Karussell, Listen und Beiträgen |
-| `og` | 1200 × 630, mittig zugeschnitten | Link-Vorschau (`og:image`) |
+| [merge-gate.yml](.github/workflows/merge-gate.yml) | PR nach `main` | Team-Grenzen, Build, Unit-Tests, Security, Review-Checkliste, Fidelity; Abschlussjob „Merge Gate“ |
+| [fidelity-run.yml](.github/workflows/fidelity-run.yml) | Push auf `main`, manuell | ganze Fidelity-Suite auf `main`, Artefakt `fidelity-main` für Team 2 |
+| [release.yml](.github/workflows/release.yml) | manuell | Release Gate bis Hetzner und GitHub-Release |
+| [rollback.yml](.github/workflows/rollback.yml) | manuell | vorherige oder angegebene Version auf dem Server starten |
 
-Fotos werden als JPEG gespeichert, Grafiken mit Transparenz als PNG.
+Composite Actions: `unit-tests`, `fidelity` (startet das Image oder prüft eine URL, wertet mit `gate.mjs` aus), `ssh-setup`, `hcloud-snapshot`.
 
-### Ablage und Auslieferung
-
-- Die Dateien liegen im Volume `app_media` unter einem zufälligen Schlüssel, z. B. `/media/3f9c…-960.jpg`.
-- Weil sich eine Datei unter einem Schlüssel nie ändert, liefert Caddy sie mit `immutable` und einem Jahr Cache-Dauer aus.
-- Caddy bindet das Volume nur lesend ein. Schreiben darf allein das Backend.
-- In Beitragstexten fügt die Redaktion Bilder über eine Auswahl aus der Medienverwaltung ein. Das Frontend ergänzt beim Darstellen `srcset` und Alternativtext.
-- Jedes Bild braucht vor der Verwendung in einem veröffentlichten Beitrag einen Alternativtext in der Sprache des Beitrags (Barrierefreiheit).
-- Nicht mehr verwendete Bilder werden zunächst nicht automatisch gelöscht. Ein Aufräumjob kann später folgen.
-
----
-
-## 8 Datenbank
-
-### Warum zunächst SQLite
-
-- Keine eigene Datenbank-Instanz nötig, die Daten liegen in einer Datei im Docker-Volume.
-- Für einen Blog mit wenigen schreibenden Personen und vielen Lesezugriffen völlig ausreichend.
-- Einfache Sicherung mit `VACUUM INTO`.
-
-**Einstellungen:** `journal_mode=WAL` für gleichzeitiges Lesen während des Schreibens, `foreign_keys=ON` und `busy_timeout=5000`.
-
-### Datenmodell
+### Release Gate
 
 ```mermaid
-erDiagram
-    users ||--o{ sessions : hat
-    topics ||--|{ topic_translations : "übersetzt in"
-    posts ||--|{ post_translations : "übersetzt in"
-    posts }o--o{ topics : "zugeordnet über post_topics"
-    media ||--o{ media_translations : "Alternativtext in"
-    media |o--o{ posts : "Titelbild von"
-
-    users { int id PK
-            text email UK
-            text password_hash
-            text role "editor | admin"
-            bool active }
-    sessions { text id PK
-               int user_id FK
-               datetime expires_at }
-    topics { int id PK
-             text slug UK
-             int sort_order }
-    topic_translations { int topic_id FK
-                         text lang
-                         text title
-                         text intro }
-    posts { int id PK
-            text slug UK
-            text status "draft | published"
-            datetime published_at
-            bool featured
-            int cover_media_id FK
-            datetime updated_at }
-    post_translations { int post_id FK
-                        text lang
-                        text title
-                        text summary
-                        text body_markdown }
-    media { int id PK
-            text storage_key UK
-            text mime_type
-            int width
-            int height
-            datetime created_at }
-    media_translations { int media_id FK
-                         text lang
-                         text alt_text }
-    page_views { text day PK "JJJJ-MM-TT, Europe/Berlin"
-                 int views
-                 int identified_views
-                 int unique_views }
-    page_view_sources { text ip_hash PK
-                        text last_day }
-    page_view_identity { int id PK
-                         text key_id
-                         datetime started_at }
-    readiness_results ||--|{ readiness_result_ratings : "Reifegrad je Dimension"
-    readiness_results { int id PK
-                        text key_hash UK
-                        text lang
-                        datetime submitted_at }
-    readiness_result_ratings { int result_id FK
-                               text dimension
-                               int level "1 bis 3" }
-    consultation_requests { int id PK
-                            text email UK
-                            text lang
-                            datetime requested_at }
+flowchart LR
+    S((main)) --> B[1 Build<br/>Image neu bauen]
+    B --> T[2 Test<br/>Unit + ganze Fidelity-Suite]
+    T --> F[3 Final Check<br/>keine release-blocker,<br/>Fast-Forward möglich]
+    F --> R[4 Branch release]
+    R --> P[5 Package<br/>Hetzner-Snapshot,<br/>deploy.sh release,<br/>Smoke-Test REQ-0]
+    P --> X[6 Publish<br/>Tag + GitHub-Release]
 ```
 
-- Die drei Startthemen legt eine Migration als Startdaten an (Anforderung 3).
-- Eine Migration ergänzt den Kontostatus. Bestehende Konten bleiben aktiv.
-- `status` und `published_at` steuern die Sichtbarkeit. Zurücknehmen setzt `status` wieder auf `draft` (Anforderung 5).
-- Übersetzungen sind eigene Zeilen je Sprache (`lang` = `de` oder `en`). Weitere Sprachen brauchen keine Schemaänderung (Anforderung 7).
-- Die Bilddateien selbst liegen nicht in der Datenbank, sondern im Medien-Volume.
-- Die Seitenstatistik (#130, #142) speichert absolute/bereinigte Tagesaggregate in `page_views` und je HMAC-geschütztem IP-Pseudonym nur den letzten Aufruftag in `page_view_sources`. Keine Einzelereignisse oder Seitenverläufe; die Pseudonyme sind personenbezogen und bleiben für die Laufzeit des Statistikbestands, um „Gesamt“ korrekt zu bereinigen. Schlüssel getrennt von SQLite, Client-IP nur über explizit vertraute Proxys. Beginn/Schlüsselfingerabdruck stehen in `page_view_identity`; historische Datenlücken werden als unbekannt ausgegeben. Details: [ADR 0010](app/docs/adr/0010-statistik-ohne-kennung-und-einwilligung.md). `readiness_results` bleibt davon getrennt und enthält nur Sprache, Zeitpunkt und den SHA-256-Hash einer zufälligen Kennung aus dem Arbeitsspeicher des Browserfensters, um dasselbe Ergebnis zu aktualisieren.
-- `consultation_requests` (#136) enthält je Anfrage nur die normalisierte E-Mail-Adresse, die Sprache für die Antwort und den Zeitpunkt, ohne Ergebnis der Selbsteinschätzung und ohne Verknüpfung zu `readiness_results`. Eine erneute Anfrage mit derselben Adresse aktualisiert den Eintrag. Die Redaktion löscht ihn nach der Terminabstimmung.
+1. **Build:** Das Image wird aus dem Stand von `main` (oder `ref`) neu gebaut.
+2. **Test:** ganze Unit-Test-Suite und ganze Fidelity-Suite; jede Baseline-ID muss bestehen.
+3. **Final Check:** keine offenen Issues mit `release-blocker`; `release` ist Vorfahre des Commits; ist der Stand schon released, endet der Lauf ohne Deployment.
+4. **release:** Der Branch `release` wird auf den geprüften Commit vorgezogen.
+5. **Package:** Snapshot des Servers über die Hetzner Cloud API (die drei jüngsten bleiben), dann [app/deploy/deploy.sh](app/deploy/deploy.sh) `release <Commit>`: `app/` per `git archive` und SSH nach `/opt/ki-web/build/<Version>`, Image `ki-web:<Version>` auf dem Server bauen, mit `docker compose up --wait` starten, `https://DOMAIN/api/health` prüfen. Ist die neue Version nicht gesund, startet das Skript die bisherige wieder und der Lauf schlägt fehl. Danach REQ-0 gegen `DEPLOY_URL`.
+6. **Publish:** erst ganz am Ende Tag und GitHub-Release mit generierten Release Notes.
 
-### Späterer Wechsel zu PostgreSQL
+Releases laufen nacheinander (`concurrency: release-production`). **Rollback:** Workflow „Rollback“ oder lokal `app/deploy/deploy.sh rollback | switch <Version>`; die fünf jüngsten Versionen liegen auf dem Server. Migrationen sind additiv, damit die vorherige Version mit dem neuen Schema läuft. Weitere Details: [app/docs/betrieb.md](app/docs/betrieb.md).
 
-Ein Wechsel wird sinnvoll, wenn mehrere Backend-Instanzen nötig werden oder die Schreiblast deutlich steigt. Vorbereitet ist er durch Standard-SQL in den Abfragen, das Store-Interface und die Migrationen mit goose, das beide Datenbanken unterstützt. Die Auslöser hält die Architekturentscheidung zu SQLite fest.
+### Secrets und Variablen
 
----
+Einzurichten unter *Settings → Secrets and variables → Actions* von `MarvinJakob/AIPerspectives`, Umgebung `production`:
 
-## 9 Betrieb mit Docker Compose bei Hetzner
-
-### Container
-
-| Dienst | Image | Aufgabe |
+| Name | Art | Inhalt |
 |---|---|---|
-| `caddy` | `caddy:2-alpine` (unverändert) | HTTPS mit automatischen Let's-Encrypt-Zertifikaten, Kompression, Sicherheits-Header, Auslieferung von `/media/*`, Weiterleitung aller anderen Anfragen an das Backend |
-| `backend` | Eigenes Image `ki-web` | API, beide Frontends, Meta-Tags der öffentlichen Webseite, Sitemap, Bildverarbeitung, Migrationen beim Start |
+| `DEPLOY_HOST` | Secret | SSH-Ziel, z. B. `root@<Server-IP>` |
+| `DEPLOY_SSH_KEY` | Secret | privater ed25519-Schlüssel nur für Deployments; öffentlicher Teil in `/root/.ssh/authorized_keys` |
+| `DEPLOY_KNOWN_HOSTS` | Secret | Host-Schlüssel des Servers (`ssh-keyscan -t ed25519 <IP>`, Fingerprint abgleichen) |
+| `HCLOUD_TOKEN` | Secret | Hetzner-Cloud-API-Token des Projekts (Lesen und Schreiben) für Snapshots |
+| `DEPLOY_URL` | Variable | öffentliche Adresse, z. B. `https://marvinjakob.de` |
+| `HCLOUD_SERVER_NAME` | Variable | Name des Servers in der Hetzner Cloud |
 
-Node baut beide Frontends getrennt. Go bettet die Build-Ergebnisse ein und baut ein statisches Binary für das Laufzeit-Image `gcr.io/distroless/static`. Beide Frontends und das Backend werden gemeinsam in einem Image pro Version ausgeliefert.
-
-### compose.yaml (Skizze)
-
-```yaml
-x-logging: &logging
-  driver: json-file
-  options: { max-size: "10m", max-file: "5" }
-
-services:
-  caddy:
-    image: caddy:2-alpine
-    ports: ["80:80", "443:443"]
-    environment:
-      DOMAIN: ${DOMAIN}
-      REDIRECT_DOMAINS: ${REDIRECT_DOMAINS:-}
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - app_media:/srv/media:ro
-    depends_on:
-      backend: { condition: service_healthy }
-    restart: unless-stopped
-    logging: *logging
-
-  backend:
-    image: ${REGISTRY}/ki-web:${VERSION}
-    environment:
-      DATABASE_PATH: /data/db/app.db
-      MEDIA_PATH: /data/media
-      PUBLIC_BASE_URL: https://${DOMAIN}
-      SESSION_SECRET: ${SESSION_SECRET}
-    volumes:
-      - app_db:/data/db
-      - app_media:/data/media
-    healthcheck:
-      test: ["CMD", "/server", "healthcheck"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-    restart: unless-stopped
-    logging: *logging
-
-volumes:
-  caddy_data:
-  app_db:
-  app_media:
-```
-
-Das Backend ist nur im internen Docker-Netz erreichbar. Nach außen öffnet nur Caddy die Ports 80 und 443.
-
-### Caddyfile (Skizze)
-
-```
-{$DOMAIN} {$REDIRECT_DOMAINS} {
-    # Weitere Adressen wie www.DOMAIN leiten dauerhaft auf DOMAIN um
-    @umleiten {
-        not host {$DOMAIN}
-        expression `"{$REDIRECT_DOMAINS}" != ""`
-    }
-    redir @umleiten https://{$DOMAIN}{uri} permanent
-
-    encode zstd gzip
-
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
-        Content-Security-Policy "default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
-        Referrer-Policy "strict-origin-when-cross-origin"
-        X-Content-Type-Options "nosniff"
-        Permissions-Policy "camera=(), microphone=(), geolocation=()"
-        -Server
-    }
-
-    handle_path /media/* {
-        root * /srv/media
-        header Cache-Control "public, max-age=31536000, immutable"
-        file_server
-    }
-
-    handle {
-        reverse_proxy backend:8080
-    }
-
-    log {
-        output file /data/logs/access.log {
-            roll_keep_for 168h
-        }
-        format filter {
-            wrap json
-            fields {
-                request>remote_ip ip_mask {
-                    ipv4 24
-                    ipv6 48
-                }
-            }
-        }
-    }
-}
-```
-
-Die Content-Security-Policy erlaubt nur Inhalte vom eigenen Server. Damit ist technisch ausgeschlossen, dass versehentlich externe Schriften oder Skripte geladen werden.
-
-### Hetzner-Infrastruktur
-
-| Baustein | Entscheidung |
-|---|---|
-| Server | Ein Hetzner-Cloud-Server mit 2 vCPU und 4 GB RAM reicht für den Start |
-| Standort | Deutschland (Falkenstein oder Nürnberg), damit die Daten in der EU bleiben |
-| Betriebssystem | Ubuntu LTS mit Docker Engine und Compose-Plugin |
-| Firewall | Hetzner Cloud Firewall: eingehend nur 22 (SSH, nur per Schlüssel), 80 und 443 |
-| DNS | A- und AAAA-Eintrag der Domain auf die Server-IP |
-| Sicherung | Hetzner-Server-Backups plus tägliche Sicherung in Hetzner Object Storage |
-
-### Datensicherung
-
-Ein nächtlicher Cron-Job auf dem Server führt `deploy/backup/backup.sh` aus:
-
-1. `docker compose exec backend /server backup` schreibt eine konsistente Kopie der Datenbank in das Volume.
-2. [restic](https://restic.net/) sichert diese Kopie und das Medien-Volume verschlüsselt und inkrementell in einen Bucket in Hetzner Object Storage.
-3. `restic forget --keep-daily 30 --prune` behält 30 tägliche Stände.
-4. Bei Erfolg meldet das Skript sich bei der Überwachung (siehe Abschnitt 10). Bleibt die Meldung aus, gibt es eine Benachrichtigung.
-
-Eine Wiederherstellung wird mindestens einmal pro Quartal auf einem frischen Server getestet. Optional später: [Litestream](https://litestream.io/) für kontinuierliche Replikation der Datenbank.
-
-### Auslieferung (CI/CD)
-
-1. Bei jedem Pull Request laufen Linting, Typprüfung, Prüfung des erzeugten API-Codes und Unit-Tests für beide Frontends und das Backend.
-2. Bei einem Git-Tag: Docker-Image bauen und mit der Versionsnummer in eine Container-Registry schieben.
-3. Deployment per SSH auf den Server: `VERSION` in `.env` setzen, dann `docker compose pull && docker compose up -d`.
-4. Rollback: vorherige `VERSION` eintragen und Schritt 3 wiederholen. Migrationen sind daher nur additiv.
+Fehlen `HCLOUD_TOKEN` oder `HCLOUD_SERVER_NAME`, läuft das Release ohne Snapshot mit Warnung. Das Image wird auf dem Server gebaut; eine Container-Registry ist nicht nötig.
 
 ---
 
-## 10 Überwachung und Wartung
+## 8 Betrieb auf Hetzner
 
-### Überwachung
-
-| Was | Wie |
+| Baustein | Stand |
 |---|---|
-| Anwendung läuft | `/api/health` prüft mit `SELECT 1` die Datenbank und antwortet mit `200` oder `503`. Docker startet den Container bei wiederholtem Fehler neu. |
-| Seite ist von außen erreichbar | Ein externer Dienst ruft jede Minute `https://<domain>/api/health` auf und benachrichtigt bei Ausfall. Er läuft bewusst nicht auf demselben Server. |
-| Zertifikat ist gültig | Derselbe Dienst warnt 14 Tage vor Ablauf des TLS-Zertifikats. |
-| Sicherung ist gelaufen | Das Sicherungsskript meldet sich nach Erfolg bei einem Heartbeat-Endpunkt. Fehlt die Meldung 26 Stunden lang, folgt eine Benachrichtigung. |
+| Server | Hetzner-Cloud-Server `docker-ce-ubuntu-2gb-nbg1-1` (Nürnberg, 1 vCPU, 2 GB RAM + 2 GB Swap), Ubuntu, Docker Engine mit Compose-Plugin; Domain `marvinjakob.de` |
+| Verzeichnis | `/opt/ki-web`: `.env`, aktive `compose.yaml` und `deploy/Caddyfile`, `build/<Version>/` |
+| Container | `caddy` (`caddy:2-alpine`, Ports 80/443, Let's Encrypt, Header, `/media`) und `backend` (`ki-web:<Version>`, distroless, nur intern, feste Proxy-IP `172.30.142.2`) |
+| Volumes | `app_db`, `app_media`, `caddy_data` – bleiben bei Deployments erhalten |
+| Firewall | Hetzner Cloud Firewall: eingehend nur 22 (nur Schlüssel), 80, 443 |
+| Health | Docker-Healthcheck `/server healthcheck`, `restart: unless-stopped`, von außen `/api/health` |
+| Sicherung | nächtlich `deploy/backup/backup.sh`: `server backup` (VACUUM INTO) und restic nach Hetzner Object Storage, 30 Tage; zusätzlich Snapshot vor jedem Release |
+| Logs | Docker: 5 × 10 MB je Container; Caddy kürzt IP-Adressen und löscht nach 7 Tagen |
+| Wartung | `unattended-upgrades`; Abhängigkeiten über PRs durch das Merge Gate |
 
-### Logs
-
-- Docker begrenzt die Container-Logs auf 5 Dateien zu je 10 MB.
-- Caddy kürzt IP-Adressen im Zugriffslog und löscht Logdateien nach 7 Tagen.
-- Das Backend protokolliert keine IP-Adressen und keine Inhalte von Anfragen.
-
-### Wartung
-
-- **Betriebssystem:** `unattended-upgrades` installiert Sicherheitsupdates automatisch. Ist ein Neustart nötig, erfolgt er nachts um 4 Uhr. Die Container starten danach von selbst.
-- **Abhängigkeiten:** [Renovate](https://docs.renovatebot.com/) öffnet Pull Requests für neue Versionen von npm-Paketen, Go-Modulen, Basis-Images im `Dockerfile` und dem Caddy-Image in `compose.yaml`. Images sind per Digest festgelegt. Updates laufen wie jede Änderung durch die CI und werden von Hand gemergt.
-- **Go und Node:** Die Versionen im `Dockerfile` werden mit Renovate aktuell gehalten.
+Ersteinrichtung, `.env`, Domainwechsel, Wiederherstellung und Logs: [app/docs/betrieb.md](app/docs/betrieb.md).
 
 ---
 
-## 11 Datenschutz
+## 9 Datenschutz
 
-| Thema | Umsetzung |
-|---|---|
-| Impressum und Datenschutzerklärung | Eigene Seiten je Sprache, aus jeder Seite über die Fußzeile erreichbar |
-| Auftragsverarbeitung | Auftragsverarbeitungsvertrag mit Hetzner für Server und Object Storage abschließen (in der Hetzner-Konsole verfügbar). Ebenso mit dem externen Überwachungsdienst, falls er personenbezogene Daten verarbeitet. |
-| Keine Daten an Dritte | Schriften selbst gehostet, keine CDNs, keine eingebetteten Inhalte fremder Anbieter. Die Content-Security-Policy erzwingt das. |
-| Cookies | Nur das Sitzungs-Cookie der Redaktion. Es ist technisch notwendig, für Besucherinnen und Besucher gibt es keine Cookies und kein Einwilligungsbanner. |
-| Reichweitenmessung | Seit #130 zählt das Backend Seitenaufrufe: Jede ausgelieferte öffentliche Seite erhöht einen Tageszähler (Datum und Anzahl). Zweck: Reichweite der Webseite einschätzen. Es gibt kein Messskript, kein Cookie, keinen Web-Storage-Eintrag und keine Kennung; IP-Adresse und User-Agent werden nicht gespeichert. Seitenwechsel innerhalb der Anwendung zählen nicht, weil eine Meldung per JavaScript als Zugriff nach § 25 TDDDG eine Einwilligung bräuchte (ADR 0010). Besucher werden nicht unterschieden. |
-| Ergebnisse der Selbsteinschätzung | Nur mit Einwilligung (Kontrollkästchen vor der Auswertung, nicht vorausgewählt) speichert das Backend das Ergebnis: Reifegrad je Dimension, Sprache und Zeitpunkt. Zweck: Bedarf der Zielgruppe einschätzen. Keine Namen, IP-Adressen oder User-Agents. Die zufällige Kennung des Ergebnisses liegt nur im Arbeitsspeicher des Browserfensters, in der Datenbank nur ihr Hash; solange das Fenster offen ist, löscht das Entfernen des Hakens das Ergebnis. Danach lässt es sich niemandem mehr zuordnen. |
-| Beratungsanfragen | Erst beim Absenden des Formulars auf der Auswertung (#136) speichert das Backend E-Mail-Adresse, Sprache und Zeitpunkt. Zweck: Terminabstimmung per E-Mail. Kein Ergebnis, keine weiteren Angaben. Sichtbar nur für Redaktionskonten, die die Anfrage nach der Terminabstimmung löschen. Das Protokoll enthält keine Adressen (ADR 0011). |
-| IP-Adressen | Im Zugriffslog gekürzt, nach 7 Tagen gelöscht. Die Begrenzung der Anmeldeversuche und der Beratungsanfragen hält IP-Adressen nur im Arbeitsspeicher. |
-| Bilder | Metadaten wie GPS-Position werden beim Hochladen entfernt. |
-| Konten der Redaktion | Gespeichert werden E-Mail-Adresse, Passwort-Hash, Rolle und Kontostatus. Abgelaufene Sitzungen werden täglich gelöscht. |
-| Sicherungen | Verschlüsselt mit restic, Aufbewahrung 30 Tage, Speicherort in Deutschland |
+Keine Cookies für Besucher außer bei Anmeldung zur Redaktion, keine Einbindung Dritter, Reichweitenmessung nur serverseitig ohne Kennung ([ADR 0010](app/docs/adr/0010-statistik-ohne-kennung-und-einwilligung.md)), Readiness-Ergebnisse nur mit Einwilligung, Bilder ohne Metadaten, Sicherungen verschlüsselt in Deutschland. Auftragsverarbeitungsvertrag mit Hetzner. Fidelity-Tests verwenden nur Testdaten (`DEV_SEED`, `@example.test`).
 
 ---
 
-## 12 Architekturentscheidungen (ADR)
+## 10 Architekturentscheidungen
 
-Wichtige Entscheidungen werden als kurze Architecture Decision Records im Ordner `docs/adr` festgehalten. Dieses Dokument beschreibt den aktuellen Stand, die ADRs erklären, warum er so ist.
-
-### Wann ein ADR nötig ist
-
-- Die Entscheidung ist schwer rückgängig zu machen, z. B. Datenbank, Hosting oder Anmeldeverfahren.
-- Sie betrifft mehrere Teile der Anwendung.
-- Es gab ernsthafte Alternativen, und spätere Teammitglieder würden fragen, warum es nicht anders gemacht wurde.
-
-### Form
-
-- Dateiname: fortlaufende Nummer und Titel, z. B. `0003-sqlite-als-erste-datenbank.md`.
-- Inhalt nach dem Muster von [Michael Nygard](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions): **Status** (vorgeschlagen, angenommen, ersetzt durch …), **Kontext**, **Entscheidung**, **Konsequenzen**.
-- Ein angenommenes ADR wird nicht mehr geändert. Ändert sich die Entscheidung, ersetzt ein neues ADR das alte und verweist darauf.
-- ADRs entstehen im selben Pull Request wie die Änderung, die sie begründen.
-
-### Erste ADRs
+ADRs nach Michael Nygard (Status, Kontext, Entscheidung, Konsequenzen) in [app/docs/adr](app/docs/adr), fortlaufend nummeriert. Ein ADR ist nötig, wenn eine Entscheidung schwer umkehrbar ist, mehrere Teile betrifft oder es ernsthafte Alternativen gab. Angenommene ADRs werden nicht geändert, sondern durch neue ersetzt.
 
 | Nr. | Entscheidung |
 |---|---|
-| 0001 | Architekturentscheidungen als ADRs festhalten |
-| 0002 | Ein gemeinsames Repository für Frontend, Backend und Betrieb |
-| 0003 | SQLite als erste Datenbank, mit Kriterien für den Wechsel zu PostgreSQL |
-| 0004 | Go-Backend liefert die React-App aus und setzt Meta-Tags (statt reiner Single-Page-App oder Server-Side-Rendering mit Node) |
-| 0005 | Sitzungs-Cookies statt JWT für die Redaktion |
-| 0006 | OpenAPI als verbindlicher Schnittstellenvertrag |
-| 0007 | Hosting mit Docker Compose auf einem Hetzner-Cloud-Server |
-| 0008 | Medien im Docker-Volume statt in Object Storage |
-
----
-
-## 13 Lokale Entwicklung
-
-- `docker compose -f compose.yaml -f compose.dev.yaml up` startet die gesamte Anwendung lokal ohne TLS.
-- Alternativ für schnelle Iteration: `npm run dev` im Ordner `frontend` (Vite leitet `/api` und `/media` per Proxy weiter) und `go run ./cmd/server` im Ordner `backend`. Meta-Tags setzt in diesem Modus nur das Frontend.
-- Das Redaktionsfrontend startet lokal mit `npm run dev` im Ordner `frontend-redaktion`. Sein Vite-Proxy leitet `/api` und `/media` an dasselbe Backend weiter.
-- `make generate` erzeugt nach einer Änderung an `api/openapi.yaml` den Code für Frontend und Backend neu.
-- Eine Seed-Migration für die Entwicklung legt Testbeiträge, Testbilder und ein Testkonto für die Redaktion an.
-
----
-
-## 14 Zuordnung zu den Anforderungen
-
-| Anforderung | Frontend | Backend |
-|---|---|---|
-| 1 Startseite | Karussell mit Titelbildern, Themenkarten | `GET /api/posts?featured=true`, `GET /api/topics`, Bildvarianten |
-| 2 Navigation | Gemeinsame Kopfzeile | `GET /api/topics` |
-| 3 Themenseiten | Route `/:lang/themen/:slug` | `GET /api/topics/{slug}`, Startdaten per Migration, Meta-Tags |
-| 4 Öffentlicher Blog | Routen `/:lang/blog` und `/:lang/blog/:slug` | Öffentliche Endpunkte filtern auf `published`, `404` für Entwürfe, Meta-Tags und Sitemap |
-| 5 Redaktionssystem | Routen unter `/redaktion`, Medienverwaltung | `/api/admin/posts…`, `/api/admin/media…` |
-| 6 Zugang zur Redaktion | Anmeldeseite, Schutz der Routen | Sitzungen, Rollenprüfung, Middleware |
-| 7 Sprachwechsel | URL-Präfix, i18next, Hinweis bei fehlender Übersetzung | `lang`-Parameter, Rückfall auf vorhandene Sprache, `hreflang` |
-| 11 Benutzerverwaltung der Redaktion | `/redaktion/benutzer` | Admin-Rollenprüfung, `/api/admin/users…`, Kontostatus und Sitzungsentzug |
-| #130 Statistik der Redaktion | `/redaktion/statistik`, Einwilligung in der Selbsteinschätzung | Tageszähler beim Ausliefern, `/api/readiness-results…`, `/api/admin/statistics/…` |
-| #136 Beratungsgespräch anfragen | Formular auf der Auswertung, `/redaktion/beratungsanfragen` | `/api/consultation-requests`, `/api/admin/consultation-requests…`, Begrenzung je IP-Adresse |
+| 0001 | Architekturentscheidungen als ADRs |
+| 0002 | Ein Repository für Frontend, Backend und Betrieb |
+| 0003 | SQLite als erste Datenbank |
+| 0004 | Go-Backend liefert die React-Apps aus und setzt Meta-Tags |
+| 0005 | Sitzungs-Cookies statt JWT |
+| 0006 | OpenAPI als Vertrag |
+| 0007 | Docker Compose auf Hetzner |
+| 0008 | Medien im Docker-Volume |
+| 0009 | Audit-Inhalte als Datei im Repository |
+| 0010 | Statistik ohne Kennung und Einwilligung |
+| 0011 | Beratungsanfragen in der Redaktion |

@@ -1,6 +1,6 @@
 # Betrieb auf Hetzner
 
-Die Anwendung läuft mit Docker Compose auf dem Hetzner-Cloud-Server `docker-ce-ubuntu-2gb-nbg1-1`. Caddy nimmt HTTPS-Anfragen an und leitet sie an das Backend weiter (siehe [ARCHITECTURE.md, Abschnitt 9](../../ARCHITECTURE.md) und [ADR 0007](adr/0007-docker-compose-auf-hetzner.md)).
+Die Anwendung läuft mit Docker Compose auf dem Hetzner-Cloud-Server `docker-ce-ubuntu-2gb-nbg1-1`. Caddy nimmt HTTPS-Anfragen an und leitet sie an das Backend weiter (siehe [ARCHITECTURE.md, Abschnitt 8](../../ARCHITECTURE.md#8-betrieb-auf-hetzner) und [ADR 0007](adr/0007-docker-compose-auf-hetzner.md)).
 
 | | |
 |---|---|
@@ -15,7 +15,7 @@ Die Anwendung läuft mit Docker Compose auf dem Hetzner-Cloud-Server `docker-ce-
 - **Server:** Ubuntu mit Docker CE und Compose-Plugin. Docker startet beim Systemstart (`systemctl is-enabled docker` ergibt `enabled`). Wegen des Image-Builds auf dem Server ist ein Swap von 2 GB eingerichtet (`/swapfile`, Eintrag in `/etc/fstab`).
 - **Netz:** Die Ports 80 und 443 sind öffentlich erreichbar. Caddy holt das Zertifikat bei Let's Encrypt und leitet HTTP auf HTTPS um.
 - **Domain:** Die Domain löst auf die IP des Servers auf.
-- **Zugang:** SSH als `root` mit Schlüssel. Schlüssel und Tokens liegen nur lokal (z. B. in `.ssh/` und `.token/` im Projektordner, beide nicht im Repository) und auf dem Server in `/opt/ki-web/.env`.
+- **Zugang:** SSH als `root` mit Schlüssel. Schlüssel und Tokens liegen nur lokal (z. B. in `.ssh/` im Projektordner, nicht im Repository; GitHub- und Hetzner-Token als Umgebungsvariablen `GH_TOKEN` und `HCLOUD_TOKEN`) und auf dem Server in `/opt/ki-web/.env`.
 - **Lokal:** Git, Bash und `ssh`. Unter Windows genügt Git Bash.
 
 ## Konfiguration
@@ -80,27 +80,29 @@ cd /opt/ki-web && docker compose exec -it backend /server user create --email AD
 
 ## Automatisches Deployment
 
-Nach jedem Merge in `main` wird der aktuelle Stand von `main` automatisch bereitgestellt. Das übernimmt der Workflow [.github/workflows/deploy.yml](../../.github/workflows/deploy.yml):
+Seit dem Umzug nach `MarvinJakob/AIPerspectives` (2026-11-16) liefert das **Release Gate** aus, nicht mehr jeder Merge. Der Workflow [.github/workflows/release.yml](../../.github/workflows/release.yml) wird manuell gestartet (*Actions → Release Gate → Run workflow* oder `gh workflow run release.yml`) und
 
-1. **Prüfungen im Pull Request:** Bei jedem Pull Request in `main` (Öffnen, neue Commits) laufen `go vet`, `go test` sowie Typprüfung und Tests beider Frontends wie in [README.md](../README.md#code-erzeugen-und-testen). Die Schritte stehen in [.github/actions/pruefungen](../../.github/actions/pruefungen/action.yml).
-2. **Stand bestimmen:** Nach einem Merge checkt der Deploy-Job den aktuellen Stand von `main` aus, nicht den Merge-Commit des Pull Requests. Läuft genau dieser Commit schon auf dem Server (`deploy/deploy.sh current`), endet der Lauf ohne Build und Neustart erfolgreich. Geschlossene, nicht gemergte Pull Requests lösen nichts aus.
-3. **Prüfungen vor dem Deployment:** Der Deploy-Job führt dieselben Prüfungen für den auszuliefernden Stand aus. Schlägt eine Prüfung fehl, wird nicht deployed.
-4. **Deployment:** Der Job ruft `deploy/deploy.sh release <Commit>` auf, wie unter [Neue Version bereitstellen](#neue-version-bereitstellen) beschrieben.
-5. **Healthcheck:** Ist die neue Version nicht gesund, startet `deploy.sh` wieder die bisherige Version und der Lauf schlägt fehl. Anschließend prüft der Workflow `DEPLOY_URL/api/health` von außen.
-6. **Protokoll:** Pull Request, sein Merge-Commit, der bereitgestellte Stand von `main`, die Image-Version und ob das Deployment übersprungen wurde, stehen im Protokoll und in der Zusammenfassung des Laufs unter *Actions*.
+1. baut das Image aus dem aktuellen Stand von `main`,
+2. führt alle Unit-Tests und die ganze Fidelity-Suite aus (keine Regression gegen `fidelity/baseline.txt`),
+3. prüft, dass keine Issues mit `release-blocker` offen sind und `release` per Fast-Forward vorgezogen werden kann,
+4. zieht den Branch `release` auf den geprüften Commit vor,
+5. legt über die Hetzner Cloud API einen Snapshot des Servers an (die drei jüngsten bleiben), ruft `deploy/deploy.sh release <Commit>` auf und prüft REQ-0 gegen `DEPLOY_URL`,
+6. legt erst am Ende Tag und GitHub-Release an.
 
-**Mehrere Merges kurz nacheinander:** Läufe für die Umgebung `production` laufen nacheinander (`concurrency`). Ein laufendes Deployment wird nicht abgebrochen. Sie starten aber nicht unbedingt in der Reihenfolge der Merges, und GitHub behält nur den zuletzt wartenden Lauf, ältere wartende Läufe werden abgebrochen („Canceling since a higher priority waiting request for deploy-production exists“). Das ist gewollt: Jeder Lauf liefert den Stand von `main` zu seinem Start aus. Deshalb enthält das letzte Deployment immer alle Merges, und ein später startender Lauf eines früheren Merges kann keine ältere Version ausliefern. Ein abgebrochener Lauf muss nicht wiederholt werden.
+Ist die neue Version nicht gesund, startet `deploy.sh` wieder die bisherige Version und der Lauf schlägt fehl. Rückkehr ohne Kommandozeile: Workflow [Rollback](../../.github/workflows/rollback.yml). Ablauf: [ARCHITECTURE.md, Abschnitt 7](../../ARCHITECTURE.md#7-auslieferung).
 
-Einstellungen unter *Settings → Secrets and variables → Actions* des Repositorys:
+Einstellungen unter *Settings → Secrets and variables → Actions* von `MarvinJakob/AIPerspectives`:
 
 | Name | Art | Inhalt |
 |---|---|---|
 | `DEPLOY_HOST` | Secret | `root@78.47.14.178` |
 | `DEPLOY_SSH_KEY` | Secret | Privater Schlüssel nur für dieses Deployment (ed25519). Der öffentliche Teil steht auf dem Server in `/root/.ssh/authorized_keys`. |
 | `DEPLOY_KNOWN_HOSTS` | Secret | Host-Schlüssel des Servers, z. B. aus `ssh-keyscan -t ed25519 78.47.14.178` nach Abgleich des Fingerprints |
+| `HCLOUD_TOKEN` | Secret | Hetzner-Cloud-API-Token (Lesen und Schreiben) für den Snapshot vor dem Release |
 | `DEPLOY_URL` | Variable | `https://marvinjakob.de` |
+| `HCLOUD_SERVER_NAME` | Variable | `docker-ce-ubuntu-2gb-nbg1-1` |
 
-Eine Registry ist nicht nötig, weil das Image auf dem Server gebaut wird. Den Schlüssel bei Verdacht auf Missbrauch auf dem Server aus `authorized_keys` löschen und neu erzeugen.
+Eine Registry ist nicht nötig, weil das Image auf dem Server gebaut wird. Den Schlüssel bei Verdacht auf Missbrauch auf dem Server aus `authorized_keys` löschen und neu erzeugen. Im alten Repository `MarvinJakob/aiboard` darf kein Deploy-Workflow mehr aktiv sein, sonst liefern zwei Repositorys auf denselben Server aus.
 
 ## Neue Version bereitstellen
 
