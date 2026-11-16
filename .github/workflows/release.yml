@@ -160,7 +160,7 @@ jobs:
 
       - uses: ./.github/actions/ssh-setup
         with:
-          ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
+          ssh-key: ${{ secrets.HETZNER_CLOUD_SSH }}
           known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
 
       - name: Image auf dem Server bauen und starten

@@ -238,7 +238,7 @@ Einzurichten unter *Settings → Secrets and variables → Actions* von `MarvinJ
 | Name | Art | Inhalt |
 |---|---|---|
 | `DEPLOY_HOST` | Secret | SSH-Ziel, z. B. `root@<Server-IP>` |
-| `DEPLOY_SSH_KEY` | Secret | privater ed25519-Schlüssel nur für Deployments; öffentlicher Teil in `/root/.ssh/authorized_keys` |
+| `HETZNER_CLOUD_SSH` | Secret | privater ed25519-Schlüssel nur für Deployments; öffentlicher Teil in `/root/.ssh/authorized_keys` |
 | `DEPLOY_KNOWN_HOSTS` | Secret | Host-Schlüssel des Servers (`ssh-keyscan -t ed25519 <IP>`, Fingerprint abgleichen) |
 | `HCLOUD_TOKEN` | Secret | Hetzner-Cloud-API-Token des Projekts (Lesen und Schreiben) für Snapshots |
 | `DEPLOY_URL` | Variable | öffentliche Adresse, z. B. `https://marvinjakob.de` |

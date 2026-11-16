@@ -96,7 +96,7 @@ Einstellungen unter *Settings → Secrets and variables → Actions* von `Marvin
 | Name | Art | Inhalt |
 |---|---|---|
 | `DEPLOY_HOST` | Secret | `root@78.47.14.178` |
-| `DEPLOY_SSH_KEY` | Secret | Privater Schlüssel nur für dieses Deployment (ed25519). Der öffentliche Teil steht auf dem Server in `/root/.ssh/authorized_keys`. |
+| `HETZNER_CLOUD_SSH` | Secret | Privater Schlüssel nur für dieses Deployment (ed25519). Der öffentliche Teil steht auf dem Server in `/root/.ssh/authorized_keys`. |
 | `DEPLOY_KNOWN_HOSTS` | Secret | Host-Schlüssel des Servers, z. B. aus `ssh-keyscan -t ed25519 78.47.14.178` nach Abgleich des Fingerprints |
 | `HCLOUD_TOKEN` | Secret | Hetzner-Cloud-API-Token (Lesen und Schreiben) für den Snapshot vor dem Release |
 | `DEPLOY_URL` | Variable | `https://marvinjakob.de` |
