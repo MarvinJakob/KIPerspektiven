@@ -16,7 +16,7 @@ Die Anwendung läuft mit Docker Compose auf dem Hetzner-Cloud-Server `KI-Perspek
 - **Image-Store:** Docker verwendet wie die CI den containerd-Image-Store (`/etc/docker/daemon.json`: `{"features": {"containerd-snapshotter": true}}`, danach `systemctl restart docker`; `docker info` zeigt `driver-type: io.containerd.snapshotter.v1`). Sonst berechnet der Server für das geladene CI-Image eine andere Image-ID und `deploy.sh deploy` bricht mit „No such image“ ab.
 - **Netz:** Die Ports 80 und 443 sind öffentlich erreichbar. Caddy holt das Zertifikat bei Let's Encrypt und leitet HTTP auf HTTPS um.
 - **Domain:** Die Domain löst auf die IP des Servers auf.
-- **Zugang:** SSH als `root` mit Schlüssel. Der private Deploy-Schlüssel liegt ausschließlich als GitHub-Secret `HETZNER_CLOUD_SSH`, das Hetzner-API-Token als `HETZNER_CLOUD_API` (in den Workflows intern `HCLOUD_TOKEN`); lokal gibt es keine Hetzner-Zugänge, nur `GH_TOKEN` für GitHub. Laufzeit-Konfiguration liegt auf dem Server in `/opt/ki-web/.env`.
+- **Zugang:** SSH als `root` mit Schlüssel. Der private Deploy-Schlüssel liegt ausschließlich als GitHub-Secret `HETZNER_SSH`, das Hetzner-API-Token als `HETZNER_API` (in den Workflows intern `HCLOUD_TOKEN`); lokal gibt es keine Hetzner-Zugänge, nur `GH_TOKEN` für GitHub. Laufzeit-Konfiguration liegt auf dem Server in `/opt/ki-web/.env`.
 - **Lokal:** Git, Bash und GitHub CLI. Unter Windows genügt Git Bash. Zugangstests und Deployments laufen über die GitHub-Actions-Workflows.
 
 ## Konfiguration
@@ -89,9 +89,9 @@ Der Workflow [Merge Gate](../../.github/workflows/merge-gate.yml) führt bei Pul
 
 Bei fehlgeschlagener Installation wird die zuvor gemerkte Version wiederhergestellt; der Lauf bleibt rot. Ohne Vorgängerversion gibt es bei einer Erstinstallation keinen Rollback. Der Pflichtcheck `Merge Gate` schlägt auch bei fehlerhaften Unit-Tests fehl. Pull Requests installieren keine Version. Laufende Installationen und der manuelle Workflow [Rollback](../../.github/workflows/rollback.yml) teilen dieselbe Sperre und werden nicht abgebrochen.
 
-Die Installation benötigt die Secrets `DEPLOY_HOST`, `HETZNER_CLOUD_SSH`, `DEPLOY_KNOWN_HOSTS` sowie optional die Variable `DEPLOY_URL` für den Link zur Produktion. Eine Registry ist nicht nötig: Das gebaute Image wird als Actions-Artefakt übertragen und auf Hetzner geladen. Es wird dort nicht erneut gebaut. Die automatische Pipeline erstellt keine Snapshots, Release-Branches, Tags oder GitHub-Releases und erzeugt keine Team-4-Auswertungsaufgaben.
+Die Installation benötigt die Secrets `DEPLOY_HOST`, `HETZNER_SSH`, `DEPLOY_KNOWN_HOSTS` sowie optional die Variable `DEPLOY_URL` für den Link zur Produktion. Eine Registry ist nicht nötig: Das gebaute Image wird als Actions-Artefakt übertragen und auf Hetzner geladen. Es wird dort nicht erneut gebaut. Die automatische Pipeline erstellt keine Snapshots, Release-Branches, Tags oder GitHub-Releases und erzeugt keine Team-4-Auswertungsaufgaben.
 
-Manueller Zugangstest ohne Deployment: `gh workflow run deploy-access.yml`. Dieser separate Diagnoseworkflow benötigt weiterhin `HETZNER_CLOUD_API` und `HCLOUD_SERVER_NAME`. Den SSH-Schlüssel bei Verdacht auf Missbrauch auf dem Server aus `authorized_keys` löschen und neu erzeugen. In den alten Repositories `MarvinJakob/AIPerspectives` und `MarvinJakob/aiboard` darf kein Deploy-Workflow mehr aktiv sein, sonst installieren zwei Pipelines auf denselben Server.
+Manueller Zugangstest ohne Deployment: `gh workflow run deploy-access.yml`. Dieser separate Diagnoseworkflow benötigt weiterhin `HETZNER_API` und `HCLOUD_SERVER_NAME`. Den SSH-Schlüssel bei Verdacht auf Missbrauch auf dem Server aus `authorized_keys` löschen und neu erzeugen. In den alten Repositories `MarvinJakob/AIPerspectives` und `MarvinJakob/aiboard` darf kein Deploy-Workflow mehr aktiv sein, sonst installieren zwei Pipelines auf denselben Server.
 
 ## Neue Version bereitstellen
 

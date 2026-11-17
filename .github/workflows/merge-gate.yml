@@ -103,7 +103,7 @@ jobs:
           path: ${{ runner.temp }}
       - uses: ./.github/actions/ssh-setup
         with:
-          ssh-key: ${{ secrets.HETZNER_CLOUD_SSH }}
+          ssh-key: ${{ secrets.HETZNER_SSH }}
           known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
       - name: Bisherige Version merken
         id: previous

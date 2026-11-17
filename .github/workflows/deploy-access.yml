@@ -12,11 +12,11 @@ jobs:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/ssh-setup
         with:
-          ssh-key: ${{ secrets.HETZNER_CLOUD_SSH }}
+          ssh-key: ${{ secrets.HETZNER_SSH }}
           known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
       - name: Hetzner-API und Serverzuordnung prüfen
         env:
-          HCLOUD_TOKEN: ${{ secrets.HETZNER_CLOUD_API }}
+          HCLOUD_TOKEN: ${{ secrets.HETZNER_API }}
           SERVER: ${{ vars.HCLOUD_SERVER_NAME }}
         run: |
           [[ -n "$HCLOUD_TOKEN" && -n "$SERVER" ]] || { echo '::error::Hetzner-API-Konfiguration fehlt'; exit 1; }

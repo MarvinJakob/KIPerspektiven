@@ -255,7 +255,7 @@ it.each(['de', 'en'])('verlinkt vom Profil in %s keine entfernten Themen', async
   const menu = document.querySelector('.popover') as HTMLElement;
   const links = await within(menu).findAllByRole('link');
   expect(links.map((a) => a.getAttribute('href'))).toEqual(
-    ['softwareentwicklung', 'data-analytics', 'modelle-und-kosten'].map((slug) => `/${lang}/themen/${slug}`),
+    ['softwareentwicklung', 'data-analytics', 'modelle-und-kosten', 'vibe-coding'].map((slug) => `/${lang}/themen/${slug}`),
   );
   const hrefs = [...document.querySelectorAll('a')].map((a) => a.getAttribute('href') ?? '');
   expect(hrefs.filter((h) => /prozessautomatisierung|ki-tipps-und-tricks/.test(h))).toEqual([]);

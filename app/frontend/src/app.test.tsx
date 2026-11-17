@@ -157,7 +157,8 @@ describe('Ticket #101: Startseite nach content/topics/home/Landingpage_v03.md un
     questions.forEach((question, i) => {
       const section = screen.getByRole('region', { name: question });
       expect(section.querySelectorAll('.editorial-text p')).toHaveLength(TEMPLATE_TOPICS[i].paragraphs.length);
-      expect(within(section).getByRole('link', { name: /^Read the article:/ })).toHaveAttribute('href', `/en/themen/${TEMPLATE_TOPICS[i].slug}`);
+      const articleLinks = within(section).getAllByRole('link', { name: /^Read the article:/ });
+      expect(articleLinks.map((link) => link.getAttribute('href'))).toContain(`/en/themen/${TEMPLATE_TOPICS[i].slug}`);
     });
     const hero = screen.getByRole('heading', { level: 1 }).closest('section')!;
     expect(within(hero).getByRole('link', { name: 'News' })).toHaveAttribute('href', '/en/blog');
@@ -753,6 +754,7 @@ describe('Tickets #21 und #110: KI Readiness als eigener Navigationseintrag', ()
       '/de/themen/softwareentwicklung',
       '/de/themen/data-analytics',
       '/de/themen/modelle-und-kosten',
+      '/de/themen/vibe-coding',
     ]);
     expect(within(menu).queryByRole('link', { name: /AI Audit|Readiness/ })).not.toBeInTheDocument();
     await user.click(within(menu).getByRole('link', { name: /KI in Data Analytics/ }));
