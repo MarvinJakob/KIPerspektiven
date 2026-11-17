@@ -4,14 +4,18 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from '
 import { join, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { api, pages, repository, command, issueLabels } from './github.mjs';
-import { reconcile, followUps } from './reconcile.mjs';
+import { reconcile, followUpTickets, followUpPR, reviewedLabel } from './reconcile.mjs';
 
 // Anweisung, die der Agent für diese Aufgabe zusätzlich zu AGENTS.md liest.
-const guides = { spec: 'AGENTS_ANALYST.md', verify: 'AGENTS_TESTER.md', fix: 'AGENTS_FIXER.md', maint: 'AGENTS.md' };
+// review: Anforderungs-Review durch Team 4 ohne eigenen Branch (AGENTS_REVIEWER.md, Phase 0).
+const guides = { spec: 'AGENTS_ANALYST.md', verify: 'AGENTS_TESTER.md', fix: 'AGENTS_FIXER.md', maint: 'AGENTS.md', review: 'AGENTS_REVIEWER.md' };
+const reviewStatuses = ['Review', 'In review', 'Merge Gate'];
+const activeStatuses = ['In Progress', 'In progress', 'In Arbeit'];
 
 export function candidates(issues, pulls, board) {
   const statuses = new Map(board.filter((i) => i.repository?.nameWithOwner === repository).map((i) => [i.number, i.status]));
-  const waiting = followUps(issues);
+  const tickets = followUpTickets(issues);
+  const waiting = new Set(tickets.keys());
   return issues.filter((i) => !i.pull_request && i.state === 'open').flatMap((issue) => {
     const labels = issueLabels(issue);
     const status = statuses.get(issue.number) ?? '';
@@ -27,7 +31,20 @@ export function candidates(issues, pulls, board) {
     else if (labels.has('needs-analysis') || (!labels.has('maintenance') && ['Neu', 'Ready', 'Todo'].includes(status))) { team = 'spec'; stage = 5; }
     else return [];
     if (status === 'Blocked') return [];
-    if (pr && ['Review', 'In review', 'Merge Gate', 'In Progress', 'In progress', 'In Arbeit'].includes(status)) {
+    // Anforderung mit offenen Folgetickets wartet in Merge Gate. Erst wenn jedes Folgeticket einen offenen
+    // PR fix/<n> hat und im Board in Review / Merge Gate steht, prüft Team 4 die Anforderung auf
+    // Vollständigkeit, einmal je Merker. Ein freigegebener Zwischenstand von Team 2 (In Arbeit) bleibt
+    // wie bisher wiederaufnehmbar.
+    if (team === 'verify' && !pr && waiting.has(issue.number) && !activeStatuses.includes(status)) {
+      const open = tickets.get(issue.number);
+      const prs = open.map((ticket) => followUpPR(ticket, pulls));
+      const ready = open.every((ticket, i) => prs[i] && reviewStatuses.includes(statuses.get(ticket.number) ?? ''));
+      if (!ready || labels.has(reviewedLabel)) return [];
+      return [{ number: issue.number, team: 'review', guide: guides.review, stage, phase: 0, status,
+        followUps: open.map((ticket) => ticket.number), prs: prs.map((p) => p.number),
+        updated: issue.updated_at, title: issue.title }];
+    }
+    if (pr &&['Review', 'In review', 'Merge Gate', 'In Progress', 'In progress', 'In Arbeit'].includes(status)) {
       team = pr.head.ref.startsWith('codex/maint-') ? 'maint' : pr.head.ref.split('/')[0];
     }
     const phase = ['Review', 'In review', 'Merge Gate'].includes(status) ? 0

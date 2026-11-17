@@ -4,7 +4,21 @@ Gilt zusätzlich zu [AGENTS.md](AGENTS.md). `Team 4`, `Reviewer` und `review` be
 
 **Ziel:** Unabhängiges Review von PRs, Ausführung/Verfolgung und Auswertung der gesamten Testsuite im Release Gate, Bug-Tickets für Team 3 und nachvollziehbarer Produktionsnachweis. Die Suite läuft in Actions, nicht lokal. Team 4 prüft auch erfolgreiche Berichte auf fachliche Fehler außerhalb der Baseline.
 
-Eine Sitzung nimmt genau eine Review- oder Release-Auswertungsaufgabe. Keine eigene Implementierung abnehmen. Bei autorisierter Wartung zur Release-Nacharbeit wird die Sitzung Implementierer; deren PR reviewed eine andere Sitzung.
+Eine Sitzung nimmt genau eine Review-, Anforderungs-Review- oder Release-Auswertungsaufgabe. Keine eigene Implementierung abnehmen. Bei autorisierter Wartung zur Release-Nacharbeit wird die Sitzung Implementierer; deren PR reviewed eine andere Sitzung.
+
+## Anforderungs-Review (Anforderung in `Merge Gate`)
+
+Eine Anforderung (`requirement` + `specified`) mit offenen Folgetickets (`feature`, `bug`, `test-defect`, Titel `[REQ-<n>-…]`) wartet in `Merge Gate`; an ihr selbst arbeitet in dieser Zeit niemand. Hat jedes offene Folgeticket einen offenen PR `fix/<m>` und steht es im Board in `Review` / `Merge Gate`, listet die Warteschlange die Anforderung als Team-4-Aufgabe (`team: review`, Phase 0, mit `followUps` und `prs`); `work.sh --watch` startet dafür automatisch eine Sitzung. Der Merker `requirement-reviewed` verhindert einen zweiten Start. Der Prozessabgleich entfernt ihn, sobald ein offenes Folgeticket ohne offenen PR hinzukommt oder kein Folgeticket mehr offen ist. Die Reviews der einzelnen Folge-PRs bleiben eigene Team-4-Aufgaben nach dem nächsten Abschnitt.
+
+1. **Reservieren ohne Worktree:** Anhand der Metadaten prüfen, dass weder `requirement-reviewed` noch `in-progress` gesetzt ist und das Board nicht `In Arbeit` zeigt; eine laufende Prüfung anderer Sitzungen nicht übernehmen. Übernahme mit echter Sitzungs-ID im Issue kommentieren (`Requirement-Review: <Sitzungs-ID>`), Label `in-progress` setzen, Board `In Arbeit` setzen und mit `get` bestätigen. Erst danach Issue, Spezifikation, Folgetickets und PRs lesen. Kein `claim`, kein Branch, keine Dateiänderungen.
+2. **Vollständigkeit prüfen** gegen den aktuellen `origin/main`:
+   - Alle Akzeptanzkriterien aus `fidelity/specs/REQ-<n>.md` ermitteln. Jedes Kriterium muss in `fidelity/baseline.txt` stehen oder in der `Fidelity:`-Zeile mindestens eines offenen Folge-PRs genannt sein.
+   - Für jeden Folge-PR Head-SHA notieren und den Feature-Fidelity-Job des aktuellen Laufs prüfen (`gh pr view <PR> --json body,headRefOid,isDraft`, `gh pr checks <PR>`): Die geforderten IDs müssen grün sein. Unvollständige, übersprungene oder veraltete Läufe sind kein Nachweis.
+   - Folgetickets und PRs nennen Anforderung und IDs korrekt (`[REQ-<n>-AC<m>]`, `Closes #<Folgeticket>`); es gibt kein offenes Folgeticket ohne PR.
+3. **Lücken zu Folgetickets machen:** Für jedes nicht abgedeckte Kriterium und jede rote oder fehlende geforderte ID ohne Ticket nach Duplikatsuche ein Folgeticket für Team 3 anlegen (`feature`, `bug` oder `test-defect`, Titel `[REQ-<n>-AC<m>] …`, IDs, erwartetes/tatsächliches Verhalten, PR und Commit), Board `Bug offen` setzen und prüfen. Befunde an einem einzelnen Folge-PR zusätzlich als PR-Kommentar festhalten; diesen PR nicht selbst korrigieren oder im Rahmen dieser Aufgabe abnehmen.
+4. **Abschließen:** Ergebnis im Issue dokumentieren: geprüfter `origin/main`-Commit, Folge-PRs mit Head-SHA, Abdeckung je Kriterium (Baseline oder PR), neue Folgetickets und eigene Sitzungs-ID. Label `requirement-reviewed` setzen, Board `Merge Gate` setzen und prüfen, `in-progress` entfernen und den endgültigen Status erneut prüfen. Danach endet die Sitzung.
+
+Nach dem Merge aller Folge-PRs schließen sich die Folgetickets; der Prozessabgleich setzt die Anforderung auf `Spezifiziert` und entfernt den Merker, Team 2 übernimmt Funktionsnachweis und Baseline. Neue Folgetickets ohne PR entfernen den Merker ebenfalls; haben auch sie einen PR im Review, folgt automatisch ein erneutes Anforderungs-Review.
 
 ## Review vor dem Merge Gate
 

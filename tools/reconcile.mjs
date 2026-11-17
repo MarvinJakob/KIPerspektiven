@@ -6,17 +6,27 @@ import { api, pages, repository, issueLabels, command } from './github.mjs';
 export function dependencies(body = '') {
   return [...body.matchAll(/^Test-Defect-Dependency: #([1-9]\d*)\s*$/gm)].map((m) => Number(m[1]));
 }
-// Anforderungen mit offenem Folgeticket (feature, bug, test-defect; Titel nennt REQ-<n>). Team 2 testet eine
-// Anforderung erst wieder, wenn keines mehr offen ist (AGENTS_TESTER.md).
-export function followUps(issues) {
-  const result = new Set();
+// Offene Folgetickets je Anforderung (feature, bug, test-defect; Titel nennt REQ-<n>). Team 2 testet eine
+// Anforderung erst wieder, wenn keines mehr offen ist (AGENTS_TESTER.md); bis dahin wartet sie in Merge Gate.
+export function followUpTickets(issues) {
+  const result = new Map();
   for (const issue of issues) {
     const names = (issue.labels ?? []).map((label) => label.name);
     if (issue.pull_request || issue.state !== 'open' || !['feature', 'bug', 'test-defect'].some((name) => names.includes(name))) continue;
-    for (const match of (issue.title ?? '').matchAll(/\bREQ-(\d+)\b/g)) result.add(Number(match[1]));
+    for (const number of new Set([...(issue.title ?? '').matchAll(/\bREQ-(\d+)\b/g)].map((m) => Number(m[1])))) {
+      result.set(number, [...(result.get(number) ?? []), issue]);
+    }
   }
   return result;
 }
+export function followUps(issues) { return new Set(followUpTickets(issues).keys()); }
+// Offener Implementierungs-PR eines Folgetickets (Branch fix/<n>).
+export function followUpPR(ticket, pulls) {
+  return pulls.find((p) => p.state === 'open' && p.head?.ref === `fix/${ticket.number}`);
+}
+// Merker nach abgeschlossenem Anforderungs-Review (AGENTS_REVIEWER.md). Er gilt nur, solange Folgetickets
+// offen sind und jedes einen offenen PR hat; sonst entfernt ihn der Prozessabgleich.
+export const reviewedLabel = 'requirement-reviewed';
 export function planIssue(issue, { specs, baseline, issues, pulls }) {
   const labels = issueLabels(issue), add = [], remove = [];
   let status, close = false;
@@ -29,14 +39,19 @@ export function planIssue(issue, { specs, baseline, issues, pulls }) {
     if (labels.has('needs-analysis')) remove.push('needs-analysis');
     // A completed specification is handed to Team 2; local cleanup remains with its owner.
     if (labels.has('needs-analysis') && labels.has('in-progress')) remove.push('in-progress');
+    // Mit offenen Folgetickets wartet die Anforderung in Merge Gate auf deren PRs und das Anforderungs-Review.
     if (!labels.has('in-progress') || labels.has('needs-analysis')) {
-      status = followUps(issues.values()).has(issue.number) ? 'Bug offen' : 'Spezifiziert';
+      status = followUps(issues.values()).has(issue.number) ? 'Merge Gate' : 'Spezifiziert';
     }
     if (ids.every((id) => baseline.has(id)) && !followUps(issues.values()).has(issue.number) && !labels.has('in-progress')) {
       if (!labels.has('done')) add.push('done');
       close = issue.state === 'open';
       status = 'Funktioniert';
     }
+  }
+  if (labels.has(reviewedLabel)) {
+    const tickets = followUpTickets(issues.values()).get(issue.number) ?? [];
+    if (!tickets.length || tickets.some((ticket) => !followUpPR(ticket, pulls))) remove.push(reviewedLabel);
   }
   const deps = dependencies(issue.body);
   if (labels.has('waiting-for-test') && deps.length && deps.every((id) => {

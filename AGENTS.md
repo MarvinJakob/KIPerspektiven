@@ -11,7 +11,7 @@ Vier Teams arbeiten parallel. Übergaben laufen ausschließlich über Repository
 | 1 · Analyst | Anforderungen vollständig spezifizieren und Fidelity-Tests schreiben; Prüfung durch Lesen | [AGENTS_ANALYST.md](AGENTS_ANALYST.md) |
 | 2 · Feature-Tester | einzelne Tests und Feature-Teilläufe ausführen, Ergebnisse prüfen, Feature- und Bug-Tickets schreiben, Baseline führen | [AGENTS_TESTER.md](AGENTS_TESTER.md) |
 | 3 · Implementierer | Features implementieren, Bugs und Testdefekte beheben, relevante Unit-Tests pflegen | [AGENTS_FIXER.md](AGENTS_FIXER.md) |
-| 4 · Reviewer und Release-Tester | unabhängiges Review, gesamte Testsuite im Release Gate auswerten, Bug-Tickets schreiben, Auslieferung verfolgen | [AGENTS_REVIEWER.md](AGENTS_REVIEWER.md) |
+| 4 · Reviewer und Release-Tester | unabhängiges Review von PRs und Anforderungen mit Folgetickets, gesamte Testsuite im Release Gate auswerten, Bug-Tickets schreiben, Auslieferung verfolgen | [AGENTS_REVIEWER.md](AGENTS_REVIEWER.md) |
 
 ```mermaid
 flowchart LR
@@ -36,7 +36,7 @@ Aufträge: `Team 1`, `Team 2`, `Team 3`, `Team 4`, optional mit Issue (`Team 3 #
 Bei `work` hat ein ausdrücklich genanntes Team Vorrang. Sonst gilt die Reihenfolge der Warteschlange:
 
 1. Team 3: Release-Blocker (Bug, Feature oder Testdefekt).
-2. Team 4: freigegebene PRs in `Review` / `Merge Gate`; nie die eigene Implementierung.
+2. Team 4: freigegebene PRs in `Review` / `Merge Gate`; nie die eigene Implementierung. Dazu gehört das Anforderungs-Review: eine Anforderung in `Merge Gate`, deren offene Folgetickets alle einen offenen PR in `Review` / `Merge Gate` haben, ohne Merker `requirement-reviewed` ([AGENTS_REVIEWER.md](AGENTS_REVIEWER.md)). Hat ein Folgeticket noch keinen PR im Review, ist die Anforderung für kein Team frei.
 3. Freigegebene Zwischenstände in `In Progress` / `In Arbeit`, Rolle entsprechend dem Branch.
 4. Autorisierte Wartung, einschließlich Release-Nacharbeit für Team 4; dann Team 3 Testdefekte; Team 2 spezifizierte Anforderungen ohne offene Folgetickets; Team 3 Bugs und Features; Team 1 Anforderungen in `Neu` / `Ready`, auch bei fehlenden Anforderungslabels. Je Stufe ältestes Ticket zuerst.
 
@@ -85,7 +85,8 @@ Labels bestimmen den Aufgabentyp, Board und Sperre den Bearbeitungsschritt. Vor 
 | Label | Bedeutung | Wartestatus |
 |---|---|---|
 | `requirement` + `needs-analysis` | Anforderung für Team 1 | Neu / Ready |
-| `requirement` + `specified` | Tests auf `main`, Team 2 prüft das Feature | Spezifiziert; mit offenem Folgeticket Bug offen |
+| `requirement` + `specified` | Tests auf `main`, Team 2 prüft das Feature | Spezifiziert; mit offenem Folgeticket Merge Gate (Anforderungs-Review durch Team 4, sobald alle Folgetickets einen PR im Review haben) |
+| `requirement-reviewed` | Anforderungs-Review durch Team 4 abgeschlossen; verhindert Wiederholung, der Prozessabgleich entfernt es bei neuem Folgeticket ohne PR oder ohne offene Folgetickets | Merge Gate |
 | `feature` | fehlende neue Funktion, Implementierungsauftrag für Team 3 | Bug offen |
 | `bug` | fehlerhaftes vorhandenes Verhalten, Team 3 | Bug offen |
 | `test-defect` | falscher oder instabiler Test, Team 3 | Bug offen |
@@ -103,7 +104,7 @@ Historische geschlossene `feature`-Tickets als Erfolgsnachweis bleiben erhalten;
 
 **Statuspflege:** bei Übernahme, Übergabe, PR, Merge und Abbruch `board.sh` ausführen und mit `get` prüfen. `Review` ist Alias für `Merge Gate`, `In Progress` für `In Arbeit`, `Ready` für `Neu`. Bei Fehlern erneut prüfen; ungelösten Fehler und gewünschten Zielstatus im Issue und Abschluss nennen, keinen erfolgreichen Wechsel behaupten. Fremde aktive Belegungen nicht verändern.
 
-`node tools/reconcile.mjs --apply --board` gleicht Labels/Board aus gemergten Spezifikationen, Baseline und offenen Folgetickets ab. Der Prozessabgleich setzt `specified`, schließt erfüllte Anforderungen und löst Testabhängigkeiten. Keine fremden Dateien oder Sperren bereinigen.
+`node tools/reconcile.mjs --apply --board` gleicht Labels/Board aus gemergten Spezifikationen, Baseline und offenen Folgetickets ab. Der Prozessabgleich setzt `specified`, stellt Anforderungen mit offenen Folgetickets nach `Merge Gate` (ohne offene Folgetickets nach `Spezifiziert`), pflegt den Merker `requirement-reviewed`, schließt erfüllte Anforderungen und löst Testabhängigkeiten. Keine fremden Dateien oder Sperren bereinigen.
 
 ## Übergabe und Wiederaufnahme
 
