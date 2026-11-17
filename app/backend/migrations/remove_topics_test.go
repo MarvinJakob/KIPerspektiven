@@ -64,7 +64,8 @@ func TestRemoveAutomationAndSkillsTopics(t *testing.T) {
 		if n := count(`SELECT COUNT(*) FROM post_topics pt JOIN topics t ON t.id = pt.topic_id WHERE t.slug = 'softwareentwicklung' AND pt.post_id IN (100, 101)`); n != 2 {
 			t.Fatalf("übrige Zuordnungen: %d", n)
 		}
-		if n := count(`SELECT COUNT(*) FROM topics`); n != 4 {
+		// #29 adds Vibe Coding after removal of the two obsolete topics.
+		if n := count(`SELECT COUNT(*) FROM topics`); n != 5 {
 			t.Fatalf("verbleibende Themen: %d", n)
 		}
 		// Bis vor die Themenentfernung zurücknehmen, auch wenn neuere Migrationen existieren.

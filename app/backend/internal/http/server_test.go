@@ -133,11 +133,11 @@ func TestHealth(t *testing.T) {
 	}
 }
 
-// Anforderung 3 und Tickets #83/#102: vier Themen mit Titel und Einführung, auch ohne Beiträge.
+// Anforderung 3 und Tickets #83/#102/#29: fünf Themen mit Titel und Einführung, auch ohne Beiträge.
 func TestTopicsAreSeeded(t *testing.T) {
 	srv, _ := newServer(t, false)
 	list := getJSON[api.TopicList](t, srv, "/api/topics?lang=de", 200)
-	want := []string{"KI in der Softwareentwicklung", "KI Readiness", "KI in Data Analytics", "Modelle und Kosten: Wie finde ich das beste Preis-/Leistungsverhältnis?"}
+	want := []string{"KI in der Softwareentwicklung", "KI Readiness", "KI in Data Analytics", "Modelle und Kosten: Wie finde ich das beste Preis-/Leistungsverhältnis?", "Vibe Coding"}
 	if len(list.Items) != len(want) {
 		t.Fatalf("%d Themen, erwartet %d", len(list.Items), len(want))
 	}
