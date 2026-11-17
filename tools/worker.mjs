@@ -19,12 +19,12 @@ export function candidates(issues, pulls, board) {
     if (labels.has('in-progress') || labels.has('waiting-for-test') || (labels.has('blocked') && !answered)) return [];
     const pr = pulls.find((p) => p.state === 'open' && new RegExp(`^(spec|verify|fix)/${issue.number}$|^codex/maint-${issue.number}$`).test(p.head.ref));
     let team, stage;
-    if (labels.has('release-blocker') && labels.has('bug')) { team = 'fix'; stage = 0; }
+    if (labels.has('release-blocker') && ['bug', 'feature', 'test-defect'].some((name) => labels.has(name))) { team = 'fix'; stage = 0; }
     else if (labels.has('maintenance') && labels.has('maintenance-approved')) { team = 'maint'; stage = 1; }
-    else if (labels.has('test-defect')) { team = 'spec'; stage = 2; }
+    else if (labels.has('test-defect')) { team = 'fix'; stage = 2; }
     else if (labels.has('requirement') && labels.has('specified')) { team = 'verify'; stage = 3; }
-    else if (labels.has('bug')) { team = 'fix'; stage = 4; }
-    else if (labels.has('requirement') && labels.has('needs-analysis')) { team = 'spec'; stage = 5; }
+    else if (labels.has('bug') || labels.has('feature')) { team = 'fix'; stage = 4; }
+    else if (labels.has('needs-analysis') || (!labels.has('maintenance') && ['Neu', 'Ready', 'Todo'].includes(status))) { team = 'spec'; stage = 5; }
     else return [];
     if (status === 'Blocked') return [];
     if (pr && ['Review', 'In review', 'Merge Gate', 'In Progress', 'In progress', 'In Arbeit'].includes(status)) {
@@ -36,7 +36,7 @@ export function candidates(issues, pulls, board) {
     if (team === 'verify' && phase === 2 && waiting.has(issue.number)) return [];
     // Review (phase 0) und Release-Nacharbeit gehören zur Rolle Reviewer. Baseline-PRs von Team 2
     // brauchen kein Review: Ein dort wartender PR wird von einem Tester fortgesetzt.
-    const guide = (phase === 0 && team !== 'verify') || labels.has('release-failure') ? 'AGENTS_REVIEWER.md' : guides[team];
+    const guide = (phase === 0 && team !== 'verify') || labels.has('release-failure') || labels.has('release-review') ? 'AGENTS_REVIEWER.md' : guides[team];
     return [{ number: issue.number, team, guide, stage, phase, status, pr: pr?.number,
       updated: issue.updated_at, title: issue.title }];
   }).sort((a, b) => Number(b.stage === 0) - Number(a.stage === 0) || a.phase - b.phase || a.stage - b.stage || a.number - b.number);
@@ -46,7 +46,7 @@ export function snapshot() {
   const issues = pages(`repos/${repository}/issues?state=open&per_page=100`);
   const pulls = pages(`repos/${repository}/pulls?state=open&per_page=100`);
   const board = JSON.parse(command(process.execPath, ['tools/board.mjs', 'list']));
-  const runs = api(`repos/${repository}/actions/workflows/fidelity-run.yml/runs?branch=main&per_page=5`).workflow_runs;
+  const runs = api(`repos/${repository}/actions/workflows/release.yml/runs?branch=main&per_page=5`).workflow_runs;
   const queue = candidates(issues, pulls, board);
   const signal = createHash('sha256').update(JSON.stringify({
     issues: issues.map((i) => [i.number, i.updated_at, i.labels.map((l) => l.name)]),

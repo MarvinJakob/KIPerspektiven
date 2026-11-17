@@ -26,3 +26,12 @@ test('Baseline bleibt unverändert und erhält nur eindeutige IDs am Ende', () =
   checkScope('verify/1', ['fidelity/baseline.txt'], before, `${before}REQ-1-AC1\n`);
   checkScope('verify/1', ['fidelity/baseline.txt'], before.replaceAll('\n', '\r\n'), `${before}REQ-1-AC1\n`);
 });
+
+test('Team 3 darf Fidelity-Dateien nur bei einem verknüpften Testdefekt korrigieren', () => {
+  const files = ['fidelity/tests/REQ-1.spec.ts', 'fidelity/specs/REQ-1.md', 'app/frontend/main.ts'];
+  checkScope('fix/4', files, '', '', { testDefect: true });
+  assert.throws(() => checkScope('fix/4', files, '', ''), /Team-Grenze/);
+  for (const file of ['fidelity/scripts/gate.mjs', 'fidelity/playwright.config.ts', 'AGENTS.md', '.github/workflows/merge-gate.yml', 'fidelity/baseline.txt']) {
+    assert.throws(() => checkScope('fix/4', [file], '', '', { testDefect: true }), /Team-Grenze/);
+  }
+});

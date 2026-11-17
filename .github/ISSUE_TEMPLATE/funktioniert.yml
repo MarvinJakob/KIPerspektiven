@@ -1,0 +1,26 @@
+name: Funktioniert (Funktionsnachweis)
+description: Team 2 dokumentiert nach Baseline-Merge bestandene Kriterien und schließt das Ticket sofort.
+title: "[REQ-<n>] funktioniert: <Kurzbeschreibung>"
+labels: [works]
+body:
+  - type: input
+    id: ids
+    attributes:
+      label: Bestandene Test-IDs
+      placeholder: REQ-12-AC1 REQ-12-AC2
+    validations:
+      required: true
+  - type: input
+    id: anforderung
+    attributes:
+      label: Anforderung
+      placeholder: "#12"
+    validations:
+      required: true
+  - type: textarea
+    id: nachweis
+    attributes:
+      label: Nachweis
+      description: Getesteter Commit, Desktop-/Mobil-Ergebnis, Gegenprobe und gemergter Baseline-PR
+    validations:
+      required: true

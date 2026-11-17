@@ -22,7 +22,16 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
+      - name: Getesteten Commit laden
+        uses: actions/download-artifact@v5
+        continue-on-error: true
+        with:
+          name: release-metadata
+          path: .build/release-metadata
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
       - run: node tools/release-followup.mjs
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_RUN: ${{ github.event.workflow_run.id }}
+          RELEASE_METADATA: .build/release-metadata/release-metadata.json

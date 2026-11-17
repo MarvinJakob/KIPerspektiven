@@ -6,13 +6,13 @@ import { api, pages, repository, issueLabels, command } from './github.mjs';
 export function dependencies(body = '') {
   return [...body.matchAll(/^Test-Defect-Dependency: #([1-9]\d*)\s*$/gm)].map((m) => Number(m[1]));
 }
-// Anforderungen mit offenem Folgeticket (bug, test-defect; Titel nennt REQ-<n>). Team 2 testet eine
+// Anforderungen mit offenem Folgeticket (feature, bug, test-defect; Titel nennt REQ-<n>). Team 2 testet eine
 // Anforderung erst wieder, wenn keines mehr offen ist (AGENTS_TESTER.md).
 export function followUps(issues) {
   const result = new Set();
   for (const issue of issues) {
     const names = (issue.labels ?? []).map((label) => label.name);
-    if (issue.pull_request || issue.state !== 'open' || !(names.includes('bug') || names.includes('test-defect'))) continue;
+    if (issue.pull_request || issue.state !== 'open' || !['feature', 'bug', 'test-defect'].some((name) => names.includes(name))) continue;
     for (const match of (issue.title ?? '').matchAll(/\bREQ-(\d+)\b/g)) result.add(Number(match[1]));
   }
   return result;
@@ -32,7 +32,7 @@ export function planIssue(issue, { specs, baseline, issues, pulls }) {
     if (!labels.has('in-progress') || labels.has('needs-analysis')) {
       status = followUps(issues.values()).has(issue.number) ? 'Bug offen' : 'Spezifiziert';
     }
-    if (ids.every((id) => baseline.has(id))) {
+    if (ids.every((id) => baseline.has(id)) && !followUps(issues.values()).has(issue.number) && !labels.has('in-progress')) {
       if (!labels.has('done')) add.push('done');
       close = issue.state === 'open';
       status = 'Funktioniert';
@@ -46,9 +46,20 @@ export function planIssue(issue, { specs, baseline, issues, pulls }) {
     remove.push('waiting-for-test');
     if (!labels.has('blocked')) status = 'Ready';
   }
+  if (!activePR && !labels.has('in-progress') && issue.state === 'open') {
+    if (['bug', 'feature', 'test-defect'].some((label) => labels.has(label))) status = 'Bug offen';
+    else if (labels.has('maintenance') || labels.has('needs-analysis')) status = 'Ready';
+  }
+  // An open PR may have been returned to implementation after review findings. Preserve its handoff.
   // A maintainer may have moved a blocked issue to In Progress after answering.
   // Never overwrite that handoff; only board.sh block sets the Blocked column.
   if (labels.has('blocked')) status = undefined;
+  if (issue.state === 'closed' && issue.state_reason === 'completed') {
+    status = 'Funktioniert';
+    for (const label of ['in-progress', 'blocked', 'waiting-for-test']) {
+      if (labels.has(label) && !remove.includes(label)) remove.push(label);
+    }
+  }
   return { number: issue.number, add, remove, close, status };
 }
 

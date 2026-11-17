@@ -1,13 +1,13 @@
-name: Feature (bestandene Fidelity-Tests)
-description: Von Team 2 angelegt und sofort geschlossen, wenn Akzeptanzkriterien einer Anforderung nachweislich funktionieren.
-title: "[REQ-<n>] funktioniert: <Kurzbeschreibung>"
+name: Feature (Implementierung)
+description: Team 2 oder Team 4 dokumentiert eine spezifizierte, noch fehlende Funktion für Team 3.
+title: "[REQ-<n>-AC<m>] <Welche Funktion fehlt>"
 labels: [feature]
 body:
   - type: input
     id: ids
     attributes:
-      label: Bestandene Test-IDs
-      description: Alle IDs, die Team 2 in diesem Testlauf neu in die Baseline aufgenommen hat
+      label: Test-IDs
+      description: Alle Kriterien dieses Implementierungsauftrags
       placeholder: REQ-12-AC1 REQ-12-AC2
     validations:
       required: true
@@ -18,11 +18,17 @@ body:
       placeholder: "#12"
     validations:
       required: true
-  - type: input
-    id: nachweis
+  - type: textarea
+    id: verhalten
     attributes:
-      label: Nachweis
-      description: Getesteter Commit von main und Baseline-PR (dessen Merge Gate die IDs bestätigt hat)
-      placeholder: "Commit 7076cf6, PR #52"
+      label: Erwartete Funktion und aktuelles Verhalten
+      description: Verhalten laut Spezifikation und nachgewiesener fehlender Umfang
+    validations:
+      required: true
+  - type: textarea
+    id: reproduktion
+    attributes:
+      label: Reproduktion und Nachweis
+      description: Schritte ohne Test, getesteter Commit, Befehl und Lauf/Fehlermeldung
     validations:
       required: true

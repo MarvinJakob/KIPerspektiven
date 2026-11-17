@@ -39,6 +39,9 @@ const report = JSON.parse(readFileSync(resultsPath, 'utf8'));
 const inventoryPath = arg('--inventory');
 const inventory = inventoryPath ? JSON.parse(readFileSync(inventoryPath, 'utf8')) : undefined;
 const { byId, invalid } = evaluateReport(report, inventory);
+for (const id of (process.env.SELECTED_IDS ?? '').split(/[\s,]+/).filter(Boolean)) {
+  if (!byId.has(id)) invalid.push(`${id}: ausgewählte Test-ID fehlt`);
+}
 
 const status = (id) => (byId.has(id) ? (byId.get(id).passed ? 'bestanden' : 'fehlgeschlagen') : 'fehlt');
 const regressions = baseline.filter((id) => status(id) !== 'bestanden');

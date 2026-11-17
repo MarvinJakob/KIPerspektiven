@@ -95,3 +95,52 @@ test('the board shows a specified requirement as open bug while follow-up ticket
   ev.issues.set(20, { ...ev.issues.get(20), state: 'closed' });
   assert.equal(planIssue(issue(['requirement', 'specified']), ev).status, 'Spezifiziert');
 });
+
+test('vier Teams: Testdefekte und offene Features gehen an Team 3, erfolgreiche Release-Auswertung an Team 4', () => {
+  const data = [
+    { ...issue(['test-defect', 'release-blocker']), number: 1 },
+    { ...issue(['feature']), number: 2 },
+    { ...issue(['maintenance', 'maintenance-approved', 'release-review']), number: 3 },
+  ];
+  const result = candidates(data, [], []);
+  assert.equal(result[0].number, 1);
+  assert.equal(result.find((i) => i.number === 1).guide, 'AGENTS_FIXER.md');
+  assert.equal(result.find((i) => i.number === 2).guide, 'AGENTS_FIXER.md');
+  assert.equal(result.find((i) => i.number === 3).guide, 'AGENTS_REVIEWER.md');
+});
+
+test('unbeschriftete Anforderungen in Neu werden gewählt, unautorisierte Wartung bleibt gesperrt', () => {
+  const data = [{ ...issue([]), number: 1 }, { ...issue(['maintenance']), number: 2 }];
+  const board = data.map((i) => ({ number: i.number, status: 'Neu', repository: { nameWithOwner: 'MarvinJakob/AIPerspectives' } }));
+  assert.deepEqual(candidates(data, [], board).map((i) => [i.number, i.team]), [[1, 'spec']]);
+});
+
+test('offenes Implementierungs-Feature verhindert Wiederprüfung und Abschluss der Anforderung', () => {
+  const parent = { ...issue(['requirement', 'specified']), number: 7 };
+  const feature = { ...issue(['feature']), number: 20, title: '[REQ-7-AC1] Funktion implementieren' };
+  const ev = evidence();
+  ev.baseline = new Set(['REQ-7-AC1', 'REQ-7-AC2']);
+  ev.issues.set(20, feature);
+  assert.equal(planIssue(parent, ev).close, false);
+  assert.equal(planIssue(parent, ev).status, 'Bug offen');
+  assert.ok(!candidates([parent, feature], [], []).some((i) => i.team === 'verify'));
+});
+
+test('abgeschlossene Tickets verlieren veraltete Aktivlabels und gehen auf Funktioniert', () => {
+  const closed = { ...issue(['bug', 'in-progress', 'blocked']), state: 'closed', state_reason: 'completed' };
+  const plan = planIssue(closed, evidence());
+  assert.equal(plan.status, 'Funktioniert');
+  assert.deepEqual(plan.remove, ['in-progress', 'blocked']);
+});
+test('freie Bugs, Testdefekte und Wartung erhalten Wartestatus, aktive fremde Aufgaben bleiben erhalten', () => {
+  assert.equal(planIssue(issue(['bug']), evidence()).status, 'Bug offen');
+  assert.equal(planIssue(issue(['test-defect']), evidence()).status, 'Bug offen');
+  assert.equal(planIssue(issue(['maintenance']), evidence()).status, 'Ready');
+  assert.equal(planIssue(issue(['bug', 'in-progress']), evidence()).status, undefined);
+  assert.equal(planIssue(issue(['bug', 'blocked']), evidence()).status, undefined);
+});
+test('offene PR-Aufgaben behalten aktive Arbeit und Rückgaben nach Review-Befunden', () => {
+  const ev = evidence(); ev.pulls.push({ state: 'open', head: { ref: 'fix/7' } });
+  assert.equal(planIssue(issue(['bug', 'in-progress']), ev).status, undefined);
+  assert.equal(planIssue(issue(['bug']), ev).status, undefined);
+});

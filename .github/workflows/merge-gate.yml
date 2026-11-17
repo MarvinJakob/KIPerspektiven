@@ -2,13 +2,12 @@
 # Als Pflichtprüfung in der Branch-Regel für main reicht der Abschlussjob „Merge Gate“.
 # Die Agenten wiederholen diese Prüfungen nicht lokal (AGENTS.md, „Arbeitsteilung mit GitHub Actions“).
 #
-#   scope     Team-Grenzen: spec/ nur Spezifikationen und Tests, verify/ nur Baseline, fix/ nur app/
+#   scope     Team-Grenzen und Auswahl der Fidelity-Tests des Features
 #   build     Docker-Image wie in Produktion (beide Frontends und Backend)
 #   tests     Unit- und Komponententests (Backend mit Race-Detector, beide Frontends)
 #   security  govulncheck, npm audit, Dependency Review, Secret-Scan
 #   review    Prozesswerkzeuge; Nachweis des unabhängigen Reviews (entfällt für Baseline-PRs verify/<n>)
-#   fidelity  ganze Fidelity-Suite gegen das gebaute Image: keine Regression der Baseline, geforderte IDs
-#             bestehen. Für Team 3 ist dieser Job der Test der Zeile „Fidelity:“; es führt die Tests nicht aus.
+#   fidelity  nur die Features des PRs; Vollsuite und globale Baseline ausschließlich im Release Gate
 name: Merge Gate
 
 on:
@@ -19,6 +18,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  issues: read
 
 concurrency:
   group: merge-gate-${{ github.event.pull_request.number }}
@@ -30,6 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       required-ids: ${{ steps.ids.outputs.required }}
+      selected-ids: ${{ steps.ids.outputs.selected }}
+      grep: ${{ steps.ids.outputs.grep }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -39,6 +41,7 @@ jobs:
         env:
           BRANCH: ${{ github.head_ref }}
           BASE: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           node tools/check-scope.mjs
 
@@ -48,17 +51,8 @@ jobs:
           BRANCH: ${{ github.head_ref }}
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_BODY: ${{ github.event.pull_request.body }}
-        run: |
-          # 1. Zeile „Fidelity: REQ-12-AC1, REQ-12-AC2“ im PR-Text  2. neu in die Baseline aufgenommene IDs
-          from_body=$(printf '%s\n' "$PR_BODY" | grep -iE '^\s*Fidelity:' | grep -oE 'REQ-[0-9]+-AC[0-9]+' || true)
-          from_baseline=$(git diff "$BASE"...HEAD -- fidelity/baseline.txt | grep -oE '^\+REQ-[0-9]+-AC[0-9]+' | cut -c2- || true)
-          required=$(printf '%s\n%s\n' "$from_body" "$from_baseline" | grep -v '^$' | sort -u | tr '\n' ' ' || true)
-          echo "Geforderte IDs: ${required:-keine}"
-          if [[ "$BRANCH" == fix/* && -z "$required" ]]; then
-            echo "::error::Team-3-PRs nennen im PR-Text die Test-IDs ihres Bug-Tickets, z. B. „Fidelity: REQ-12-AC2“. Der Job Fidelity prüft sie."
-            exit 1
-          fi
-          echo "required=$required" >> "$GITHUB_OUTPUT"
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/feature-tests.mjs
 
   build:
     name: Build
@@ -150,6 +144,7 @@ jobs:
   fidelity:
     name: Fidelity
     needs: [scope, build]
+    if: needs.scope.outputs.grep != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -161,7 +156,10 @@ jobs:
       - uses: ./.github/actions/fidelity
         with:
           image: ki-web:ci
+          grep: ${{ needs.scope.outputs.grep }}
+          selected-ids: ${{ needs.scope.outputs.selected-ids }}
           required-ids: ${{ needs.scope.outputs.required-ids }}
+          allow-backlog: 'true'
 
   merge-gate:
     name: Merge Gate
@@ -172,8 +170,10 @@ jobs:
       - name: Ergebnis
         env:
           RESULTS: ${{ toJSON(needs) }}
+          FEATURE_GREP: ${{ needs.scope.outputs.grep }}
         run: |
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
-          echo "$RESULTS" | jq -e 'all(.[]; .result == "success")' > /dev/null \
+          echo "$RESULTS" | jq -e --arg grep "$FEATURE_GREP" \
+            'to_entries | all(.[]; .value.result == "success" or (.key == "fidelity" and .value.result == "skipped" and $grep == ""))' > /dev/null \
             || { echo "::error::Merge Gate nicht bestanden."; exit 1; }
           echo "Merge Gate bestanden."

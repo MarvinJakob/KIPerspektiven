@@ -83,8 +83,8 @@ cd /opt/ki-web && docker compose exec -it backend /server user create --email AD
 
 Das **Release Gate** im Repository `MarvinJakob/AIPerspectives` startet automatisch nach jedem Push/Merge auf `main`. Damit werden implementierte Tickets nach bestandenem Merge Gate und Merge auf Hetzner bereitgestellt. Der Workflow [.github/workflows/release.yml](../../.github/workflows/release.yml) kann zusätzlich manuell gestartet werden (*Actions → Release Gate → Run workflow* oder `gh workflow run release.yml`) und
 
-1. baut das Image aus dem auslösenden Commit auf `main` (manuell aus dem gewählten `ref`),
-2. führt alle Unit-Tests und die ganze Fidelity-Suite aus (keine Regression gegen `fidelity/baseline.txt`),
+1. legt den auslösenden Commit fest und baut dessen Image einmal; die Unit-Tests laufen parallel,
+2. führt alle Unit-Tests und ausschließlich hier die ganze Fidelity-Suite aus (gesamte Baseline muss bestehen; das Merge Gate prüft nur Feature-Tests),
 3. prüft, dass keine Issues mit `release-blocker` offen sind und `release` per Fast-Forward vorgezogen werden kann,
 4. prüft SSH, legt verpflichtend einen Hetzner-Snapshot an (die drei jüngsten bleiben), überträgt mit `deploy/deploy.sh deploy` das exakt getestete Image und prüft REQ-0 gegen `DEPLOY_URL`,
 5. zieht erst nach erfolgreichem Deployment und Smoke-Test den Branch `release` auf den geprüften Commit vor,
@@ -104,6 +104,8 @@ Einstellungen unter *Settings → Secrets and variables → Actions* von `Marvin
 | `HCLOUD_SERVER_NAME` | Variable | `KI-Perspektiven-PRD` |
 
 Eine Registry ist nicht nötig: Das getestete Image wird als Actions-Artefakt übertragen und auf Hetzner geladen, dort nicht erneut gebaut. Zugangstest ohne Deployment: `gh workflow run deploy-access.yml`. Er verwendet nur die GitHub-Secrets, prüft API/Server und SSH und zeigt den öffentlichen Schlüsselfingerprint. Fehlende Snapshot-Konfiguration ist ein Fehler. Den Schlüssel bei Verdacht auf Missbrauch auf dem Server aus `authorized_keys` löschen und neu erzeugen. Im alten Repository `MarvinJakob/aiboard` darf kein Deploy-Workflow mehr aktiv sein, sonst liefern zwei Repositorys auf denselben Server aus.
+
+Vollständige Tests ohne Deployment zur Diagnose durch Team 4: `gh workflow run release.yml -f ref=<main-Commit> -F tests-only=true`. Ein solcher Lauf gilt nicht als Produktionsnachweis. Der separate Fidelity-Vollsuite-Workflow entfällt. Erfolgreiche und fehlgeschlagene Release-Läufe erzeugen Auswertungsaufgaben für Team 4.
 
 ## Neue Version bereitstellen
 

@@ -53,7 +53,7 @@ flowchart LR
 ```
 /
 ├── AGENTS.md              gemeinsame Arbeitsweise aller Agenten (CLAUDE.md verweist darauf)
-├── AGENTS_<ROLLE>.md      Ablauf je Rolle: ANALYST (Team 1), TESTER (Team 2), FIXER (Team 3), REVIEWER (Gates)
+├── AGENTS_<ROLLE>.md      Ablauf je Rolle: ANALYST (Team 1), TESTER (Team 2), FIXER (Team 3), REVIEWER (Team 4)
 ├── ARCHITECTURE.md        dieses Dokument
 ├── app/                   Anwendung (einziger Teil, der ausgeliefert wird)
 │   ├── api/openapi.yaml   Schnittstellenvertrag
@@ -145,7 +145,7 @@ Einstellungen: `journal_mode=WAL`, `foreign_keys=ON`, `busy_timeout=5000`. Ein W
 
 ## 5 Fidelity-Tests
 
-Fidelity-Tests prüfen von außen (Browser, HTTP), ob eine Anforderung **vollständig** umgesetzt ist. Nur Team 1 schreibt und verifiziert sie. Team 2 führt jeweils die Tests der Anforderung aus, an der es arbeitet, und hält das Ergebnis als Feature-Tickets, Bug-Tickets und in der Baseline fest. Team 3 führt sie nicht aus: Der Job „Fidelity“ des Merge Gate prüft die IDs seines Bug-Tickets. Die ganze Suite läuft ausschließlich in GitHub Actions (Merge Gate, Release Gate).
+Fidelity-Tests prüfen von außen (Browser, HTTP), ob eine Anforderung **vollständig** umgesetzt ist. Team 1 spezifiziert und schreibt Tests ohne Laufzeitprüfung. Team 2 validiert und prüft einzelne Features und schreibt Feature-/Bug-Tickets sowie Funktionsnachweise. Team 3 implementiert und korrigiert Bugs und Testdefekte. Team 4 reviewed und wertet die gesamte Suite aus. Im Merge Gate laufen ausschließlich die Tests der betroffenen Features; die gesamte Fidelity-Suite läuft ausschließlich im Release Gate.
 
 ```
 fidelity/
@@ -159,10 +159,10 @@ fidelity/
 | Begriff | Bedeutung |
 |---|---|
 | Backlog | alle Tests in `tests/`; fehlschlagende Tests außerhalb der Baseline sind erlaubt |
-| Baseline | bestandene IDs; schlägt eine fehl, ist das eine Regression und sperrt Merge und Release |
+| Baseline | bestandene IDs; schlägt eine fehl, ist das eine Regression und sperrt das Release sowie den Merge, falls sie zum ausgewählten Feature gehört |
 | Gate | `node scripts/gate.mjs [--require "<IDs>"] [--inventory inventory.json] [--no-baseline]`; Exitcode 1 bei Regression, fehlender geforderter ID oder ungültigem/unvollständigem Lauf |
 
-CI erzeugt vor der Ausführung mit Playwright ein Inventar der erwarteten Tests. Jede ID muss auf Desktop und Mobil vollständig ausgeführt werden. Globale Fehler, fehlende Tests, Skip und erwartete Fehlschläge sperren das Gate; instabile Ergebnisse gelten nicht als funktionierend. Bekannte fachliche Fehlschläge außerhalb der Baseline bleiben erlaubt. Teilläufe müssen ihre geforderten IDs ausdrücklich nennen. Bericht und Inventar werden gemeinsam als Artefakt aufbewahrt.
+CI erzeugt vor der Ausführung mit Playwright ein Inventar der erwarteten Tests. Jede ID muss auf Desktop und Mobil vollständig ausgeführt werden. Globale Fehler, fehlende Tests, Skip und erwartete Fehlschläge sperren das Gate; instabile Ergebnisse gelten nicht als funktionierend. Bekannte fachliche Fehlschläge außerhalb der Baseline bleiben erlaubt. Teilläufe nennen ausgewählte IDs und gegebenenfalls zusätzlich erforderliche Erfolgs-IDs. Fehlende ausgewählte IDs sind auch bei erlaubtem fachlichem Backlog ungültig. Bericht und Inventar werden gemeinsam als Artefakt aufbewahrt.
 
 `REQ-0` (Healthcheck, Startseite, 404) ist die Grundfunktion und läuft auch als Smoke-Test gegen die Produktion.
 
@@ -179,7 +179,7 @@ Mehrere Agenten (Claude Code, Codex u. a.) arbeiten gleichzeitig auf einem Windo
 | `tools/task.sh pause` / `resume` | erhält Branch und Worktree für Übergaben; atomare Übernahme nur freigegebener Aufgaben mit eindeutiger Agentensitzungs-ID |
 | Board `Blocked` | konkrete Rückfrage im Issue; nach Antwort und Rückkehr nach `In Progress` übernimmt ein freier Agent |
 | Board `Review` | ein anderer, an der Implementierung unbeteiligter Agent prüft den aktuellen Commit; IDs und Commit stehen im PR |
-| Chat-Auftrag `review` | eine Reviewer-Sitzung arbeitet alle wartenden PRs nacheinander ab (Review, Merge Gate, Merge, `finish`) und verfolgt den Release-Lauf bis zur Veröffentlichung; [AGENTS_REVIEWER.md](AGENTS_REVIEWER.md#auftrag-review) |
+| Chat-Aufträge `Team 4`, `Reviewer`, `review` | eine unabhängige Sitzung bearbeitet genau eine PR-Abnahme oder Release-Auswertung; [AGENTS_REVIEWER.md](AGENTS_REVIEWER.md) |
 | Branch-Präfix `spec/`, `verify/`, `fix/` | das Merge Gate prüft die Team-Grenzen (welche Dateien geändert werden dürfen) |
 | `tools/task.sh claim maint <n>` | nur bei ausdrücklichem Wartungsauftrag: Branch `codex/maint-<n>`, Worktree `.worktrees/maint-<n>`; unabhängiges Review und Merge Gate bleiben Pflicht |
 | `fidelity/baseline.txt` mit `merge=union` | parallele Ergänzungen der Baseline ohne Merge-Konflikt |
@@ -188,19 +188,9 @@ Mehrere Agenten (Claude Code, Codex u. a.) arbeiten gleichzeitig auf einem Windo
 
 **Zugang:** `GH_TOKEN` (GitHub, Scopes `repo`, `workflow`, `project`) als Windows-Benutzervariable. Hetzner-Zugänge gibt es lokal nicht; sie liegen ausschließlich als GitHub-Secrets vor (siehe [Secrets und Variablen](#secrets-und-variablen)). Werkzeuge: Git (mit Git Bash), GitHub CLI, Go (Version aus `app/backend/go.mod`), Node 24, Playwright mit Chromium.
 
-### Abgleich mit dem Mock `software_development`
+### Vier-Team-Prozess
 
-Der Auftrag vom 16. November 2026 macht den Text und beide Prozessgrafiken dieses Mocks zur fachlichen Quelle des Entwicklungsprozesses.
-
-| Vorgabe | Umsetzung |
-|---|---|
-| Analysten schreiben und verifizieren Referenzszenarien einschließlich Sonderfällen und Fehlerbehandlung | Team 1, Spezifikationen und ausführbare Fidelity-Tests mit Gegenprobe |
-| Tester prüfen vorhandenen Code und dokumentieren funktionierendes und fehlendes Verhalten | Team 2 führt die Tests seines Tickets aus: Feature-Tickets und wachsende Baseline für das, was funktioniert, Bug-Tickets für das, was nicht funktioniert |
-| Ein Fixer pro Fall, Mindeststandards vor Integration | atomare Aufgabenbelegung, eigener Worktree, Änderungen nur in `app/`; Merge Gate mit Build, Review, Security und Fidelity. Die Baseline ergänzt nur Team 2 nach erneutem Test |
-| Gesamte Testsuite und Final Check vor Release | Release Gate baut den festgelegten Commit neu, prüft alle Tests und sperrt bei Regressionen oder offenen Release-Blockern |
-| Veröffentlichung erst am Ende | Integrations-PRs und `main` sind das gemeinsame Arbeitsrepository. Release-Branch, Tag und GitHub-Release werden erst nach Deployment und verpflichtendem Smoke-Test veröffentlicht. |
-
-Die letzte Vorgabe bezieht sich auf die Veröffentlichung des fertigen Releases. Entwicklungsbranches und verifizierte Tests müssen vorher im gemeinsamen Repository verfügbar sein, damit die drei Teams über Backlog und Tests arbeiten können. Der vom Final Check festgelegte Commit ist der Release-Kandidat; der öffentliche Branch `release` wird erst nach erfolgreicher Produktprüfung aktualisiert.
+Die aktuellen Vorgaben des Maintainers in AGENTS.md gelten auch gegenüber älteren Prozessgrafiken: Team 1 spezifiziert und schreibt Tests; Team 2 validiert Feature-Teilläufe und schreibt Feature-/Bug-Tickets; Team 3 implementiert und behebt auch Testdefekte; Team 4 reviewed und wertet vollständige Release-Tests aus. Nur Team 2 ergänzt die Baseline. Neue offene `feature`-Tickets sind Implementierungsaufträge, `works` dokumentiert nachgewiesene Funktionen. Historische geschlossene Erfolgs-Tickets bleiben erhalten.
 
 ---
 
@@ -215,7 +205,7 @@ Die letzte Vorgabe bezieht sich auf die Veröffentlichung des fertigen Releases.
 | Team-Branches | `spec/<n>`, `verify/<n>`, `fix/<n>`, kurzlebig |
 | Tags `vJJJJ.MM.TT-<Commit>-<Image>` | wiederholbares GitHub-Release je ausgeliefertem Artefakt |
 | Projekt „AI Perspectives“ | Board mit Feld Status einschließlich Ready, In Progress, Review und Blocked; bisherige Namen In Arbeit/Merge Gate werden von den Werkzeugen unterstützt; weitere fachliche Stati bleiben erhalten |
-| Labels | `requirement`, `needs-analysis`, `specified`, `done`, `bug`, `feature`, `test-defect`, `release-blocker`, `release-failure`, `maintenance`, `maintenance-approved`, `in-progress`, `blocked`, `waiting-for-test` |
+| Labels | `requirement`, `needs-analysis`, `specified`, `done`, `bug`, `feature`, `works`, `test-defect`, `release-blocker`, `release-failure`, `release-review`, `maintenance`, `maintenance-approved`, `in-progress`, `blocked`, `waiting-for-test` |
 
 Branch-Schutz für `main`: Pull Request und Statusprüfung `Merge Gate` sind verpflichtend, der Branch muss vor Merge aktuell sein. Die Regel gilt auch für Administratoren; Force-Push und Branch-Löschung sind gesperrt. Die unabhängige Agentenprüfung wird zusätzlich durch den Review-Nachweis im PR abgesichert.
 
@@ -223,13 +213,12 @@ Branch-Schutz für `main`: Pull Request und Statusprüfung `Merge Gate` sind ver
 
 | Workflow | Auslöser | Inhalt |
 |---|---|---|
-| [merge-gate.yml](.github/workflows/merge-gate.yml) | PR nach `main` | Team-Grenzen, Build, Unit-Tests, Security, Review-Nachweis (nicht für `verify/`), Fidelity; Abschlussjob „Merge Gate“ |
-| [fidelity-run.yml](.github/workflows/fidelity-run.yml) | manuell | ganze Fidelity-Suite auf `main` ohne Release, zur Diagnose durch den Reviewer (Artefakt `fidelity-main`) |
+| [merge-gate.yml](.github/workflows/merge-gate.yml) | PR nach `main` | Team-Grenzen, Build, Unit-Tests, Security, Review-Nachweis (nicht für `verify/`), ausschließlich Feature-Fidelity; Abschlussjob „Merge Gate“ |
 | [release.yml](.github/workflows/release.yml) | Push auf `main`, manuell | Release Gate bis Hetzner und GitHub-Release |
 | [rollback.yml](.github/workflows/rollback.yml) | manuell | vorherige oder angegebene Version auf dem Server starten |
 | [deploy-access.yml](.github/workflows/deploy-access.yml) | manuell | GitHub-Secrets, Hetzner-API und SSH lesend prüfen |
 | [reconcile.yml](.github/workflows/reconcile.yml) | Push, Issue-Abschluss, stündlich | Labels aus gemergten Spezifikationen/Baseline abgleichen, Testabhängigkeiten freigeben |
-| [release-followup.yml](.github/workflows/release-followup.yml) | abgeschlossener Release | deduplizierte, autorisierte Wartungsaufgabe bei Fehlern |
+| [release-followup.yml](.github/workflows/release-followup.yml) | abgeschlossener Release | deduplizierte Team-4-Auswertungsaufgabe bei Fehlern und erfolgreichen Testläufen |
 
 Composite Actions: `unit-tests`, `fidelity` (startet das Image oder prüft eine URL, wertet mit `gate.mjs` aus), `ssh-setup`, `hcloud-snapshot`.
 
@@ -247,12 +236,14 @@ flowchart LR
 
 Der Workflow startet nach jedem Push/Merge auf `main`, zusätzlich bleibt der manuelle Start möglich. Ein geschlossenes Ticket ohne Merge löst kein Deployment aus. Automatische Läufe prüfen genau den auslösenden Commit und aktivieren den Snapshot auch ohne manuelle Eingabewerte.
 
-1. **Build:** Das Image wird aus dem auslösenden Commit auf `main` (oder dem manuell gewählten `ref`) neu gebaut.
+1. **Commit und Build:** Ein vorbereitender Job legt den Commit aus dem Push auf `main` (oder `ref`) fest. Build und Unit-Tests laufen anschließend parallel auf genau diesem Commit. Das Image wird einmal pro Release-Lauf gebaut und als Artefakt wiederverwendet.
 2. **Test:** ganze Unit-Test-Suite und ganze Fidelity-Suite; jede Baseline-ID muss bestehen.
-3. **Final Check:** keine offenen Issues mit `release-blocker`; der Commit gehört zu `main` und `release` ist sein Vorfahre. Ein vorhandener Release-Branch allein überspringt keine erneute Produktionsprüfung oder noch fehlende Veröffentlichung.
+3. **Final Check:** keine offenen Issues mit `release-blocker` (vollständig paginiert); Commit gehört zu `main`, `release` ist sein Vorfahre. Ein bereits neuerer Release überspringt einen älteren Kandidaten ohne Rückwärtsdeployment. Gleiche Commits erlauben Wiederholung einer fehlenden Veröffentlichung.
 4. **Package:** SSH prüfen und aktive Version merken, verpflichtenden Hetzner-Snapshot erstellen (die drei jüngsten bleiben). [app/deploy/deploy.sh](app/deploy/deploy.sh) `deploy <Commit> <Image-TAR> <Image-ID> <Version>` überträgt die Konfiguration aus diesem Commit und das in CI getestete Image. Docker lädt dieses Image, prüft ID und Commit-Label und aktiviert es ohne erneuten Build. Nach Healthcheck folgen REQ-0 gegen `DEPLOY_URL`. Bei Deployment- oder Smoke-Fehler wird die zuvor gemerkte Version wiederhergestellt; ohne Vorgänger ist bei einer Erstinstallation eine explizite Wiederherstellung nötig.
 5. **release:** Erst nach erfolgreichem Deployment und verpflichtendem Smoke-Test wird der Branch `release` auf den geprüften Commit vorgezogen. Eine fehlende HTTPS-`DEPLOY_URL` sperrt den Lauf bereits vor dem Deployment. Bei Fehlern bleibt der Branch unverändert; ein erneuter Lauf überspringt das fehlgeschlagene Deployment deshalb nicht.
 6. **Publish:** erst ganz am Ende Tag und GitHub-Release mit Commit, Image-ID und Laufnachweis. Derselbe Artefaktstand erhält bei Wiederholung denselben Tag. Ein vorhandener Release-Branch überspringt keine Produktionsprüfung; eine fehlgeschlagene Veröffentlichung kann erneut ausgeführt werden.
+
+Für Diagnose durch Team 4 startet `gh workflow run release.yml -f ref=<Commit> -F tests-only=true` die vollständigen Release-Tests ohne Final Check, Deployment oder Veröffentlichung. Dies ist kein Produktionsnachweis. Diagnose verwendet eine eigene Concurrency-Gruppe; `release-metadata` ordnet auch manuelle Läufe dem tatsächlich getesteten Commit zu. Der frühere separate Vollsuite-Workflow ist entfernt.
 
 Releases und Rollbacks laufen nacheinander (`concurrency: release-production`); ein laufendes Deployment wird nicht durch weitere Merges abgebrochen. Mehrere wartende Releases werden von GitHub zum neuesten wartenden Stand zusammengefasst, der die vorherigen Merges enthält. **Rollback:** Workflow „Rollback“ oder lokal `app/deploy/deploy.sh rollback | switch <Version>`; die fünf jüngsten Versionen liegen auf dem Server. Migrationen sind additiv, damit die vorherige Version mit dem neuen Schema läuft. Weitere Details: [app/docs/betrieb.md](app/docs/betrieb.md).
 

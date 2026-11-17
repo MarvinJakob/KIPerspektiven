@@ -1,177 +1,162 @@
 # AGENTS.md – Arbeitsweise in AI Perspectives
 
-Repository: [MarvinJakob/AIPerspectives](https://github.com/MarvinJakob/AIPerspectives) · Projekt: **AI Perspectives** (GitHub Projects, Besitzer `MarvinJakob`) · Aufbau der Anwendung und Umgebung: [ARCHITECTURE.md](ARCHITECTURE.md)
+Repository: [MarvinJakob/AIPerspectives](https://github.com/MarvinJakob/AIPerspectives) · Projekt: **AI Perspectives**, Besitzer `MarvinJakob` · [Architektur](ARCHITECTURE.md)
 
-Mehrere Agenten arbeiten gleichzeitig auf diesem Gerät, getrennt in drei Teams und die Rolle Reviewer. Sie stimmen sich **nicht** direkt ab: Die Übergabe läuft ausschließlich über das Repository (Fidelity-Tests, Baseline, Pull Requests) und GitHub-Issues (Labels, Board). Jeder Agent bearbeitet genau eine Aufgabe, schließt sie ab oder übergibt sie und nimmt erst dann die nächste.
+Vier Teams arbeiten parallel. Übergaben laufen ausschließlich über Repository, Issues, PRs und Board. Jeder Worker bearbeitet genau eine Aufgabe und endet nach Abschluss oder gesicherter Übergabe. Keine direkten Absprachen und keine Änderungen an fremden Worktrees. Unabhängiges Review ist eine eigene Aufgabe einer anderen Sitzung.
+
+**Aktuelle Regeln:** Vor jeder Aufgabenwahl und Übergabe diese zentrale `AGENTS.md` im Hauptverzeichnis erneut lesen. Zusätzlich `bash tools/work.sh --check` ausführen. In einem alten Checkout ohne dieses Skript: `git fetch origin main`, dann `git show origin/main:tools/work.sh | bash -s -- --check`. Der Bootstrap lädt Werkzeuge und Rollen-Dateien aus einem unveränderlichen Checkout von `origin/main`, ohne den Haupt-Checkout anzufassen. Ein ausdrücklich beauftragter, lokal aktualisierter zentraler Prozess hat bei Abweichungen Vorrang; veraltete Rollen-Dateien dürfen ihn nicht überschreiben. Der Maintainer veröffentlicht Prozessänderungen über einen Wartungs-PR. Bestehende Änderungen und fremde Belegungen erhalten.
+
+| Team | Ziel | Rollen-Datei |
+|---|---|---|
+| 1 · Analyst | Anforderungen vollständig spezifizieren und Fidelity-Tests schreiben; Prüfung durch Lesen | [AGENTS_ANALYST.md](AGENTS_ANALYST.md) |
+| 2 · Feature-Tester | einzelne Tests und Feature-Teilläufe ausführen, Ergebnisse prüfen, Feature- und Bug-Tickets schreiben, Baseline führen | [AGENTS_TESTER.md](AGENTS_TESTER.md) |
+| 3 · Implementierer | Features implementieren, Bugs und Testdefekte beheben, relevante Unit-Tests pflegen | [AGENTS_FIXER.md](AGENTS_FIXER.md) |
+| 4 · Reviewer und Release-Tester | unabhängiges Review, gesamte Testsuite im Release Gate auswerten, Bug-Tickets schreiben, Auslieferung verfolgen | [AGENTS_REVIEWER.md](AGENTS_REVIEWER.md) |
 
 ```mermaid
 flowchart LR
-    R[Anforderung] --> T1[Team 1 · Analyst<br/>schreibt und verifiziert<br/>Fidelity-Tests]
-    T1 -- Merge Gate --> B[(fidelity/specs<br/>fidelity/tests)]
-    B --> T2[Team 2 · Tester<br/>führt die Tests<br/>seines Tickets aus]
-    T2 -- funktioniert --> W[(Feature-Ticket<br/>baseline.txt)]
-    T2 -- funktioniert nicht --> BUG[(Bug-Ticket)]
-    BUG --> T3[Team 3 · Fixer<br/>ein Agent pro Bug]
-    T3 -- Merge Gate --> C[(main)]
-    C -- erneuter Test --> T2
-    C --> RG[Release Gate<br/>Build · Test · Final Check]
-    RG --> P[Hetzner, Branch release,<br/>GitHub-Release]
-    RV[Reviewer] -. Review .-> C
-    RV -. Nacharbeit .-> RG
+    R[Anforderung] --> T1[Team 1: Spezifikation und Tests]
+    T1 --> RV[Team 4: unabhängiges Review]
+    RV --> MG[Merge Gate: Feature-Tests]
+    MG --> M[(main)]
+    M --> T2[Team 2: Feature gezielt prüfen]
+    T2 --> F[Feature-, Bug- oder Testdefekt-Ticket]
+    F --> T3[Team 3: implementieren und beheben]
+    T3 --> RV
+    M --> RG[Release Gate: gesamte Suite]
+    RG --> P[Snapshot, geprüftes Image, Smoke-Test, Release]
+    RG --> T4[Team 4: Ergebnisse prüfen]
+    T4 --> F
 ```
 
-| Rolle | Anweisung | Aufgabe |
+## Auftrag und Aufgabenwahl
+
+Aufträge: `Team 1`, `Team 2`, `Team 3`, `Team 4`, optional mit Issue (`Team 3 #45`). `Reviewer` und `review` sind Aliase für Team 4. Ohne Issue die erste freie Aufgabe der eigenen Rolle aus der vollständigen Warteschlange übernehmen; ist keine frei, melden und enden. Eine leere Label-Suche beweist kein leeres Board.
+
+Bei `work` hat ein ausdrücklich genanntes Team Vorrang. Sonst gilt die Reihenfolge der Warteschlange:
+
+1. Team 3: Release-Blocker (Bug, Feature oder Testdefekt).
+2. Team 4: freigegebene PRs in `Review` / `Merge Gate`; nie die eigene Implementierung.
+3. Freigegebene Zwischenstände in `In Progress` / `In Arbeit`, Rolle entsprechend dem Branch.
+4. Autorisierte Wartung, einschließlich Release-Nacharbeit für Team 4; dann Team 3 Testdefekte; Team 2 spezifizierte Anforderungen ohne offene Folgetickets; Team 3 Bugs und Features; Team 1 Anforderungen in `Neu` / `Ready`, auch bei fehlenden Anforderungslabels. Je Stufe ältestes Ticket zuerst.
+
+Aktive Sperren nie überschreiben. Frei heißt: keine aktive lokale Belegung, kein `in-progress`, kein `waiting-for-test` und kein unbeantworteter Blocker. Ein Boardstatus allein gibt keinen Worktree frei: Übernahme nur nach `pause` und erfolgreichem `resume`. Claim/Resume mit Exitcode 2 → nächste passende Aufgabe; andere Fehler diagnostizieren, nicht als leeres Backlog melden. Team und Issue im Chat nennen. Nach Übergabe keine zweite Aufgabe; der Supervisor startet bei Bedarf eine frische Sitzung.
+
+## Zuständigkeiten und Prüfungen
+
+| Prüfung | Zuständig | Umfang |
 |---|---|---|
-| Team 1 · Analyst | [AGENTS_ANALYST.md](AGENTS_ANALYST.md) | Akzeptanzkriterien und Fidelity-Tests schreiben und verifizieren |
-| Team 2 · Tester | [AGENTS_TESTER.md](AGENTS_TESTER.md) | Fidelity-Tests des eigenen Tickets ausführen, Feature- und Bug-Tickets anlegen, Baseline führen |
-| Team 3 · Fixer | [AGENTS_FIXER.md](AGENTS_FIXER.md) | genau ein Bug-Ticket beheben |
-| Reviewer | [AGENTS_REVIEWER.md](AGENTS_REVIEWER.md) | Aufgaben des Release Gate, unabhängiges Review vor dem Merge Gate |
+| Spezifikation und Testquelltext | Team 1 | eigene Anforderung; kein Server, kein Testlauf, keine Gegenprobe |
+| Testvalidierung und Funktionsnachweis | Team 2 | nur eigenes Feature, Desktop und Mobil; Gegenproben vollständig zurücknehmen |
+| Implementierung und lokale Tests | Team 3 | eigene Aufgabe, betroffene Unit-Tests und bei Bedarf gezielte Feature-Tests |
+| PR-Abnahme | Team 4 | Diff, Issue, Spezifikation, Sicherheit, Wartbarkeit, aktueller Commit |
+| Merge Gate | Actions | Build, Unit-Tests, Security, Prozessprüfungen, Review-Nachweis und ausschließlich Fidelity-Tests der PR-Features |
+| Release Gate | Actions, ausgewertet durch Team 4 | alle Unit- und Fidelity-Tests, gesamte Baseline, Final Check, Deployment und Smoke-Test |
 
-Dieses Dokument gilt für alle. Danach liest jeder Agent **nur die Datei seiner Rolle**.
+**Die gesamte Fidelity-Suite läuft ausschließlich im Release Gate.** Kein Team und kein zweiter Workflow startet sie separat. Team 4 veranlasst bei Diagnosebedarf `gh workflow run release.yml -f ref=<main-Commit> -F tests-only=true`; dieser Modus führt Release-Tests ohne Deployment und Veröffentlichung aus. Er ist kein Produktionsnachweis.
 
-## Auftrag
-
-**Einheitlicher Start:** Vor der Arbeit den aktuellen Prozess laden: `bash tools/work.sh --check`. Aus einem alten Checkout ohne diesen Befehl: `git fetch origin main` und `git show origin/main:tools/work.sh | bash -s -- --check`. Der Bootstrap verwendet einen unveränderlichen, separaten Checkout von `origin/main`, nennt dessen Commit, prüft Werkzeuge, GitHub und Board und gibt die Warteschlange `queue` aus. Alte Arbeitskopien und ihre ungesicherten Änderungen bleiben unverändert. Alle Aufgaben-Skripte und Anweisungen aus diesem Prozessstand verwenden; Änderungen ausschließlich im eigenen Aufgaben-Worktree.
-
-Der Auftrag im Chat nennt die Rolle, optional mit Ticket: `Team 1`, `Team 2`, `Team 3`, `Reviewer`, `Team 3 #45`. Ohne Ticket nimmt der Agent den ersten Eintrag der Warteschlange, der zu seiner Rolle gehört (Feld `guide` nennt die Datei der Rolle). Gibt es keinen, meldet er das und endet.
-
-**Auftrag `work`:** Der Agent ordnet sich selbst zu und nimmt den ersten Eintrag der Warteschlange, den er übernehmen darf. Sie ist bereits so sortiert:
-
-1. Team 3: freies Bug-Ticket mit `release-blocker`.
-2. Reviewer: Tickets im Board-Status `Review` (PR wartet auf unabhängiges Review). Nie ein Ticket, an dem er selbst implementiert hat.
-3. Wiederaufnahme: freigegebene Aufgaben im Board-Status `In Progress`; die Rolle ergibt sich aus dem Branch-Präfix.
-4. Neue Aufgaben in dieser Reihenfolge: freigegebene Wartung (`maintenance` + `maintenance-approved`, darunter `release-failure` für den Reviewer) → Team 1 `test-defect` → Team 2 Anforderung `specified` ohne offenes Folgeticket → Team 3 `bug` → Team 1 `needs-analysis`. Bei gleicher Stufe das älteste Ticket.
-
-Frei heißt: ohne `in-progress`, `blocked` und `waiting-for-test`. Der Agent nennt im Chat Rolle und Ticket und arbeitet danach genau nach der Datei dieser Rolle. Liefert `tools/task.sh claim` bzw. `resume` Exitcode `2`, nimmt er den nächsten Eintrag. Jeder andere Fehler (Exitcode `1`, Boardzugriff) zählt nicht als „belegt“: melden und enden. Nach `finish` oder `pause` wählt er erneut. Ist die Warteschlange leer, meldet er das und endet.
-
-**Auftrag `review`:** Der Agent arbeitet als Reviewer alle zu Beginn im Board-Status `Review` wartenden PRs nacheinander ab, mergt die grünen und verfolgt danach den Release-Lauf des letzten Merge-Commits bis zur Veröffentlichung. Ablauf und Bericht: [AGENTS_REVIEWER.md](AGENTS_REVIEWER.md#auftrag-review).
-
-## Arbeitsteilung mit GitHub Actions
-
-Die Workflows sind Teil des Prozesses. **Was eine Action prüft, wiederholt kein Agent lokal.**
-
-| Prüfung oder Schritt | wer | wann |
-|---|---|---|
-| Fidelity-Tests schreiben und die neuen Tests des eigenen Tickets verifizieren | Team 1, lokal | vor dem PR |
-| Fidelity-Tests **einer** Anforderung ausführen und bewerten | Team 2, lokal | je Ticket |
-| betroffene Unit-Tests, Verhalten laut Bug-Ticket von Hand | Team 3, lokal | vor dem PR |
-| Team-Grenzen, Build des Produktions-Images, alle Unit-Tests, Security, Review-Nachweis, **ganze** Fidelity-Suite gegen Baseline und geforderte IDs | [Merge Gate](.github/workflows/merge-gate.yml) | jeder PR nach `main` |
-| Build, alle Tests, Final Check, Snapshot, Auslieferung, Smoke-Test, Branch `release`, GitHub-Release | [Release Gate](.github/workflows/release.yml) | jeder Push auf `main` |
-| Labels `needs-analysis` → `specified`, erfüllte Anforderungen mit `done` schließen, `waiting-for-test` aufheben | [Prozessabgleich](.github/workflows/reconcile.yml) | Push, Issue-Abschluss, stündlich |
-| Ticket `release-failure` bei fehlgeschlagenem Release | [Release-Nacharbeit](.github/workflows/release-followup.yml) | nach jedem Release-Lauf |
-
-Daraus folgt:
-
-- **Fidelity-Tests schreibt nur Team 1 und führt nur Team 2 aus**, und zwar nur die des Tickets, an dem der Agent gerade arbeitet. Die ganze Suite läuft ausschließlich in GitHub Actions.
-- Team 3 führt keine Fidelity-Tests aus. Der Job „Fidelity“ des Merge Gate prüft die IDs seines Bug-Tickets.
-- Was funktioniert, stellt nur Team 2 fest: Nur Team 2 ergänzt `fidelity/baseline.txt`.
-- Niemand schließt erfüllte Anforderungen oder setzt `specified` von Hand; das erledigt der Prozessabgleich.
+Actions ersetzen keine nötige gezielte Reproduktion oder Testvalidierung. Vollständige CI-Prüfungen nicht lokal doppeln. Rote neue Tests sind fachlicher Backlog; defekte, übersprungene oder unvollständige Läufe sind kein gültiger Nachweis.
 
 ## Gemeinsame Regeln
 
-1. **Zugang:** GitHub über die Umgebungsvariable `GH_TOKEN` (für `gh` und `git`). Für Hetzner ausschließlich die in GitHub hinterlegten Secrets verwenden: `HETZNER_CLOUD_API` für den API-Key und `HETZNER_CLOUD_SSH` für den privaten SSH-Schlüssel. Zugangstests und Deployments über die GitHub-Actions-Workflows ausführen; keine lokalen Hetzner-Schlüssel oder Windows-Benutzervariablen als Ersatz verwenden. `HCLOUD_TOKEN` ist lediglich der interne Umgebungsvariablenname in den Workflows bzw. der Action `hcloud-snapshot` und wird aus `secrets.HETZNER_CLOUD_API` befüllt. Secret-Werte nie ausgeben, lokal speichern oder committen; in dieser Dokumentation stehen nur ihre Namen. Fehlt `GH_TOKEN` im Prozess, die Windows-Benutzervariable prüfen und das Terminal bzw. den Agenten neu starten.
-2. **Eine Aufgabe, ein Worktree.** Vor jeder Änderung die Aufgabe belegen:
-   ```bash
-   bash tools/task.sh claim <spec|verify|fix|maint> <Ticket-Nummer>
-   ```
-   Bei Erfolg steht der Pfad des Worktrees in der letzten Zeile. **Alle Änderungen, Builds und Commits nur dort.** Im Hauptverzeichnis weder Branch wechseln noch committen. `AGENT_ID` ist eine eindeutige Sitzungs-ID; bei Codex wird `CODEX_THREAD_ID` automatisch verwendet. Andere Agenten wählen einmal pro Sitzung eine ID und geben sie bei jedem Aufruf mit, wenn ihre Shell keine Variablen behält (`AGENT_ID=<id> bash tools/task.sh …`). Exitcode `2` heißt: belegt bzw. nicht freigegeben, nächste Aufgabe wählen. Eine freigegebene Aufgabe übernimmt man mit `bash tools/task.sh resume <team> <n>` im vorhandenen Worktree.
-3. **Übergabe ausschließlich im Repository.** Keine direkten Nachrichten zwischen Agenten. Aktive fremde Aufgaben nie übernehmen. Fragen, Antworten, Zwischenstand und Review stehen am Issue bzw. PR.
-4. **Grenzen der Rollen** (das Merge Gate erzwingt sie über den Branch-Präfix):
+1. **Zugang:** GitHub über `GH_TOKEN` für `gh` und `git`. Secret-Werte nie ausgeben, speichern oder committen. Hetzner nur über Actions-Secrets `HETZNER_CLOUD_API` und `HETZNER_CLOUD_SSH`; `HCLOUD_TOKEN` ist der interne Name der Snapshot-Action. Keine lokalen Hetzner-Zugänge als Ersatz.
+2. **Eine Aufgabe, ein Worktree:** `bash tools/task.sh claim <spec|verify|fix|maint> <n>`. Danach sofort `bash tools/board.sh <n> "In Arbeit"` und `bash tools/board.sh get <n>`; erst bei bestätigtem Status fachlich arbeiten. Alle Änderungen, Builds und Commits im eigenen Worktree. Im Hauptverzeichnis weder Branch wechseln noch committen. Ausdrücklich beauftragte zentrale `AGENTS*.md` dürfen dort unter Erhalt bestehender Änderungen aktualisiert werden.
+3. **Sitzung und Sperre:** `AGENT_ID` bezeichnet die echte Sitzung, bei Codex wird `CODEX_THREAD_ID` verwendet. Regelmäßig `bash tools/task.sh heartbeat <team> <n>`; `status` zeigt Besitzer, Lebenszeichen und Operationssperren. Alter allein erlaubt keine Übernahme.
+4. **Dateigrenzen:** siehe Tabelle. Prozess-/Infrastrukturänderungen nur mit ausdrücklichem Wartungsauftrag. Keine Gates umgehen, keine fachlichen Kriterien abschwächen.
+5. **Commit und PR:** Conventional Commit mit Issue-Nummer. Vor Push `git fetch origin && git rebase origin/main`; betroffene gezielte Prüfungen wiederholen (Team 1 prüft nur durch Lesen). PRs nach Vorlage; echte Implementierer-IDs dokumentieren. Keine vorgetäuschten Reviews oder ungeprüft abgehakten Prüfpunkte.
+6. **Blocker:** konkrete Frage und Stand in Datei, `bash tools/board.sh block <n> <Datei>`, Status prüfen. Ergebnisse committen/pushen, Übergabe dokumentieren, `pause`. Kein `finish --abandon` für benötigte Übergaben. Nach Antwort verschiebt der Maintainer nach `In Progress`; Übernehmer liest Antwort, `unblock`, `resume`.
+7. **Sparsam lesen:** zentrale Regeln, eigene Rolle, Issue, betroffene Spezifikation und Code. `content/`, `res/`, `mock/` nur bei ausdrücklichem Auftrag als fachliche Quelle verwenden. `content/archive/` nie lesen.
+8. **Eigene Laufzeit:** Team 2/3 verwenden Port `20000 + <n>` und Datenbank im Worktree. Server nach der Arbeit beenden. Team 1 startet keinen Server.
 
-   | Rolle | Branch | darf ändern | Fidelity-Tests |
-   |---|---|---|---|
-   | Team 1 · Analyst | `spec/<n>` | `fidelity/specs/`, `fidelity/tests/` | schreibt sie, verifiziert die eigenen |
-   | Team 2 · Tester | `verify/<n>` | `fidelity/baseline.txt` (nur am Ende anhängen) | führt die seines Tickets aus |
-   | Team 3 · Fixer | `fix/<n>` | `app/` | führt sie nicht aus, ändert sie nicht |
-   | Reviewer | keiner | nichts; Befunde als Review oder Ticket | führt sie nicht aus |
+| Team / Aufgabe | Branch | Erlaubte Änderungen |
+|---|---|---|
+| Team 1 | `spec/<n>` | `fidelity/specs/`, `fidelity/tests/` |
+| Team 2 | `verify/<n>` | `fidelity/baseline.txt`, nur gültige neue IDs am Ende |
+| Team 3 | `fix/<n>` | `app/`; bei verknüpftem Issue mit `test-defect` auch betroffene `fidelity/tests/` und nötige `fidelity/specs/` |
+| Team 4 Review | übernimmt freigegebenen Aufgaben-Worktree | keine Implementierungsänderungen; Befunde an PR/Issue |
+| Wartung | `codex/maint-<n>` | nur ausdrücklich beauftragter Prozess-/Infrastrukturumfang |
 
-   Alles andere ist für die jeweilige Rolle gesperrt. Prozess- und Infrastrukturdateien (`AGENTS*.md`, `ARCHITECTURE.md`, `.github/`, `tools/`, `fidelity/scripts/`) ändert nur die [Wartung](#wartung).
-5. **Abschluss:** Code und Tests kommen nur per PR und mit grünem **Merge Gate** nach `main` (`gh pr checks <PR> --watch`, dann `gh pr merge <PR> --squash --delete-branch`). Nie `--admin`, nie Checks umgehen. Danach `bash tools/task.sh finish <team> <n>`.
-6. **Blocker:** Ist eine Aufgabe ohne Rückfrage nicht lösbar: konkrete Frage, Entscheidungsbedarf und bisherigen Stand in eine Datei schreiben und `bash tools/board.sh block <n> <Fragen-Datei>` ausführen (Kommentar, Label `blocked`, Board `Blocked`). Dann [übergeben](#übergabe-und-wiederaufnahme). **Kein `finish --abandon`**, nicht raten.
-7. **Sparsam arbeiten:** Nur lesen, was die Aufgabe braucht: dieses Dokument, die Datei der eigenen Rolle, das Ticket, die Spezifikation `fidelity/specs/REQ-<n>.md` und den betroffenen Code. `content/`, `res/` und `mock/` sind nur dann Vorgaben, wenn der Auftrag sie ausdrücklich als fachliche Quelle nennt; `content/archive/` ist veraltet und wird nie gelesen. Kommentare an Issues und PRs kurz und sachlich.
-8. **Commits:** [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/) mit Ticket-Nummer, z. B. `fix: Themenseite liefert 404 für Entwürfe (#45)`. Vor dem Push `git fetch origin && git rebase origin/main`, danach die lokalen Prüfungen der eigenen Rolle wiederholen.
-9. **Parallele Server:** Jeder Agent startet die Anwendung auf eigenem Port `20000 + <Ticket-Nummer>` und mit eigener Datenbank im Worktree (siehe [Befehle](#befehle)) und beendet sie nach der Arbeit.
-10. **Lebenszeichen:** Während einer Belegung regelmäßig `bash tools/task.sh heartbeat <team> <n>` ausführen. `bash tools/task.sh status` zeigt Besitzer, letztes Lebenszeichen und Operationssperren.
+Nur Team 2 ergänzt die Baseline nach Funktionsnachweis. Eine Testkorrektur allein ist kein Nachweis. Keine Team-Aufgabe entfernt Baseline-IDs. Fachlich ersetzte Kriterien erhalten neue IDs; bestehende IDs entfernt nur der Maintainer in ausdrücklich beauftragter Wartung.
 
 ## Labels und Board
 
-Labels bestimmen die zuständige Rolle, das Board den Bearbeitungsschritt: `bash tools/board.sh list` bzw. `bash tools/board.sh <n> "<Status>"`. Ein fehlgeschlagener Boardzugriff ist kein Nachweis einer leeren Warteschlange: Fehler melden, keine aktive Belegung übergehen. Im Projekt heißen `Ready` „Neu“, `In Progress` „In Arbeit“ und `Review` „Merge Gate“; die Werkzeuge verstehen beide Namen.
+Labels bestimmen den Aufgabentyp, Board und Sperre den Bearbeitungsschritt. Vor Auswahl alle Board-Einträge lesen (`bash tools/board.sh list`, vollständig paginiert). Neue Anforderungen ohne Labels in `Neu` gehören Team 1; fehlende Labels ergänzen. Bugs, Features und Testdefekte gehören Team 3; freie falsch einsortierte Tickets nach `Bug offen` verschieben.
 
-| Label | Bedeutung | Board-Status |
+| Label | Bedeutung | Wartestatus |
 |---|---|---|
-| `requirement` + `needs-analysis` | Anforderung ohne Fidelity-Tests → Team 1 | Neu |
-| `requirement` + `specified` | Fidelity-Tests liegen auf `main` → Team 2, solange kein Folgeticket offen ist | Spezifiziert, mit offenem Folgeticket „Bug offen“ |
-| `requirement` + `done` | alle Akzeptanzkriterien in der Baseline, geschlossen (Prozessabgleich) | Funktioniert |
-| `feature` | Nachweis von Team 2, dass Kriterien funktionieren (sofort geschlossen) | Funktioniert |
-| `bug` | Fidelity-Test schlägt fehl → Team 3 | Bug offen |
-| `test-defect` | Test selbst ist falsch oder instabil → Team 1 | Neu |
-| `release-blocker` | Regression einer Baseline-ID, sperrt das Release → Team 3 zuerst | Bug offen |
-| `release-failure` | fehlgeschlagenes Release Gate (automatisch angelegt) → Reviewer | Neu / Blocked |
+| `requirement` + `needs-analysis` | Anforderung für Team 1 | Neu / Ready |
+| `requirement` + `specified` | Tests auf `main`, Team 2 prüft das Feature | Spezifiziert; mit offenem Folgeticket Bug offen |
+| `feature` | fehlende neue Funktion, Implementierungsauftrag für Team 3 | Bug offen |
+| `bug` | fehlerhaftes vorhandenes Verhalten, Team 3 | Bug offen |
+| `test-defect` | falscher oder instabiler Test, Team 3 | Bug offen |
+| `release-blocker` | Baseline-Regression oder anderer nachgewiesener Release-Fehler; sperrt Deployment | Bug offen |
+| `works` | Funktionsnachweis durch Team 2, sofort geschlossen | Funktioniert |
+| `done` | alle Kriterien in Baseline, keine offenen Folgetickets, geschlossen | Funktioniert |
+| `release-failure` | Release-Nacharbeit durch Team 4 | Neu / Blocked |
+| `release-review` | Auswertung eines erfolgreichen Release-Testlaufs durch Team 4, auch bei fachlichem Backlog | Neu |
 | `maintenance` + `maintenance-approved` | ausdrücklich autorisierte Wartung | Neu / Review |
-| `in-progress` | aktuell von einem Agenten belegt (setzt `tools/task.sh`) | In Progress oder Review |
-| `blocked` | wartet auf eine Antwort des Maintainers | Blocked |
-| `waiting-for-test` | Bug wartet auf eine Testkorrektur von Team 1 | In Progress |
+| `in-progress` | aktive Belegung | In Arbeit / Review |
+| `blocked` | konkrete unbeantwortete Rückfrage | Blocked |
+| `waiting-for-test` | Implementierung wartet auf getrenntes Testdefekt-Ticket von Team 3 | In Arbeit, freigegeben |
 
-Folgetickets einer Anforderung tragen ihre ID im Titel: `[REQ-<n>-AC<m>] …`. Daran erkennen Warteschlange und Prozessabgleich, ob eine Anforderung wartet. Vor jeder Aufgabe die aktuellen Kommentare am Ticket und gegebenenfalls den PR lesen. Gleiche Ticket-Nummern aus anderen Repositories sind andere Aufgaben.
+Historische geschlossene `feature`-Tickets als Erfolgsnachweis bleiben erhalten; neue Erfolgsnachweise verwenden `works`. Neue offene `feature`-Tickets sind Implementierungsaufträge. Folgetickets nennen `[REQ-<n>-AC<m>]` im Titel; Warteschlange und Abgleich erkennen so Abhängigkeiten.
+
+**Statuspflege:** bei Übernahme, Übergabe, PR, Merge und Abbruch `board.sh` ausführen und mit `get` prüfen. `Review` ist Alias für `Merge Gate`, `In Progress` für `In Arbeit`, `Ready` für `Neu`. Bei Fehlern erneut prüfen; ungelösten Fehler und gewünschten Zielstatus im Issue und Abschluss nennen, keinen erfolgreichen Wechsel behaupten. Fremde aktive Belegungen nicht verändern.
+
+`node tools/reconcile.mjs --apply --board` gleicht Labels/Board aus gemergten Spezifikationen, Baseline und offenen Folgetickets ab. Der Prozessabgleich setzt `specified`, schließt erfüllte Anforderungen und löst Testabhängigkeiten. Keine fremden Dateien oder Sperren bereinigen.
 
 ## Übergabe und Wiederaufnahme
 
-**Übergeben** (an das Review, bei einem Blocker, bei Unterbrechung): alle Änderungen committen, Branch pushen, am PR bzw. Ticket Rolle, Branch, Commit, Implementierer-IDs, Prüfergebnisse und nächsten Schritt festhalten, Board-Status setzen (`Review`, `Blocked` oder `In Progress`), Server beenden, dann `bash tools/task.sh pause <team> <n>`. Branch und Worktree bleiben erhalten, `in-progress` wird entfernt. Der Agent nimmt danach eine andere Aufgabe.
+**Übergabe:** Änderungen committen/pushen, Issue/PR mit Branch, Commit, echten Implementierer-IDs, Prüfergebnissen und nächstem Schritt ergänzen. Board nach `Review`, `Blocked` oder `In Progress`, Status prüfen, Server beenden, `bash tools/task.sh pause <team> <n>`. Branch und Worktree bleiben erhalten, `in-progress` wird entfernt.
 
-**Wiederaufnehmen:** Nur mit `pause` freigegebene Aufgaben, mit `bash tools/task.sh resume <team> <n>`. Ein Board-Status oder ein altes Lebenszeichen allein hebt keine Sperre auf.
+**Übernahme:** ausschließlich nach Freigabe `resume <team> <n>`. Für Team 4 ist `<team>` der Präfix der abgenommenen Aufgabe (`spec`, `verify`, `fix`, `maint`), kein neuer Review-Branch. Bei Befunden zurück an Implementierer und erneut `pause`; jeder neue Commit braucht ein neues Review.
 
-- **Nach einem Blocker:** Der Maintainer antwortet im Kommentar und verschiebt das Ticket nach `In Progress`. Ein freier Agent liest die Antwort, entfernt `blocked` mit `bash tools/board.sh unblock <n>` und übernimmt. Fehlt die nötige Antwort: die noch offene Frage kommentieren und erneut blockieren.
-- **Nach einem Review mit Befunden:** Ein Implementierer übernimmt, behebt die Befunde und übergibt erneut an das Review.
-- **Nach einem Abbruch:** Der Maintainer genehmigt am Ticket auf getrennten Zeilen `Recover-Task: <team>/<n>`, `Owner: <bisherige ID>` und `Operation-Lock: <aktueller Objektwert oder none>`. `node tools/recover-task.mjs <team> <n> <Kommentar-ID>` prüft Autor, Ticket, Besitzer und Lebenszeichen, bewahrt Dateien und gibt frei. Ein vermuteter Absturz ist nie eine Erlaubnis zur Übernahme. Aufgaben ohne Besitzerdaten werden nicht automatisch migriert.
-- **Unterbrochener `finish`:** hinterlässt `finishing-head` und kann wiederholt werden. Nach einer Recovery-Freigabe weist `resume` dann ausschließlich auf `finish` hin; keine weitere Implementierung beginnen.
+**Abschluss:** nur nach grünem Merge Gate mergen: `gh pr checks <PR> --watch`, dann `gh pr merge <PR> --squash --delete-branch`. Nie `--admin`. Zielstatus setzen/prüfen, dann `bash tools/task.sh finish <team> <n>`; entferntes `in-progress` prüfen. Ohne Änderungen kann Team 2 nach dokumentierter Auswertung ohne PR abschließen. Anforderungen bleiben bis zum Baseline-Nachweis offen.
 
-**Prozessabgleich:** `node tools/reconcile.mjs` zeigt nötige Korrekturen an Labels und Board, `--apply --board` führt sie wiederholbar aus. Er arbeitet nur mit den auf `main` eingecheckten Spezifikationen und Baseline-IDs. Offene PRs schützen laufende Arbeit; fremde Branches, Worktrees und Sperren werden nie entfernt. Den Board-Abgleich übernimmt die Betriebssteuerung oder optional das Actions-Secret `PROCESS_BOARD_TOKEN`.
-
-**Betriebssteuerung:** `bash tools/work.sh --once` startet eine frische Agentensitzung mit dem Auftrag `work` für genau eine Aufgabe, `--watch` reagiert auf neue Issues, Antworten und PRs. Unter Windows startet `tools/work-watch.ps1` bei einem neuen Stand von `main` den Bootstrap erneut. Standard ist `codex exec --approve-for-me` ohne Umgehung von Sandbox oder Freigaben; andere Clients über `WORK_AGENT_COMMAND` und `WORK_AGENT_ARGS` (JSON-Array). Es läuft höchstens ein Supervisor je Repository, echte Fehler stoppen ihn, aktive oder verwaiste Aufgaben übernimmt er nie. `Ctrl+C` lässt die laufende Sitzung ihre Übergabe abschließen.
+**Absturz:** keine automatische Übernahme. Maintainer-Freigabe am Issue mit `Recover-Task: <team>/<n>`, `Owner: <ID>`, `Operation-Lock: <Objektwert oder none>`; `tools/recover-task.mjs` prüft sie. Legacy-Worktrees ohne Besitzerdaten zuerst anhand dokumentierter Herkunft migrieren. Unterbrochenes `finish` wiederholen, nicht erneut implementieren.
 
 ## Merge Gate
 
-Workflow [merge-gate.yml](.github/workflows/merge-gate.yml), Pflichtprüfung „Merge Gate“ für jeden PR nach `main`. Die Jobs laufen auch auf einem Draft; dort schlägt nur „Review“ fehl.
+[merge-gate.yml](.github/workflows/merge-gate.yml) ist Pflichtprüfung jedes PR nach `main`: Team-Grenzen, Produktionsbuild, Unit-Tests einschließlich Race-Tests, Security, Prozessprüfungen, aktuelles unabhängiges Review und **nur Fidelity-Tests der betroffenen Features**. Branch vor Merge aktuell halten.
 
-| Job | besteht, wenn |
-|---|---|
-| Team-Grenzen | der Branch nur die Dateien seiner Rolle ändert und die Baseline nur am Ende um gültige, neue IDs wächst |
-| Build | das Produktions-Image (beide Frontends, Backend) baut |
-| Unit-Tests | `go vet`, `go test` (Parallelitätstests mit Race-Detector), Typprüfung und Tests beider Frontends grün sind |
-| Security | `govulncheck`, `npm audit --audit-level=high`, Dependency Review und Secret-Scan ohne Befund sind |
-| Review | die Prozesswerkzeuge bestehen, der PR kein Draft ist und der Nachweis des unabhängigen Reviews zum aktuellen Commit passt |
-| Fidelity | alle Baseline-IDs bestehen und alle in der Zeile `Fidelity:` geforderten bzw. neu in die Baseline aufgenommenen IDs bestehen |
+Feature-Auswahl: IDs aus `Fidelity:`, neue Baseline-IDs und geänderte Dateien einschließlich Feature-Hilfsdateien `fidelity/{tests,specs}/REQ-<n>.*`. Alle Tests dieser Features laufen auf Desktop und Mobil. Bestehen müssen geforderte IDs und Baseline-IDs dieser Features. Neue noch nicht implementierte Kriterien dürfen rot sein; globale Laufzeitfehler, fehlende ausgewählte IDs und Skip sperren das Gate, instabile Ergebnisse sind kein Funktionsnachweis. Die gesamte Baseline wird erst im Release Gate geprüft.
 
-| PR | Bezug zum Ticket | `Fidelity:` | unabhängiges Review |
-|---|---|---|---|
-| `spec/<n>` (Team 1) | `Refs #<Anforderung>` bzw. `Closes #<Testdefekt>` | – | ja |
-| `verify/<n>` (Team 2) | `Refs #<Anforderung>` | ergibt sich aus der Baseline | nein: Team-Grenzen und Fidelity weisen die Änderung nach |
-| `fix/<n>` (Team 3) | `Closes #<Bug>` | Pflicht: die IDs des Bug-Tickets | ja |
-| `codex/maint-<n>` (Wartung) | `Closes #<Ticket>` | – | ja |
+| PR | Issue-Bezug | Fidelity und Review |
+|---|---|---|
+| `spec/<n>` | `Refs #<Anforderung>` | Feature automatisch aus geänderten Dateien; Team 4 reviewed Quelltext, Team 2 validiert zur Laufzeit |
+| `verify/<n>` | `Refs #<Anforderung>` | neue Baseline-IDs müssen bestehen; automatischer Nachweis ersetzt zusätzliches Agenten-Review |
+| `fix/<n>` | `Closes #<Feature/Bug/Testdefekt>` | `Fidelity:` mit erfüllten Ticket-IDs; bei Testdefekt automatisch betroffene Features und deren Baseline; Team 4 reviewed |
+| `codex/maint-<n>` | `Closes #<Wartung>` | Feature-Bezug falls vorhanden, sonst kein Fidelity-Teillauf; andere Prüfungen und Team-4-Review gelten |
 
-PRs mit Review entstehen als Draft nach der [Vorlage](.github/pull_request_template.md) mit `Implementer-Agents:` (alle beteiligten Sitzungs-IDs). Der Implementierer hakt seine Punkte der Checkliste ab, den Review-Punkt und die Review-Zeilen setzt `tools/review.mjs`. Zur Review erst übergeben, wenn auf dem Draft alle Jobs außer „Review“ grün sind. Ablauf des Reviews: [AGENTS_REVIEWER.md](AGENTS_REVIEWER.md).
+PRs mit Review zunächst als Draft. Alle Jobs außer „Review“ und Abschlussjob müssen vor Übergabe grün sein; ein bei reiner Wartung gezielt ausgelassener Fidelity-Job ist zulässig. Team 4 dokumentiert die Abnahme des exakten Head-Commits mit `tools/review.mjs`; danach Draft aufheben. PR-Textänderungen starten das Gate erneut.
 
-Die Fidelity-Suite läuft vollständig auf Desktop und Mobil und wird mit einem vorab erzeugten Testinventar abgeglichen. Globale Fehler, leere oder unvollständige Läufe, Skip und erwartete Fehlschläge sperren das Gate. Instabile Tests gelten nicht als funktionierend. Fachliche Fehlschläge außerhalb der Baseline sind erlaubt: Sie sind der offene Backlog.
+## Release Gate
 
-`main` ist auf GitHub durch eine Branch-Regel geschützt: Pull Request und Statusprüfung `Merge Gate` erforderlich, Branch vor dem Merge aktuell, Regeln auch für Administratoren, kein Force-Push, keine Branch-Löschung.
+[release.yml](.github/workflows/release.yml) startet automatisch nach jedem Merge/Push auf `main`. Commit einmal festlegen → Build und Unit-Tests parallel → gesamte Fidelity-Suite gegen das gebaute Image → gesamte Baseline und offene Release-Blocker prüfen → Snapshot → genau dieses Image nach Hetzner übertragen → Health und Produktions-Smoke-Test → erst dann Branch `release`, Tag und GitHub-Release.
 
-## Wartung
+Neue fachliche Fehlschläge außerhalb der Baseline sind erlaubter Backlog; Team 4 schreibt hierfür Feature-/Bug-Tickets und für Regressionen zusätzlich `release-blocker`. Ungültige oder unvollständige Läufe sperren das Release. Team 4 wertet auch grüne Berichte auf neue Backlog-Befunde aus. Vollsuite-Ausführung bedeutet nicht, dass unfertige Anforderungen als umgesetzt gelten.
 
-Prozess- und Infrastrukturdateien ändert nur ein ausdrücklicher Auftrag des Maintainers: ein Ticket mit **beiden** Labels `maintenance` und `maintenance-approved`, dessen Text den Umfang beschreibt. Belegen mit `bash tools/task.sh claim maint <n>` (Branch `codex/maint-<n>`, Worktree `.worktrees/maint-<n>`); für `pause`, `resume` und `finish` ebenfalls `maint`. Unabhängiges Review und Merge Gate gelten unverändert. Neue Berechtigungen, fachliche Entscheidungen und nicht im Ticket genannte Infrastrukturänderungen sind Rückfragen (Regel 6). Wartung ohne `maintenance-approved` übernimmt niemand.
+Deployments und Rollbacks sind serialisiert (`release-production`), laufende Deployments werden nicht durch Merges abgebrochen. Mehrere wartende Releases können zum neuesten Stand zusammenfallen. Ältere Kandidaten dürfen einen bereits neueren Release-Stand nicht zurückrollen. Bei Deployment- oder Smoke-Fehler wird die vorherige Version wiederhergestellt; ohne Vorgänger ist explizite Wiederherstellung nötig. Diagnose mit `tests-only=true` veröffentlicht nichts und verwendet eine eigene Concurrency-Gruppe, damit sie keine wartenden Produktionsreleases verdrängt. Der tatsächlich getestete Commit steht im Artefakt `release-metadata`. [Details](ARCHITECTURE.md#7-auslieferung).
+
+## Wartung und Betrieb
+
+Prozessdateien, Workflows, Werkzeuge und Fidelity-Auswertung nur aufgrund ausdrücklichen Maintainer-Auftrags; Issue mit `maintenance` und `maintenance-approved`. Belegen mit `claim maint <n>`, unabhängiges Review und Gate bleiben Pflicht. Team 4 darf den dokumentierten Umfang autorisierter Release-Nacharbeit als Wartung bearbeiten, dann reviewed eine andere Sitzung.
+
+`tools/work.sh --once` startet einen Worker für genau eine Aufgabe. `--watch` / `tools/work-watch.ps1` beobachten neue Arbeit und starten frische Sitzungen. Echte Fehler stoppen den Supervisor; keine Sperren umgehen. `Ctrl+C` lässt die aktive Sitzung ihre Übergabe abschließen.
 
 ## Befehle
 
-Im eigenen Worktree, Port `P = 20000 + <Ticket-Nummer>` (Git Bash). Welche Befehle eine Rolle braucht, steht in ihrer Datei.
+Team 2/3 im eigenen Worktree, `P = 20000 + <Issue-Nummer>` (Git Bash):
 
 ```bash
-# Anwendung bauen und mit Testdaten starten (Testkonten: app/backend/migrations/dev/00002_dev_accounts.sql)
 (cd app/frontend && npm ci && npm run build) && (cd app/frontend-redaktion && npm ci && npm run build)
 (cd app/backend && CGO_ENABLED=0 go build -o ../.build/server ./cmd/server)
 (cd app && DEV_SEED=true SERVE_MEDIA=true ADDR=127.0.0.1:$P PUBLIC_BASE_URL=http://localhost:$P DATABASE_PATH=.build/dev.db MEDIA_PATH=.build/media ./.build/server &)
-
-# Unit-Tests (Team 3: nur die betroffenen Pakete; alles prüft das Merge Gate)
-(cd app/backend && go vet ./... && go test ./...)
-(cd app/frontend && npm run typecheck && npm test) && (cd app/frontend-redaktion && npm run typecheck && npm test)
+cd fidelity && npm ci && npx playwright install chromium
+export BASE_URL=http://localhost:$P
+npx playwright test --grep '\bREQ-12-AC[0-9]+\b' --list --reporter=json > inventory.json
+npx playwright test --grep '\bREQ-12-AC[0-9]+\b'
+node scripts/gate.mjs --inventory inventory.json --no-baseline
 ```
 
-Code-Erzeugung nach Änderungen an `openapi.yaml` oder SQL: siehe [app/README.md](app/README.md).
+Kein ungefiltertes `npm test` / `playwright test` in `fidelity/` außerhalb des Release Gate. Unit-Tests betroffener Pakete und Code-Erzeugung: [app/README.md](app/README.md). Team 1 führt diese Befehle nicht aus.

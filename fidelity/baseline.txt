@@ -1,6 +1,6 @@
 # Dinge, die funktionieren: Test-IDs, die bestanden haben und nie wieder fehlschlagen dürfen.
-# Merge Gate und Release Gate schlagen fehl, wenn eine dieser IDs nicht besteht (scripts/gate.mjs).
-# Eine ID pro Zeile, nur anhängen, nie entfernen (außer Team 1 ersetzt das Akzeptanzkriterium).
+# Das Release Gate prüft alle IDs; das Merge Gate nur die Baseline der ausgewählten Features.
+# Eine ID pro Zeile, nur Team 2 hängt an. Entfernen nur durch ausdrücklich beauftragte Wartung.
 # Parallele Ergänzungen führt Git über .gitattributes (merge=union) ohne Konflikt zusammen.
 REQ-0-AC1
 REQ-0-AC2

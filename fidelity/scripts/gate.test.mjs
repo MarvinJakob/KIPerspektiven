@@ -16,9 +16,9 @@ test('CLI sperrt defekte Läufe und fehlende Pflicht-IDs, erlaubt nachgewiesenes
   const results = join(dir, 'results.json');
   const inventory = join(dir, 'inventory.json');
   writeFileSync(inventory, JSON.stringify(good));
-  const run = (report, required = 'REQ-1-AC1') => {
+  const run = (report, required = 'REQ-1-AC1', selected = '') => {
     writeFileSync(results, JSON.stringify(report));
-    const env = { ...process.env, REQUIRED_IDS: '' };
+    const env = { ...process.env, REQUIRED_IDS: '', SELECTED_IDS: selected };
     delete env.GITHUB_OUTPUT;
     delete env.GITHUB_STEP_SUMMARY;
     const result = spawnSync(process.execPath, [fileURLToPath(new URL('./gate.mjs', import.meta.url)),
@@ -27,6 +27,8 @@ test('CLI sperrt defekte Läufe und fehlende Pflicht-IDs, erlaubt nachgewiesenes
     return result;
   };
   assert.equal(run(good).status, 0);
+  assert.equal(run(good, '', 'REQ-1-AC1 REQ-1-AC2').status, 0);
+  assert.equal(run(good, '', 'REQ-1-AC1 REQ-1-AC3').status, 1);
   assert.equal(run(good, 'REQ-1-AC2').status, 1);
   assert.equal(run({ ...good, errors: [{ message: 'global setup failed' }] }).status, 1);
   assert.equal(run({ suites: [{ specs: [spec('REQ-1-AC1')] }] }).status, 1);

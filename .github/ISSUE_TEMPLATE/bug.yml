@@ -1,5 +1,5 @@
 name: Bug (fehlgeschlagener Fidelity-Test)
-description: Von Team 2 angelegt, wenn ein Fidelity-Test seines Tickets nicht besteht. Team 3 behebt genau dieses Ticket.
+description: Team 2 oder Team 4 dokumentiert fehlerhaftes Verhalten für Team 3.
 title: "[REQ-<n>-AC<m>] <Was funktioniert nicht>"
 labels: [bug]
 body:
@@ -29,7 +29,7 @@ body:
     id: reproduktion
     attributes:
       label: Nachstellen ohne Test
-      description: Team 3 führt keine Fidelity-Tests aus. Schritte, mit denen sich das Verhalten im Browser oder per HTTP beobachten lässt (URL, Testkonto aus DEV_SEED, Aktion, sichtbares Ergebnis).
+      description: Schritte für Browser oder HTTP unabhängig vom Testlauf (URL, Testkonto aus DEV_SEED, Aktion, sichtbares Ergebnis). Team 3 darf ergänzend gezielte Feature-Tests ausführen.
       placeholder: |
         1. /de/kontakt öffnen
         2. Formular ohne E-Mail absenden

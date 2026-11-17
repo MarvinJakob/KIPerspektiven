@@ -122,7 +122,8 @@ function main(args) {
     return console.log('Blocked angelegt; bestehende Status-IDs erhalten.');
   }
   if (command === 'list') {
-    return console.log(JSON.stringify(openItems(items(board)), null, 2));
+    const nodes = items(board);
+    return console.log(JSON.stringify(value === '--all' ? nodes : openItems(nodes), null, 2));
   }
   const issue = /^\d+$/.test(command ?? '') ? command : value;
   if (!/^\d+$/.test(issue ?? '')) throw new Error('Issue-Nummer fehlt; siehe tools/board.sh.');

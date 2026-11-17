@@ -17,6 +17,15 @@ inputs:
   required-ids:
     description: Test-IDs, die zusätzlich zur Baseline bestehen müssen (Leerzeichen-getrennt)
     default: ''
+  selected-ids:
+    description: IDs, die im Teillauf vollständig ausgeführt werden müssen (auch bei offenem Backlog)
+    default: ''
+  allow-backlog:
+    description: Fachlich rote neue Tests im Feature-Teillauf erlauben; required-ids müssen trotzdem bestehen
+    default: 'false'
+  full-suite:
+    description: Ungefilterten Lauf ausdrücklich erlauben (ausschließlich im Release Gate)
+    default: 'false'
   report-name:
     description: Name des hochgeladenen Playwright-Berichts
     default: fidelity-report
@@ -35,6 +44,15 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Testumfang prüfen
+      shell: bash
+      env:
+        GREP: ${{ inputs.grep }}
+        FULL_SUITE: ${{ inputs.full-suite }}
+      run: |
+        [[ -n "$GREP" || ( "$FULL_SUITE" == true && "$GITHUB_WORKFLOW" == 'Release Gate' ) ]] \
+          || { echo "::error::Vollsuite ausschließlich im Release Gate; sonst Feature-Filter erforderlich."; exit 1; }
+
     - name: Anwendung starten
       if: inputs.base-url == ''
       shell: bash
@@ -84,11 +102,14 @@ runs:
       working-directory: fidelity
       env:
         REQUIRED_IDS: ${{ inputs.required-ids }}
+        SELECTED_IDS: ${{ inputs.selected-ids }}
+        ALLOW_BACKLOG: ${{ inputs.allow-backlog }}
         GREP: ${{ inputs.grep }}
       # Teillauf (grep, z. B. Smoke-Test in Produktion): nur die geforderten IDs zählen, nicht die ganze Baseline
       run: |
         if [[ -n "$GREP" ]]; then
-          [[ -n "$REQUIRED_IDS" ]] || { echo "::error::Teilläufe brauchen explizite required-ids."; exit 1; }
+          [[ -n "$REQUIRED_IDS" || ( "$ALLOW_BACKLOG" == true && -n "$SELECTED_IDS" ) ]] \
+            || { echo "::error::Teilläufe brauchen explizite Test-IDs."; exit 1; }
           node scripts/gate.mjs --inventory inventory.json --no-baseline
         else
           node scripts/gate.mjs --inventory inventory.json

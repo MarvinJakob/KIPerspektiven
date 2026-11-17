@@ -1,11 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
+import { api, repository, issueLabels } from './github.mjs';
 
-export function checkScope(branch, files, before, after) {
+export function checkScope(branch, files, before, after, { testDefect = false } = {}) {
   const rule = branch.startsWith('spec/') ? /^fidelity\/(specs|tests)\//
     : branch.startsWith('verify/') ? /^fidelity\/baseline\.txt$/
-      // Was funktioniert, stellt nur Team 2 fest: Team 3 ändert weder Tests noch Baseline.
-      : branch.startsWith('fix/') ? /^app\// : null;
+      // Only a linked test-defect issue permits Team 3 to correct Fidelity tests/specifications.
+      : branch.startsWith('fix/') ? (testDefect ? /^(app\/|fidelity\/(specs|tests)\/)/ : /^app\//) : null;
   if (!rule) return; // Wartung braucht einen ausdrücklichen Maintainer-Auftrag und Review.
   const forbidden = files.filter((file) => !rule.test(file));
   if (forbidden.length) throw new Error(`Team-Grenze für ${branch} verletzt: ${forbidden.join(', ')}`);
@@ -27,8 +28,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const base = process.env.BASE;
     if (!base) throw new Error('BASE fehlt.');
     const files = git('diff', '--name-only', '-z', `${base}...HEAD`).split('\0').filter(Boolean);
-    checkScope(process.env.BRANCH ?? '', files,
-      git('show', `${base}:fidelity/baseline.txt`), git('show', 'HEAD:fidelity/baseline.txt'));
+    const branch = process.env.BRANCH ?? '';
+    const testDefect = /^fix\/\d+$/.test(branch) && files.some((file) => /^fidelity\/(specs|tests)\//.test(file))
+      && issueLabels(api(`repos/${repository}/issues/${branch.split('/')[1]}`)).has('test-defect');
+    checkScope(branch, files,
+      git('show', `${base}:fidelity/baseline.txt`), git('show', 'HEAD:fidelity/baseline.txt'), { testDefect });
     console.log('Team-Grenzen und append-only Baseline geprüft.');
   } catch (error) {
     console.error(`::error::${error.message}`);

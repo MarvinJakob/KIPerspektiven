@@ -1,35 +1,16 @@
-# Team 3 – Fixer
+# Team 3 – Implementierer
 
-Gilt zusätzlich zu [AGENTS.md](AGENTS.md). Branch `fix/<n>`, Änderungen nur in `app/`.
+Gilt zusätzlich zu [AGENTS.md](AGENTS.md). Branch `fix/<n>`; Anwendungscode unter `app/`. Bei verknüpftem Issue mit `test-defect` zusätzlich betroffene Fidelity-Tests und nötige Spezifikationskorrekturen.
 
-**Ziel:** Genau ein Bug-Ticket je Agent beheben. Team 3 arbeitet nach Bug-Ticket und Spezifikation. Fidelity-Tests führt es **nicht** aus und ändert sie nie: Ob der Fehler behoben ist, prüft der Job „Fidelity“ des Merge Gate, ob die Anforderung danach funktioniert, stellt Team 2 fest.
+**Ziel:** Genau einen Implementierungsauftrag bearbeiten: fehlende Features umsetzen, Bugs oder Testdefekte beheben. Team 2 stellt anschließend den Funktionsnachweis fest.
 
-## Ablauf
+1. Freies Ticket wählen: zuerst `release-blocker`, dann `test-defect`, danach ältestes `bug` oder `feature`. `claim fix <n>`, Board `In Arbeit`, Status prüfen.
+2. Issue, Spezifikation und betroffenen Test lesen. Fehler/fehlende Funktion mit Ticket-Schritten nachstellen; gezielte Fidelity-Tests bei Bedarf ausführen, nie die gesamte Suite. Ein grüner Einzellauf widerlegt keinen Testdefekt. Bereits nachweislich behoben: Commit und gezielten Nachweis dokumentieren, schließen, Board `Funktioniert`, `finish`.
+3. Implementieren nach [app/README.md](app/README.md), so klein wie möglich. Schnittstellen zuerst in `app/api/openapi.yaml`, Migrationen nur additiv, geänderte Logik mit Unit-Tests.
+4. Bei Testdefekt: Ursache reproduzieren (auch falsche positive Ergebnisse/Instabilität), betroffenen Test und nötige Spezifikationsdokumentation korrigieren. Kein Abschwächen, Skip oder Entfernen von Baseline-IDs. Deckt ein korrekter Test eine fehlende Funktion auf, eigenes Feature-/Bug-Ticket anlegen. Nicht bestandene IDs nie als Pflicht-Erfolg deklarieren. Eine korrigierte Baseline-ID muss vor Merge wieder bestehen; nötige fachliche Entscheidung als Blocker melden.
+5. Liegt ein Testdefekt außerhalb des eigenen Implementierungsauftrags, `node tools/test-defect.mjs <Ticket> <Befund-Datei>` verwenden. Das getrennte Ticket ist für einen anderen Worker von Team 3 frei; eigenen Stand mit `waiting-for-test` sichern und `pause`. Nach Korrektur gibt der Prozessabgleich die Implementierung frei. Fremde Branches nie verändern.
+6. Relevante Unit-Tests/Typprüfung und betroffenes Verhalten prüfen. Optional gezielte Feature-Tests mit Inventar; keine vollständigen Fidelity-, Unit- oder Security-Läufe lokal doppeln. Baseline unverändert lassen.
+7. Rebase, Push, Draft-PR nach Vorlage: `Closes #<n>`, `Fidelity: <erfüllte Ticket-IDs>`, echte Implementierer-IDs. Bei reinem Testdefekt können neue Kriterien noch fachlich rot sein; Pflicht sind ausgewählte Baseline-IDs, keine falsche Erfolgsbehauptung. Gate führt ausschließlich betroffene Features aus.
+8. Bis auf Review/Abschlussjob müssen Scope, Build, Unit, Security, Prozessprüfungen und Feature-Fidelity grün sein. Fehler im selben Branch beheben. Dann Board `Review`, Status prüfen, Befunde/Nachweise dokumentieren, Server beenden, `pause fix <n>`. Team 4 reviewed und merged; jeder neue Commit braucht erneutes Review. Prozessabgleich gibt die Anforderung an Team 2 zurück, sobald keine Folgetickets offen sind.
 
-1. **Auswählen:** zuerst `release-blocker`, dann das älteste Bug-Ticket (Warteschlange aus `bash tools/work.sh --check`, Einträge mit `guide: AGENTS_FIXER.md`). Belegen: `bash tools/task.sh claim fix <n>`, Board `In Progress`.
-2. **Verstehen und nachstellen:** Bug-Ticket und die dort genannten Kriterien in `fidelity/specs/REQ-<r>.md` lesen. Anwendung im Worktree starten und das Verhalten mit den Schritten des Tickets von Hand nachstellen (Browser oder `curl`). Den Test in `fidelity/tests/` nur lesen, wenn die Erwartung sonst unklar bleibt.
-   - Tritt der Fehler auf dem aktuellen Stand nicht mehr auf: Beobachtung und Commit kommentieren, Ticket schließen, `finish`. Team 2 testet die Anforderung erneut, sobald kein Folgeticket mehr offen ist.
-   - Passt der Test nicht zur Anforderung oder ist er instabil: `node tools/test-defect.mjs <Bug-Ticket> <Befund-Datei>` legt ein freies `test-defect`-Ticket für Team 1 an und setzt am Bug `waiting-for-test`. Zwischenstand übergeben (`pause`). Der Prozessabgleich gibt den Bug nach der Testkorrektur wieder frei.
-3. **Beheben:** so klein wie möglich, nach den Konventionen in [app/README.md](app/README.md). Schnittstellenänderungen beginnen in `app/api/openapi.yaml`, Migrationen nur additiv. Geänderte Logik bekommt Unit-Tests. Die Ursache beheben, nicht den Test bedienen: Sonderfälle nur für Testdaten sind ein Review-Befund.
-4. **Lokal prüfen** (nur das, was das Merge Gate nicht schneller oder besser prüft):
-   - die Unit-Tests der geänderten Pakete und die Typprüfung des geänderten Frontends,
-   - das im Ticket beschriebene Verhalten von Hand: Jetzt tritt das erwartete Ergebnis ein, auf schmalem und breitem Viewport, wenn die Oberfläche betroffen ist.
-
-   Nicht lokal: Fidelity-Tests, vollständige Unit-Test-Läufe aller Teile, Security-Scans.
-5. **Draft-PR:** Rebase auf `origin/main`, Push, Draft nach [Vorlage](.github/pull_request_template.md) mit `gh pr create --draft --body-file …`:
-   - `Closes #<n>`,
-   - `Fidelity: <alle Test-IDs des Bug-Tickets>`,
-   - `Implementer-Agents: <alle beteiligten Sitzungs-IDs>`.
-
-   `fidelity/baseline.txt` bleibt unverändert; die IDs nimmt Team 2 nach seinem erneuten Test auf.
-6. **Merge Gate als Test:** `gh pr checks <PR> --watch`. Auf dem Draft müssen Team-Grenzen, Build, Unit-Tests, Security und Fidelity grün sein; „Review“ und der Abschlussjob bleiben bis zur Abnahme rot. Ist „Fidelity“ rot, nennt die Zusammenfassung des Jobs je geforderter ID `bestanden`, `fehlgeschlagen` oder `fehlt` sowie Regressionen der Baseline:
-   ```bash
-   gh run view <Lauf> --log-failed                              # Auswertung und Fehlermeldungen
-   gh run download <Lauf> -n fidelity-report -D .build/report   # Bericht mit Trace und Screenshots
-   ```
-   Im selben Branch beheben und pushen, bis die Jobs grün sind. Eine Regression der Baseline ist ein eigener Fehler dieser Änderung und wird hier behoben.
-7. **Übergeben an das Review:** Board `Review`, am PR Commit, Prüfergebnisse und Implementierer-IDs festhalten, `bash tools/task.sh pause fix <n>` (AGENTS.md, „Übergabe und Wiederaufnahme“), nächste Aufgabe. Der Reviewer nimmt ab, mergt und schließt die Aufgabe ab; mit dem Merge schließt `Closes` das Bug-Ticket. Kommt das Ticket mit Befunden nach `In Progress` zurück, übernimmt ein Implementierer mit `resume`, behebt sie und übergibt erneut. Jeder neue Commit braucht ein neues Review.
-
-## Grenzen
-
-Team 3 ändert nichts außerhalb von `app/`: keine Tests, keine Spezifikationen, keine Baseline, keine Workflows oder Werkzeuge. Es legt keine Feature-Tickets an und erklärt keine Anforderung für erfüllt. Ein Implementierer reviewt sein Ticket nie selbst.
+Team 3 ändert keine Baseline, Gate-Skripte, Workflows oder zentralen Prozessdateien. Ein Implementierer nimmt seine eigene Arbeit nie ab.
