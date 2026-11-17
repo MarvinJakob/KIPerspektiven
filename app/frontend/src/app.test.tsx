@@ -511,7 +511,7 @@ describe('Anforderung 9: Seiten für die Audit-Dimensionen', () => {
     renderApp('/de/themen/ai-audit/strategie-und-wirtschaftlichkeit');
     expect(await screen.findByRole('heading', { level: 1, name: 'Strategie und Wirtschaftlichkeit' })).toBeInTheDocument();
     expect(screen.getByText('Einführung Strategie')).toBeInTheDocument();
-    const benefits = screen.getByRole('region', { name: 'Ihr Nutzen' });
+    const benefits = screen.getByRole('region', { name: 'Dein Nutzen' });
     expect(within(benefits).getAllByRole('listitem')).toHaveLength(2);
     expect(screen.getAllByRole('radio').map((r) => r.closest('label')!.querySelector('strong')!.textContent)).toEqual(['Einfach', 'Strukturiert', 'Intelligent']);
     expect(screen.getByText('Beschreibung Strategie 2')).toBeInTheDocument();
@@ -564,7 +564,7 @@ describe('Ticket #113: geführte Selbsteinschätzung mit einem Reifegrad je Dime
     const { router } = renderApp('/de/themen/ai-audit/strategie-und-wirtschaftlichkeit');
     const next = await screen.findByRole('button', { name: 'Weiter' });
     expect(next).toHaveAttribute('aria-disabled', 'true');
-    expect(next).toHaveAccessibleDescription('Wählen Sie einen Reifegrad, um fortzufahren.');
+    expect(next).toHaveAccessibleDescription('Wähle einen Reifegrad, um fortzufahren.');
     await user.click(next);
     expect(router.state.location.pathname).toBe('/de/themen/ai-audit/strategie-und-wirtschaftlichkeit');
     expect(radio('Einfach')).toHaveFocus();
@@ -666,7 +666,7 @@ describe('Ticket #114: Gesamtauswertung als Netzdiagramm', () => {
     await screen.findByRole('heading', { level: 1, name: 'Auswertung der Selbsteinschätzung' });
     return router;
   };
-  const chart = () => screen.getByRole('img', { name: 'Netzdiagramm Ihrer selbst eingeschätzten Reifegrade' });
+  const chart = () => screen.getByRole('img', { name: 'Netzdiagramm deiner selbst eingeschätzten Reifegrade' });
   const dots = () => [...chart().querySelectorAll('.radar-dot')].map((d) => d.getAttribute('data-level'));
   const axisLabels = () => [...chart().querySelectorAll('.radar-labels text')].map((t) => t.textContent);
 
@@ -680,7 +680,7 @@ describe('Ticket #114: Gesamtauswertung als Netzdiagramm', () => {
     expect(chart().querySelectorAll('.radar-grid polygon')).toHaveLength(3);
     // Textfassung, Kennzeichnung als Selbsteinschätzung und fachliche Einordnung aus #111
     expect(screen.getByRole('table')).toHaveTextContent('2 – Strukturiert');
-    expect(screen.getByText(/Das ist Ihre Selbsteinschätzung/)).toBeInTheDocument();
+    expect(screen.getByText(/Das ist deine Selbsteinschätzung/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Nicht überall auf der höchsten Stufe' })).toBeInTheDocument();
     expect(screen.getByText('Unterschiedliche Reifegrade sind normal.')).toBeInTheDocument();
   });

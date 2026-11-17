@@ -12,7 +12,7 @@ beforeEach(() => {
 const TITLE = 'Kostenloses Beratungsgespräch anfragen';
 const EMAIL = 'E-Mail-Adresse';
 const SEND = 'Anfrage senden';
-const SENT = 'Vielen Dank für Ihre Anfrage';
+const SENT = 'Vielen Dank für deine Anfrage';
 
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -41,8 +41,8 @@ describe('Ticket #136: Kostenloses Beratungsgespräch anfragen', () => {
     expect(field).toHaveAttribute('type', 'email');
     expect(field).toHaveAttribute('autocomplete', 'email');
     expect(field).toBeRequired();
-    expect(field).toHaveAccessibleDescription(/nur Ihre E-Mail-Adresse, nicht Ihr Ergebnis/);
-    expect(field).toHaveAccessibleDescription(/ein Konto brauchen Sie nicht/);
+    expect(field).toHaveAccessibleDescription(/nur deine E-Mail-Adresse, nicht dein Ergebnis/);
+    expect(field).toHaveAccessibleDescription(/ein Konto brauchst du nicht/);
     // Kein weiteres Eingabefeld: weder Name noch Telefon noch Konto.
     expect(within(region).getAllByRole('textbox')).toHaveLength(1);
     expect(within(region).queryByRole('checkbox')).not.toBeInTheDocument();
@@ -55,7 +55,7 @@ describe('Ticket #136: Kostenloses Beratungsgespräch anfragen', () => {
     await openResult(userEvent.setup());
     const table = screen.getByRole('table');
     expect(table).toHaveTextContent('3 – Intelligent');
-    expect(screen.getByRole('heading', { level: 2, name: 'Ihr Reifegradprofil' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Dein Reifegradprofil' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Nicht überall auf der höchsten Stufe' })).toBeInTheDocument();
     expect(table.compareDocumentPosition(offer()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByRole('link', { name: /Zur Übersicht/ })).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('Ticket #136: Kostenloses Beratungsgespräch anfragen', () => {
     await user.click(screen.getByRole('button', { name: SEND }));
     const field = emailField();
     expect(field).toHaveAttribute('aria-invalid', 'true');
-    expect(field).toHaveAccessibleDescription(/Bitte geben Sie Ihre E-Mail-Adresse ein\./);
+    expect(field).toHaveAccessibleDescription(/Bitte gib deine E-Mail-Adresse ein\./);
     expect(field).toHaveFocus();
     expect(consultationCalls).toEqual([]);
     expect(screen.queryByRole('heading', { name: SENT })).not.toBeInTheDocument();
@@ -85,7 +85,7 @@ describe('Ticket #136: Kostenloses Beratungsgespräch anfragen', () => {
     // Nur Leerzeichen gelten ebenfalls als leer.
     await user.type(field, '   ');
     await user.keyboard('{Enter}');
-    expect(field).toHaveAccessibleDescription(/Bitte geben Sie Ihre E-Mail-Adresse ein\./);
+    expect(field).toHaveAccessibleDescription(/Bitte gib deine E-Mail-Adresse ein\./);
     expect(consultationCalls).toEqual([]);
   });
 
@@ -97,7 +97,7 @@ describe('Ticket #136: Kostenloses Beratungsgespräch anfragen', () => {
       await user.type(emailField(), address);
       await user.click(screen.getByRole('button', { name: SEND }));
       expect(emailField()).toHaveAttribute('aria-invalid', 'true');
-      expect(emailField()).toHaveAccessibleDescription(/Bitte geben Sie eine gültige E-Mail-Adresse ein, zum Beispiel name@beispiel\.de\./);
+      expect(emailField()).toHaveAccessibleDescription(/Bitte gib eine gültige E-Mail-Adresse ein, zum Beispiel name@beispiel\.de\./);
       expect(consultationCalls).toEqual([]);
     },
   );
@@ -110,7 +110,7 @@ describe('Ticket #136: Kostenloses Beratungsgespräch anfragen', () => {
     expect(emailField()).toHaveAttribute('aria-invalid', 'true');
     await user.type(emailField(), '@beispiel.de');
     expect(emailField()).not.toHaveAttribute('aria-invalid');
-    expect(screen.queryByText(/Bitte geben Sie eine gültige/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Bitte gib eine gültige/)).not.toBeInTheDocument();
   });
 
   it('sendet eine gültige Adresse mit der Sprache der Seite und bestätigt erst nach erfolgreicher Übermittlung', async () => {
@@ -131,7 +131,7 @@ describe('Ticket #136: Kostenloses Beratungsgespräch anfragen', () => {
     const done = await screen.findByRole('heading', { level: 2, name: SENT });
     expect(done).toHaveFocus();
     expect(screen.getByRole('region', { name: SENT })).toHaveTextContent(
-      'Ihre Anfrage ist eingegangen. Wir melden uns per E-Mail an kundin@beispiel.de, um einen Termin für das kostenlose Beratungsgespräch abzustimmen.',
+      'Deine Anfrage ist eingegangen. Wir melden uns per E-Mail an kundin@beispiel.de, um einen Termin für das kostenlose Beratungsgespräch abzustimmen.',
     );
     expect(screen.queryByRole('textbox', { name: EMAIL })).not.toBeInTheDocument();
     expect(consultationCalls).toHaveLength(1);
@@ -148,7 +148,7 @@ describe('Ticket #136: Kostenloses Beratungsgespräch anfragen', () => {
     await user.type(emailField(), 'kundin@beispiel.de');
     await user.click(screen.getByRole('button', { name: SEND }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Ihre Anfrage konnte nicht gesendet werden. Bitte versuchen Sie es erneut.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Deine Anfrage konnte nicht gesendet werden. Bitte versuche es erneut.');
     expect(screen.queryByRole('heading', { name: SENT })).not.toBeInTheDocument();
     expect(emailField()).toHaveValue('kundin@beispiel.de');
 
@@ -166,12 +166,12 @@ describe('Ticket #136: Kostenloses Beratungsgespräch anfragen', () => {
     answerConsultations(429);
     await user.type(emailField(), 'kundin@beispiel.de');
     await user.click(screen.getByRole('button', { name: SEND }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('zu viele Anfragen eingegangen. Bitte versuchen Sie es in einer Stunde erneut.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('zu viele Anfragen eingegangen. Bitte versuche es in einer Stunde erneut.');
 
     const fetchMock = globalThis.fetch as unknown as { mockRejectedValueOnce: (e: Error) => void };
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     await user.click(screen.getByRole('button', { name: SEND }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Ihre Anfrage konnte nicht gesendet werden.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Deine Anfrage konnte nicht gesendet werden.');
     expect(screen.queryByRole('heading', { name: SENT })).not.toBeInTheDocument();
   });
 
@@ -181,7 +181,7 @@ describe('Ticket #136: Kostenloses Beratungsgespräch anfragen', () => {
     answerConsultations(422);
     await user.type(emailField(), 'kun..din@beispiel.de');
     await user.click(screen.getByRole('button', { name: SEND }));
-    expect(await screen.findByText(/Bitte geben Sie eine gültige E-Mail-Adresse ein/)).toBeInTheDocument();
+    expect(await screen.findByText(/Bitte gib eine gültige E-Mail-Adresse ein/)).toBeInTheDocument();
     expect(emailField()).toHaveAttribute('aria-invalid', 'true');
     expect(emailField()).toHaveFocus();
   });

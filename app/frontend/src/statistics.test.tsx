@@ -12,7 +12,7 @@ beforeEach(() => {
 });
 
 const SHARE = 'Ergebnis anonym für die Statistik speichern';
-const SAVED = /Ihr Ergebnis ist anonym gespeichert/;
+const SAVED = /Dein Ergebnis ist anonym gespeichert/;
 const shareBox = () => screen.getByRole('checkbox', { name: SHARE });
 
 type User = ReturnType<typeof userEvent.setup>;
@@ -110,7 +110,7 @@ describe('Ticket #130: Ergebnis der Selbsteinschätzung anonym speichern', () =>
     await screen.findByText(SAVED);
     const { key } = posts()[0].body!;
     await user.click(shareBox());
-    expect(await screen.findByText('Ihr gespeichertes Ergebnis wurde gelöscht.')).toBeInTheDocument();
+    expect(await screen.findByText('Dein gespeichertes Ergebnis wurde gelöscht.')).toBeInTheDocument();
     expect(readinessCalls.at(-1)).toEqual({ method: 'DELETE', path: `/api/readiness-results/${key}`, body: undefined });
     expect(shareBox()).not.toBeChecked();
   });
@@ -145,7 +145,7 @@ describe('Ticket #130: Ergebnis der Selbsteinschätzung anonym speichern', () =>
     answerDelete(500);
     await waitFor(() => expect(posts()).toHaveLength(2));
     answerSave(500);
-    expect(await screen.findByText(/Ihr Ergebnis konnte nicht gespeichert werden/)).toBeInTheDocument();
+    expect(await screen.findByText(/Dein Ergebnis konnte nicht gespeichert werden/)).toBeInTheDocument();
     await user.click(shareBox());
     await lastIsDelete(key);
   });
@@ -153,10 +153,10 @@ describe('Ticket #130: Ergebnis der Selbsteinschätzung anonym speichern', () =>
   it('zeigt die Auswertung vollständig, wenn das Speichern scheitert', async () => {
     failReadiness();
     await rateAll(userEvent.setup(), { share: true });
-    expect(await screen.findByText(/Ihr Ergebnis konnte nicht gespeichert werden/)).toBeInTheDocument();
+    expect(await screen.findByText(/Dein Ergebnis konnte nicht gespeichert werden/)).toBeInTheDocument();
     const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1);
     expect(rows.map((r) => within(r).getByRole('cell').textContent)).toEqual([expect.stringContaining('2 – Strukturiert'), expect.stringContaining('3 – Intelligent')]);
-    expect(screen.getByRole('img', { name: 'Netzdiagramm Ihrer selbst eingeschätzten Reifegrade' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Netzdiagramm deiner selbst eingeschätzten Reifegrade' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Nicht überall auf der höchsten Stufe' })).toBeInTheDocument();
   });
 
@@ -165,7 +165,7 @@ describe('Ticket #130: Ergebnis der Selbsteinschätzung anonym speichern', () =>
     await rateAll(user, { share: true });
     await screen.findByText(SAVED);
     await user.click(shareBox());
-    await screen.findByText('Ihr gespeichertes Ergebnis wurde gelöscht.');
+    await screen.findByText('Dein gespeichertes Ergebnis wurde gelöscht.');
     expect(document.cookie).toBe('');
     expect(localStorage.length).toBe(0);
     expect(sessionStorage.length).toBe(0);

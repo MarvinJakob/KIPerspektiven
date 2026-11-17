@@ -32,9 +32,9 @@ describe('Anforderung #4: Kontaktseite', () => {
     await user.click(await screen.findByRole('button', { name: 'Nachricht senden' }));
 
     expect(field('Name')).toHaveAttribute('aria-invalid', 'true');
-    expect(field('Name')).toHaveAccessibleDescription('Bitte geben Sie Ihren Namen ein.');
-    expect(field('E-Mail-Adresse')).toHaveAccessibleDescription('Bitte geben Sie Ihre E-Mail-Adresse ein.');
-    expect(field('Nachricht')).toHaveAccessibleDescription('Bitte geben Sie eine Nachricht ein.');
+    expect(field('Name')).toHaveAccessibleDescription('Bitte gib deinen Namen ein.');
+    expect(field('E-Mail-Adresse')).toHaveAccessibleDescription('Bitte gib deine E-Mail-Adresse ein.');
+    expect(field('Nachricht')).toHaveAccessibleDescription('Bitte gib eine Nachricht ein.');
     expect(field('Unternehmen (optional)')).not.toHaveAttribute('aria-invalid');
     expect(field('Name')).toHaveFocus();
     expect(contactCalls).toHaveLength(0);
@@ -69,7 +69,7 @@ describe('Anforderung #4: Kontaktseite', () => {
     await user.type(field('Nachricht'), 'Hallo zusammen');
     await user.click(screen.getByRole('button', { name: 'Nachricht senden' }));
 
-    const done = await screen.findByRole('heading', { level: 2, name: 'Vielen Dank für Ihre Nachricht' });
+    const done = await screen.findByRole('heading', { level: 2, name: 'Vielen Dank für deine Nachricht' });
     expect(done).toHaveFocus();
     expect(screen.getByText(/Wir melden uns per E-Mail an erika@beispiel.de/)).toBeInTheDocument();
     expect(contactCalls).toEqual([{ name: 'Erika Muster', email: 'erika@beispiel.de', message: 'Hallo zusammen', lang: 'de' }]);
@@ -115,7 +115,7 @@ describe('Anforderung #4: Kontaktseite', () => {
     expect(await within(screen.getByRole('alert')).findByText(/zu viele Nachrichten/)).toBeInTheDocument();
 
     await user.click(send);
-    expect(await screen.findByRole('heading', { level: 2, name: 'Vielen Dank für Ihre Nachricht' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Vielen Dank für deine Nachricht' })).toBeInTheDocument();
     expect(contactCalls).toHaveLength(3);
   });
 });

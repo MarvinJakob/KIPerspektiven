@@ -105,7 +105,7 @@ var texts = map[service.Lang]map[string]string{
 		"blog.title":            "Blog",
 		"blog.desc":             "Alle veröffentlichten Beiträge rund um KI – die neuesten zuerst.",
 		"contact.title":         "Kontakt",
-		"contact.desc":          "Schreiben Sie uns eine Nachricht – mit Ihren Kontaktdaten, damit wir antworten können.",
+		"contact.desc":          "Schreib uns eine Nachricht – mit deinen Kontaktdaten, damit wir antworten können.",
 		"imprint.title":         "Impressum",
 		"imprint.desc":          "Impressum von " + SiteName + ".",
 		"privacy.title":         "Datenschutz",
