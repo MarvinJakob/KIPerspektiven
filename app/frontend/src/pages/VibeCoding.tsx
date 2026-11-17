@@ -1,5 +1,7 @@
 import type { Ref } from 'react';
 import { Link } from 'react-router';
+import harness from '../assets/topics/harness.png';
+import { Diagram } from '../components/Diagram';
 import { vibeCoding } from '../i18n/vibeCoding';
 import { auditPath } from '../lib/audit';
 import { jumpTo } from '../lib/jump';
@@ -64,6 +66,9 @@ export function VibeCoding({ titleRef }: { titleRef: Ref<HTMLHeadingElement> }) 
             </header>
             <div className="vc-body">
               <p>{p.body}</p>
+              {p.id === 'harness' && (
+                <Diagram src={harness} alt={c.harnessDiagram.alt} open={c.harnessDiagram.open} width={1685} height={542} />
+              )}
               <Example id={`vc-${p.id}-example`} label={i === 0 ? c.example : c.formLabel} text={p.example} />
               <p>{p.closing}</p>
             </div>

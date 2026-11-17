@@ -5,6 +5,7 @@ import processDE from '../assets/topics/development-process_de.png';
 import processEN from '../assets/topics/development-process_en.png';
 import releaseDE from '../assets/topics/releasegate_de.png';
 import releaseEN from '../assets/topics/releasegate_en.png';
+import { Diagram } from '../components/Diagram';
 import { Icon } from '../components/Icon';
 import { CONTACT_PATH, softwareDevelopment, VIBE_CODING_PATH } from '../i18n/softwareDevelopment';
 import { href, useLang, type Lang } from '../lib/lang';
@@ -17,17 +18,6 @@ export const softwareDevelopmentImages: Record<Lang, { process: string; release:
   de: { process: processDE, release: releaseDE },
   en: { process: processEN, release: releaseEN },
 };
-
-/** Grafik mit Link zur Originalgröße in einem neuen Tab, wie im Mock. */
-function Diagram({ src, alt, open, width, height }: { src: string; alt: string; open: string; width: number; height: number }) {
-  return (
-    <figure className="article-figure">
-      <a href={src} target="_blank" rel="noopener" aria-label={open}>
-        <img src={src} alt={alt} width={width} height={height} loading="lazy" />
-      </a>
-    </figure>
-  );
-}
 
 /**
  * Themenseite Softwareentwicklung nach mock/software_development (#7): Hero mit Breadcrumb, Autor, Stand und

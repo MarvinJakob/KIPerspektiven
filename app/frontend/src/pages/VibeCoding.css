@@ -70,3 +70,6 @@
   .vc-conclusion { background: none; color: inherit; padding: 0; }
   .vc-conclusion .vc-body p { color: inherit; }
 }
+
+/* #2: Harness-Grafik bleibt in der Textspalte der Perspektive. */
+.vc-body .article-figure { margin: 32px 0; }

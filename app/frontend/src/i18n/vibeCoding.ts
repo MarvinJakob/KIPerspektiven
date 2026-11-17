@@ -6,6 +6,7 @@ export const vibeCoding: Record<Lang, {
   perspectives: { id: string; name: string; heading: string; body: string; example: string; closing: string }[];
   conclusion: string[]; conclusionTitle: string; conclusionLabel: string;
   home: string; topics: string; breadcrumb: string; introLabel: string;
+  harnessDiagram: { alt: string; open: string };
   example: string; storyLabel: string; formLabel: string; readMore: string; allTopics: string; readiness: string;
 }> = {
   "de": {
@@ -70,6 +71,10 @@ export const vibeCoding: Record<Lang, {
     "topics": "Themen",
     "breadcrumb": "Brotkrumen",
     "introLabel": "Einleitung",
+    "harnessDiagram": {
+      "alt": "Harness-Grafik: Prompt und Dateien gehen in den Agenten. Der Harness ist mit Skill und Tool verbunden und steuert den Bereich aus Context und Model. Dateien landen im Context, Input-Token gehen in das Model, das Output-Token erzeugt. Am Ende steht das Ergebnis.",
+      "open": "Harness-Grafik in voller Größe öffnen (neues Fenster)"
+    },
     "example": "Im Beispiel",
     "storyLabel": "Stell dir vor",
     "formLabel": "In unserem Formular",
@@ -139,6 +144,10 @@ export const vibeCoding: Record<Lang, {
     "topics": "Topics",
     "breadcrumb": "Breadcrumbs",
     "introLabel": "Introduction",
+    "harnessDiagram": {
+      "alt": "Harness diagram: the prompt and files go into the agent. The harness connects to a skill and a tool and drives the area made up of context and model. Files end up in the context, input tokens go into the model, which produces output tokens. The end product is the result.",
+      "open": "Open harness diagram in full size (new window)"
+    },
     "example": "An example",
     "storyLabel": "Imagine this",
     "formLabel": "In our form",
