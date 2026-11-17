@@ -2,7 +2,8 @@
 -- Testbeiträge für die lokale Entwicklung (ARCHITECTURE.md, Abschnitt 13).
 -- Enthalten bewusst: Beiträge nur auf Deutsch (Hinweis bei fehlender Übersetzung, Anforderung 7),
 -- einen Entwurf (darf nie öffentlich sein, Anforderung 4) und ein Thema ohne veröffentlichte Beiträge
--- (leerer Zustand, Anforderung 3). Alle Texte sind Beispielinhalte.
+-- (leerer Zustand, Anforderung 3). Alle Texte sind Beispielinhalte. Seit KIPerspektiven#4 (Thema 3 entfernt)
+-- gehört der Entwurf zu Softwareentwicklung.
 
 INSERT INTO posts (id, slug, status, published_at, featured, updated_at) VALUES
     (1, 'ki-veraendert-softwareteams', 'published', '2026-11-03T09:00:00Z', TRUE,  '2026-11-03T09:00:00Z'),
@@ -13,7 +14,7 @@ INSERT INTO posts (id, slug, status, published_at, featured, updated_at) VALUES
     (6, 'entwurf-ki-in-der-datenanalyse', 'draft',  NULL,                   TRUE,  '2026-11-05T09:00:00Z');
 
 INSERT INTO post_topics (post_id, topic_id) VALUES
-    (1, 1), (2, 2), (3, 2), (3, 1), (4, 2), (5, 1), (6, 3);
+    (1, 1), (2, 2), (3, 2), (3, 1), (4, 2), (5, 1), (6, 1);
 
 INSERT INTO post_translations (post_id, lang, title, summary, body_markdown) VALUES
 (1, 'de', 'Wie KI die Arbeit in Softwareteams verändert',

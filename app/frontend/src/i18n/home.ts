@@ -9,8 +9,11 @@ export type RichText = (string | { code: string } | { em: string })[];
 /** Pfad der ausführlichen Einordnung zu KI-Einsatzfeldern (Seite AiUses). */
 export const AI_USES_PATH = '/ki-einsatzfelder';
 
-/** Die drei Themen der Startseite; der Slug ist zugleich Sprungziel und Pfad der Themenseite. */
-export type HomeTopicSlug = 'data-analytics' | 'softwareentwicklung' | 'modelle-und-kosten';
+/**
+ * Themen der Startseite; der Slug ist zugleich Sprungziel und Pfad der Themenseite. Data Analytics und
+ * Modelle und Kosten werden seit KIPerspektiven#4 (REQ-4) nicht mehr angeboten.
+ */
+export type HomeTopicSlug = 'softwareentwicklung';
 
 /** Ein ausführlicher Themenabschnitt: Leitfrage, alle Absätze der Vorlage und Artikel-Verweis. */
 export interface HomeTopic {
@@ -40,7 +43,7 @@ interface HomeContent {
   topicsEyebrow: string;
   topicsTitle: [string, string];
   topicsText: [string, string];
-  topics: [HomeTopic, HomeTopic, HomeTopic];
+  topics: HomeTopic[];
   auditEyebrow: string;
   auditTitle: [string, string];
   auditText: string;
@@ -78,22 +81,6 @@ export const home: Record<Lang, HomeContent> = {
     topicsText: ['Den Nutzen sehen. Die Grenzen kennen.', 'Und die richtigen Fragen stellen.'],
     topics: [
       {
-        slug: 'data-analytics',
-        title: 'Data Analytics',
-        teaser: 'Unternehmenswissen nutzbar machen',
-        question: 'Was musst du der KI immer wieder erklären, damit sie deine Arbeit versteht?',
-        paragraphs: [
-          ['Was eine Abkürzung bedeutet. Warum ein Prozess so läuft. Welche Ausnahme bei einem Kunden gilt. Vieles davon ist für uns selbstverständlich. Für die KI müssen wir es erst zugänglich machen.'],
-          ['Dieses Unternehmenswissen steckt in Köpfen, Mails, Tickets und Dokumenten. Es ist über Jahre gewachsen und über viele Orte verteilt.'],
-          ['Wie wichtig dieses Wissen ist, zeigt sich auch bei der Datenanalyse. Eine Auswertung zeigt zum Beispiel, dass die Bearbeitungszeit im Support steigt. Um mögliche Ursachen zu verstehen, brauchen wir mehr als die Kennzahl: Welche Probleme werden gemeldet? Wo fehlen Informationen? Welche Rückfragen wiederholen sich? Hinweise darauf stehen oft in den Tickets selbst.'],
-          ['Hier wird Unternehmenswissen zum Kontext für Data Analytics.'],
-          ['Mit KI können wir neben strukturierten Daten auch Texte aus Tickets, Mails und Dokumenten untersuchen und miteinander in Beziehung setzen. So lässt sich Wissen in die Analyse einbeziehen, das bisher nur schwer auszuwerten war.'],
-          ['Damit daraus belastbare Erkenntnisse werden, müssen wir klären: Welche Quellen sind verlässlich? Wie aktuell sind sie? Wer darf darauf zugreifen? Und wie überprüfen wir die Ergebnisse?'],
-          ['Was bedeutet das für die Art, wie wir Daten analysieren und fachliche Fragen beantworten?'],
-        ],
-        articleLink: 'Zum Artikel: Data Analytics mit KI',
-      },
-      {
         slug: 'softwareentwicklung',
         title: 'Softwareentwicklung',
         teaser: 'Mit Agenten zusammenarbeiten',
@@ -113,24 +100,6 @@ export const home: Record<Lang, HomeContent> = {
           ['Wie sieht diese Zusammenarbeit in der Praxis aus? Im Artikel ', { em: '„KI in der Softwareentwicklung“' }, ' gehen wir genauer darauf ein, welche Aufgaben KI-Agenten übernehmen können, wie Skills sie dabei unterstützen und wie wir mit Guardrails die Kontrolle behalten.'],
         ],
         articleLink: 'Zum Artikel: KI in der Softwareentwicklung',
-      },
-      {
-        slug: 'modelle-und-kosten',
-        title: 'Modelle und Kosten',
-        teaser: 'Den Aufwand als Ganzes verstehen',
-        question: 'Was kostet uns ein günstiges KI-Modell, wenn wir jedes Ergebnis nacharbeiten müssen?',
-        paragraphs: [
-          ['Ein Text ist schnell erstellt. Aber stimmt der Inhalt? Fehlen wichtige Angaben? Und wie lange brauchen wir, bis wir das Ergebnis verwenden können?'],
-          ['Wer Modelle nur nach ihrem Preis vergleicht, übersieht leicht den Aufwand, der danach entsteht. Ein günstiger Aufruf kann teuer werden, wenn wir mehrere Versuche brauchen oder viel korrigieren müssen. Ein teureres Modell kann sich lohnen, wenn es uns diese Arbeit erspart.'],
-          ['Entscheidend ist deshalb: ', { em: 'Was kostet eine erfolgreich erledigte Aufgabe in der Qualität, die wir brauchen?' }],
-          ['Dazu gehören neben den Modellkosten auch Werkzeuge, Betrieb und unsere Zeit für Prüfung und Korrekturen.'],
-          ['Welche Qualität nötig ist, hängt von der Aufgabe ab. Für einen ersten Textentwurf gelten andere Anforderungen als für das Auslesen von Rechnungsdaten.'],
-          ['Öffentliche Ranglisten helfen uns, mögliche Modelle auszuwählen. Wie gut sie zu unserer Arbeit passen, zeigt sich aber erst an eigenen Aufgaben.'],
-          ['Dafür legen wir fest, was ein brauchbares Ergebnis ausmacht, testen verschiedene Modelle mit denselben Fällen und vergleichen Qualität, Zeitaufwand und Gesamtkosten.'],
-          ['So können wir erkennen, wo ein günstiges Modell ausreicht und wann sich ein leistungsfähigeres lohnt.'],
-          ['Wie gehen wir dabei vor? Im Artikel ', { em: '„Modelle und Kosten“' }, ' zeigen wir, welche Kosten in den Vergleich gehören und wie wir mit eigenen Testaufgaben das passende Modell finden.'],
-        ],
-        articleLink: 'Zum Artikel: Modelle und Kosten',
       },
     ],
     auditEyebrow: 'Der nächste Schritt',
@@ -162,22 +131,6 @@ export const home: Record<Lang, HomeContent> = {
     topicsText: ['See the benefits. Know the limits.', 'And ask the right questions.'],
     topics: [
       {
-        slug: 'data-analytics',
-        title: 'Data Analytics',
-        teaser: 'Making company knowledge usable',
-        question: 'What do you keep having to explain to AI so that it understands your work?',
-        paragraphs: [
-          ['What an abbreviation means. Why a process works the way it does. Which exception applies to a particular customer. Much of this is obvious to us. For AI, we first have to make it accessible.'],
-          ['This company knowledge sits in people’s heads, emails, tickets and documents. It has grown over years and is spread across many places.'],
-          ['How important this knowledge is also shows in data analysis. An evaluation shows, for example, that processing times in support are rising. To understand possible causes, we need more than the metric: Which problems are reported? Where is information missing? Which follow-up questions keep coming up? The clues are often in the tickets themselves.'],
-          ['This is where company knowledge becomes context for data analytics.'],
-          ['With AI, we can examine not only structured data but also texts from tickets, emails and documents and relate them to each other. This brings knowledge into the analysis that used to be hard to evaluate.'],
-          ['For this to produce reliable insights, we need to clarify: Which sources are reliable? How up to date are they? Who may access them? And how do we check the results?'],
-          ['What does this mean for the way we analyse data and answer business questions?'],
-        ],
-        articleLink: 'Read the article: Data Analytics with AI',
-      },
-      {
         slug: 'softwareentwicklung',
         title: 'Software Development',
         teaser: 'Working together with agents',
@@ -197,24 +150,6 @@ export const home: Record<Lang, HomeContent> = {
           ['What does this collaboration look like in practice? In the article ', { em: '“AI in Software Development”' }, ' we look more closely at which tasks AI agents can take on, how skills support them and how guardrails keep us in control.'],
         ],
         articleLink: 'Read the article: AI in Software Development',
-      },
-      {
-        slug: 'modelle-und-kosten',
-        title: 'Models and Costs',
-        teaser: 'Seeing the effort as a whole',
-        question: 'What does a cheap AI model cost us if we have to rework every result?',
-        paragraphs: [
-          ['A text is quickly created. But is the content correct? Is important information missing? And how long does it take until we can use the result?'],
-          ['Anyone who compares models only by price easily overlooks the effort that follows. A cheap call can become expensive if we need several attempts or a lot of corrections. A more expensive model can pay off if it saves us this work.'],
-          ['What matters is therefore: ', { em: 'What does a successfully completed task cost at the quality we need?' }],
-          ['Besides model costs, this includes tools, operations and our time for reviews and corrections.'],
-          ['The quality required depends on the task. A first text draft has different requirements than extracting invoice data.'],
-          ['Public rankings help us shortlist possible models. How well they fit our work, however, only shows on our own tasks.'],
-          ['To do this, we define what makes a result usable, test different models with the same cases and compare quality, time spent and total costs.'],
-          ['This shows us where a cheap model is enough and when a more capable one pays off.'],
-          ['How do we go about it? In the article ', { em: '“Models and Costs”' }, ' we show which costs belong in the comparison and how we find the right model with our own test tasks.'],
-        ],
-        articleLink: 'Read the article: Models and Costs',
       },
     ],
     auditEyebrow: 'The next step',

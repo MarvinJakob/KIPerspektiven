@@ -12,8 +12,12 @@ interface Figure {
   open: string;
 }
 
+/**
+ * Verweis unter „Mehr Themen“. Der Mock nennt Data Analytics und Modelle und Kosten; beide entfallen mit
+ * KIPerspektiven#4 (REQ-4-AC5), deshalb stehen hier die verbleibenden Themen Vibe Coding und KI Readiness.
+ */
 interface MoreTopic {
-  slug: 'data-analytics' | 'modelle-und-kosten';
+  slug: 'vibe-coding' | 'ai-audit';
   number: string;
   title: string;
   teaser: string;
@@ -47,7 +51,7 @@ export interface SoftwareDevelopmentContent {
   moreEyebrow: string;
   moreTitle: string;
   moreLink: string;
-  more: [MoreTopic, MoreTopic];
+  more: MoreTopic[];
   allTopics: string;
 }
 
@@ -95,8 +99,8 @@ export const softwareDevelopment: Record<Lang, SoftwareDevelopmentContent> = {
     moreTitle: 'Mehr Themen.',
     moreLink: 'Zum Thema',
     more: [
-      { slug: 'data-analytics', number: '01', title: 'Data Analytics', teaser: 'Unternehmenswissen nutzbar machen' },
-      { slug: 'modelle-und-kosten', number: '03', title: 'Modelle und Kosten', teaser: 'Den Aufwand als Ganzes verstehen' },
+      { slug: 'vibe-coding', number: '02', title: 'Vibe Coding', teaser: 'Verantwortung für schnellen Code übernehmen' },
+      { slug: 'ai-audit', number: '03', title: 'KI Readiness', teaser: 'Wie bereit sind wir für den professionellen Einsatz von KI?' },
     ],
     allTopics: 'Alle Themen',
   },
@@ -138,8 +142,8 @@ export const softwareDevelopment: Record<Lang, SoftwareDevelopmentContent> = {
     moreTitle: 'More topics.',
     moreLink: 'Go to topic',
     more: [
-      { slug: 'data-analytics', number: '01', title: 'Data Analytics', teaser: 'Making company knowledge usable' },
-      { slug: 'modelle-und-kosten', number: '03', title: 'Models and Costs', teaser: 'Understanding the effort as a whole' },
+      { slug: 'vibe-coding', number: '02', title: 'Vibe Coding', teaser: 'Taking responsibility for fast code' },
+      { slug: 'ai-audit', number: '03', title: 'AI Readiness', teaser: 'How ready are we to use AI professionally?' },
     ],
     allTopics: 'All topics',
   },
