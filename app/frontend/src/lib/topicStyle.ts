@@ -17,15 +17,11 @@ interface Palette {
 const PALETTES: Record<string, Palette> = {
   software: { c1: 'rgba(220,110,20,.7)', c2: 'rgba(144,165,184,.35)', c3: 'rgba(245,166,107,.4)', b1: '#12263a', b2: '#1d3a54', dot: '#dc6e14' },
   audit: { c1: 'rgba(144,165,184,.45)', c2: 'rgba(220,110,20,.55)', c3: 'rgba(95,125,149,.5)', b1: '#0f2131', b2: '#23455f', dot: '#5f7d95' },
-  data: { c1: 'rgba(245,166,107,.6)', c2: 'rgba(220,110,20,.5)', c3: 'rgba(144,165,184,.3)', b1: '#172f44', b2: '#2a2f3a', dot: '#f39b56' },
-  costs: { c1: 'rgba(144,165,184,.4)', c2: 'rgba(220,110,20,.45)', c3: 'rgba(245,166,107,.35)', b1: '#0d1d2b', b2: '#203a4f', dot: '#3f6585' },
 };
 
 const TOPICS: Record<string, { palette: keyof typeof PALETTES; icon: IconName }> = {
   softwareentwicklung: { palette: 'software', icon: 'code' },
   'ai-audit': { palette: 'audit', icon: 'shield' },
-  'data-analytics': { palette: 'data', icon: 'chart' },
-  'modelle-und-kosten': { palette: 'costs', icon: 'coins' },
 };
 
 const FALLBACK = { palette: 'software' as const, icon: 'spark' as IconName };

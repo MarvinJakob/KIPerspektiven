@@ -40,7 +40,7 @@ export function SoftwareDevelopment({ titleRef }: { titleRef: Ref<HTMLHeadingEle
           </nav>
           <div className="article-hero-copy">
             <p className="eyebrow">
-              <span className="topic-number">02</span> {c.eyebrow}
+              <span className="topic-number">01</span> {c.eyebrow}
             </p>
             <h1 id="sd-title" tabIndex={-1} ref={titleRef}>
               {c.title}
