@@ -119,7 +119,7 @@ Ziele: Vibe Coding unter `/{lang}/themen/vibe-coding` (#6), Kontaktformular unte
 
 Die Originalgrafiken `res/development-process_{de,en}.png` und `res/releasegate_{de,en}.png` liegen als unveränderte Kopien unter `frontend/src/assets/topics/`. Bei Bildänderungen beide Kopien aktualisieren. Ein Klick oder Enter öffnet die Originalgrafik in einem neuen Tab. Die früheren Grafiken `AgenticSWDevProcess_{de,en}.png` sind entfernt.
 
-`softwareentwicklung.{de,en}.md` hält nur noch die Metadaten. Migration `00017` setzt Kurzbeschreibung und Einführung passend zum neuen Artikel in der Du-Ansprache; das Rollback stellt die Texte aus `00015` wieder her. `frontend/src/topicContent.test.tsx` prüft Aufbau, Reihenfolge, Grafiken, Linkziele, Sprachwechsel und die Vollständigkeit der Übersetzung.
+`softwareentwicklung.{de,en}.md` hält nur noch die Metadaten. Migration `00017` setzt Kurzbeschreibung und Einführung passend zum neuen Artikel in der Du-Ansprache; das Rollback stellt die Texte aus `00015` wieder her.
 
 ## KI verstehen (#151)
 
