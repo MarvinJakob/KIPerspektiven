@@ -15,8 +15,8 @@ Die Anwendung läuft mit Docker Compose auf dem Hetzner-Cloud-Server `docker-ce-
 - **Server:** Ubuntu mit Docker CE und Compose-Plugin. Docker startet beim Systemstart (`systemctl is-enabled docker` ergibt `enabled`). Wegen des Image-Builds auf dem Server ist ein Swap von 2 GB eingerichtet (`/swapfile`, Eintrag in `/etc/fstab`).
 - **Netz:** Die Ports 80 und 443 sind öffentlich erreichbar. Caddy holt das Zertifikat bei Let's Encrypt und leitet HTTP auf HTTPS um.
 - **Domain:** Die Domain löst auf die IP des Servers auf.
-- **Zugang:** SSH als `root` mit Schlüssel. Schlüssel und Tokens liegen nur lokal (z. B. in `.ssh/` im Projektordner, nicht im Repository; GitHub- und Hetzner-Token als Umgebungsvariablen `GH_TOKEN` und `HCLOUD_TOKEN`) und auf dem Server in `/opt/ki-web/.env`.
-- **Lokal:** Git, Bash und `ssh`. Unter Windows genügt Git Bash.
+- **Zugang:** SSH als `root` mit Schlüssel. Der private Deploy-Schlüssel liegt ausschließlich als GitHub-Secret `HETZNER_CLOUD_SSH`, das Hetzner-API-Token als `HETZNER_CLOUD_API` (in den Workflows intern `HCLOUD_TOKEN`); lokal gibt es keine Hetzner-Zugänge, nur `GH_TOKEN` für GitHub. Laufzeit-Konfiguration liegt auf dem Server in `/opt/ki-web/.env`.
+- **Lokal:** Git, Bash und GitHub CLI. Unter Windows genügt Git Bash. Zugangstests und Deployments laufen über die GitHub-Actions-Workflows.
 
 ## Konfiguration
 

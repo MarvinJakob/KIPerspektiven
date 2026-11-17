@@ -1,7 +1,7 @@
 # AI Perspectives – github.com/MarvinJakob/AIPerspectives
 # Das Repository ist öffentlich. Nichts einchecken, was Zugangsdaten, personenbezogene Daten oder
-# lokale Arbeitsstände enthält. Zugangsdaten kommen aus Umgebungsvariablen (GH_TOKEN, HCLOUD_TOKEN)
-# bzw. aus den GitHub-Secrets, siehe ARCHITECTURE.md.
+# lokale Arbeitsstände enthält. Zugangsdaten kommen lokal nur aus der Umgebungsvariable GH_TOKEN;
+# Hetzner-Zugänge ausschließlich aus den GitHub-Secrets, siehe ARCHITECTURE.md.
 
 # Archiv: alte Agenten-Vorgaben und Konzepte bleiben nur lokal und gelten nicht mehr (AGENTS.md).
 # Nicht versioniert, damit sie in den Worktrees der Agenten gar nicht erst auftauchen.

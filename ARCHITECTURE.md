@@ -185,7 +185,7 @@ Mehrere Agenten (Claude Code, Codex u. a.) arbeiten gleichzeitig auf einem Windo
 | Port `20000 + <n>`, Datenbank in `app/.build/` des Worktrees | lokale Server der Agenten stören sich nicht |
 | Squash-Merge, Branch-Löschung nach Merge | `main` bleibt linear, Sperren verschwinden mit `tools/task.sh finish` |
 
-**Zugang:** `GH_TOKEN` (GitHub, Scopes `repo`, `workflow`, `project`) und `HCLOUD_TOKEN` (Hetzner Cloud, Lesen und Schreiben) als Windows-Benutzervariablen. Werkzeuge: Git (mit Git Bash), GitHub CLI, Go (Version aus `app/backend/go.mod`), Node 24, Playwright mit Chromium.
+**Zugang:** `GH_TOKEN` (GitHub, Scopes `repo`, `workflow`, `project`) als Windows-Benutzervariable. Hetzner-Zugänge gibt es lokal nicht; sie liegen ausschließlich als GitHub-Secrets vor (siehe [Secrets und Variablen](#secrets-und-variablen)). Werkzeuge: Git (mit Git Bash), GitHub CLI, Go (Version aus `app/backend/go.mod`), Node 24, Playwright mit Chromium.
 
 ### Abgleich mit dem Mock `software_development`
 

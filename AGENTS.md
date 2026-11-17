@@ -67,7 +67,7 @@ Daraus folgt:
 
 ## Gemeinsame Regeln
 
-1. **Zugang:** GitHub über die Umgebungsvariable `GH_TOKEN` (für `gh` und `git`), Hetzner Cloud über `HCLOUD_TOKEN`. Werte nie ausgeben, in Dateien schreiben oder committen. Fehlt eine Variable im Prozess, steht sie in den Windows-Benutzervariablen; das Terminal bzw. den Agenten dann neu starten. Die Secrets der Umgebung `production` bleiben ausschließlich in GitHub Actions.
+1. **Zugang:** GitHub über die Umgebungsvariable `GH_TOKEN` (für `gh` und `git`). Für Hetzner ausschließlich die in GitHub hinterlegten Secrets verwenden: `HETZNER_CLOUD_API` für den API-Key und `HETZNER_CLOUD_SSH` für den privaten SSH-Schlüssel. Zugangstests und Deployments über die GitHub-Actions-Workflows ausführen; keine lokalen Hetzner-Schlüssel oder Windows-Benutzervariablen als Ersatz verwenden. `HCLOUD_TOKEN` ist lediglich der interne Umgebungsvariablenname in den Workflows bzw. der Action `hcloud-snapshot` und wird aus `secrets.HETZNER_CLOUD_API` befüllt. Secret-Werte nie ausgeben, lokal speichern oder committen; in dieser Dokumentation stehen nur ihre Namen. Fehlt `GH_TOKEN` im Prozess, die Windows-Benutzervariable prüfen und das Terminal bzw. den Agenten neu starten.
 2. **Eine Aufgabe, ein Worktree.** Vor jeder Änderung die Aufgabe belegen:
    ```bash
    bash tools/task.sh claim <spec|verify|fix|maint> <Ticket-Nummer>
