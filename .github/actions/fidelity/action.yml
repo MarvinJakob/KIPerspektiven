@@ -24,7 +24,7 @@ inputs:
     description: Fachlich rote neue Tests im Feature-Teillauf erlauben; required-ids müssen trotzdem bestehen
     default: 'false'
   full-suite:
-    description: Ungefilterten Lauf ausdrücklich erlauben (ausschließlich im Release Gate)
+    description: Ungefilterten Lauf ausdrücklich erlauben
     default: 'false'
   report-name:
     description: Name des hochgeladenen Playwright-Berichts
@@ -50,8 +50,8 @@ runs:
         GREP: ${{ inputs.grep }}
         FULL_SUITE: ${{ inputs.full-suite }}
       run: |
-        [[ -n "$GREP" || ( "$FULL_SUITE" == true && "$GITHUB_WORKFLOW" == 'Release Gate' ) ]] \
-          || { echo "::error::Vollsuite ausschließlich im Release Gate; sonst Feature-Filter erforderlich."; exit 1; }
+        [[ -n "$GREP" || "$FULL_SUITE" == true ]] \
+          || { echo "::error::Feature-Filter oder full-suite=true erforderlich."; exit 1; }
 
     - name: Anwendung starten
       if: inputs.base-url == ''

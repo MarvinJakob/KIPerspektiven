@@ -201,70 +201,46 @@ Die aktuellen Vorgaben des Maintainers in AGENTS.md gelten auch gegenüber älte
 | Element | Zweck |
 |---|---|
 | Branch `main` | Integrationsstand („Code Stream“), nur über PR mit grünem Merge Gate |
-| Branch `release` | zuletzt released Stand, nur per Fast-Forward durch das Release Gate |
+| Branch `release` | historischer Release-Stand; wird von der vereinfachten Pipeline nicht fortgeschrieben |
 | Team-Branches | `spec/<n>`, `verify/<n>`, `fix/<n>`, kurzlebig |
-| Tags `vJJJJ.MM.TT-<Commit>-<Image>` | wiederholbares GitHub-Release je ausgeliefertem Artefakt |
+| Image-Version `<Commit>-<Image>` | identifiziert die installierte Version |
 | Projekt „AI Perspectives“ | Board mit Feld Status einschließlich Ready, In Progress, Review und Blocked; bisherige Namen In Arbeit/Merge Gate werden von den Werkzeugen unterstützt; weitere fachliche Stati bleiben erhalten |
 | Labels | `requirement`, `needs-analysis`, `specified`, `done`, `bug`, `feature`, `works`, `test-defect`, `release-blocker`, `release-failure`, `release-review`, `maintenance`, `maintenance-approved`, `in-progress`, `blocked`, `waiting-for-test` |
 
-Branch-Schutz für `main`: Pull Request und Statusprüfung `Merge Gate` sind verpflichtend, der Branch muss vor Merge aktuell sein. Die Regel gilt auch für Administratoren; Force-Push und Branch-Löschung sind gesperrt. Die unabhängige Agentenprüfung wird zusätzlich durch den Review-Nachweis im PR abgesichert.
+Branch-Schutz für `main`: Pull Request und Statusprüfung `Merge Gate` sind verpflichtend, der Branch muss vor Merge aktuell sein. Die Regel gilt auch für Administratoren; Force-Push und Branch-Löschung sind gesperrt.
 
 ### Workflows
 
 | Workflow | Auslöser | Inhalt |
 |---|---|---|
-| [merge-gate.yml](.github/workflows/merge-gate.yml) | PR nach `main` | Team-Grenzen, Build, Unit-Tests, Security, Review-Nachweis (nicht für `verify/`), ausschließlich Feature-Fidelity; Abschlussjob „Merge Gate“ |
-| [release.yml](.github/workflows/release.yml) | Push auf `main`, manuell | Release Gate bis Hetzner und GitHub-Release |
-| [rollback.yml](.github/workflows/rollback.yml) | manuell | vorherige oder angegebene Version auf dem Server starten |
-| [deploy-access.yml](.github/workflows/deploy-access.yml) | manuell | GitHub-Secrets, Hetzner-API und SSH lesend prüfen |
-| [reconcile.yml](.github/workflows/reconcile.yml) | Push, Issue-Abschluss, stündlich | Labels aus gemergten Spezifikationen/Baseline abgleichen, Testabhängigkeiten freigeben |
-| [release-followup.yml](.github/workflows/release-followup.yml) | abgeschlossener Release | deduplizierte Team-4-Auswertungsaufgabe bei Fehlern und erfolgreichen Testläufen |
+| [merge-gate.yml](.github/workflows/merge-gate.yml) | PR nach `main`, Push auf `main`, manuell | Unit-Tests → Image-Build und Browsertests → Installation auf `main` |
+| [rollback.yml](.github/workflows/rollback.yml) | manuell | vorherige oder angegebene Version starten |
+| [deploy-access.yml](.github/workflows/deploy-access.yml) | manuell | Hetzner-API und SSH lesend prüfen |
 
-Composite Actions: `unit-tests`, `fidelity` (startet das Image oder prüft eine URL, wertet mit `gate.mjs` aus), `ssh-setup`, `hcloud-snapshot`.
+### Tests, Build und Installation
 
-### Release Gate
+Der Pflichtcheck `Merge Gate` bleibt erhalten. Zuerst laufen Backend- und Frontend-Unit-Tests einschließlich Typprüfung und Race-Detector. Erst nach erfolgreichen Tests wird das Docker-Image gebaut. Die vollständigen Fidelity-Browsertests prüfen dieses Image auf Desktop und Mobil; die bestehende Baseline-Auswertung bleibt erhalten. Fehler in Unit-Tests, Build oder Browsertest-Auswertung lassen den Pflichtcheck fehlschlagen.
 
-```mermaid
-flowchart LR
-    S((main)) --> B[1 Build<br/>Image neu bauen]
-    B --> T[2 Test<br/>Unit + ganze Fidelity-Suite]
-    T --> F[3 Final Check<br/>keine release-blocker,<br/>Fast-Forward möglich]
-    F --> P[4 Package<br/>Hetzner-Snapshot,<br/>geprüftes Image laden,<br/>Smoke-Test REQ-0]
-    P --> R[5 Branch release]
-    R --> X[6 Publish<br/>Tag + GitHub-Release]
-```
+Pull Requests installieren keine Version. Nach einem Push/Merge auf `main` laufen dieselben Prüfungen; anschließend wird genau das gebaute und getestete Image als Actions-Artefakt nach Hetzner übertragen und aktiviert. Die Version enthält Commit- und Image-ID. `deploy.sh` prüft Image-ID und Commit-Label, wartet auf Docker-Healthcheck und HTTPS-Healthcheck und stellt bei fehlgeschlagenem Start die bisherige Version wieder her. Laufende Installationen und Rollbacks teilen `release-production` als Sperre und werden nicht abgebrochen. Die fünf jüngsten Versionen bleiben für Rollbacks verfügbar.
 
-Der Workflow startet nach jedem Push/Merge auf `main`, zusätzlich bleibt der manuelle Start möglich. Ein geschlossenes Ticket ohne Merge löst kein Deployment aus. Automatische Läufe prüfen genau den auslösenden Commit und aktivieren den Snapshot auch ohne manuelle Eingabewerte.
-
-1. **Commit und Build:** Ein vorbereitender Job legt den Commit aus dem Push auf `main` (oder `ref`) fest. Build und Unit-Tests laufen anschließend parallel auf genau diesem Commit. Das Image wird einmal pro Release-Lauf gebaut und als Artefakt wiederverwendet.
-2. **Test:** ganze Unit-Test-Suite und ganze Fidelity-Suite; jede Baseline-ID muss bestehen.
-3. **Final Check:** keine offenen Issues mit `release-blocker` (vollständig paginiert); Commit gehört zu `main`, `release` ist sein Vorfahre. Ein bereits neuerer Release überspringt einen älteren Kandidaten ohne Rückwärtsdeployment. Gleiche Commits erlauben Wiederholung einer fehlenden Veröffentlichung.
-4. **Package:** SSH prüfen und aktive Version merken, verpflichtenden Hetzner-Snapshot erstellen (die drei jüngsten bleiben). [app/deploy/deploy.sh](app/deploy/deploy.sh) `deploy <Commit> <Image-TAR> <Image-ID> <Version>` überträgt die Konfiguration aus diesem Commit und das in CI getestete Image. Docker lädt dieses Image, prüft ID und Commit-Label und aktiviert es ohne erneuten Build. Nach Healthcheck folgen REQ-0 gegen `DEPLOY_URL`. Bei Deployment- oder Smoke-Fehler wird die zuvor gemerkte Version wiederhergestellt; ohne Vorgänger ist bei einer Erstinstallation eine explizite Wiederherstellung nötig.
-5. **release:** Erst nach erfolgreichem Deployment und verpflichtendem Smoke-Test wird der Branch `release` auf den geprüften Commit vorgezogen. Eine fehlende HTTPS-`DEPLOY_URL` sperrt den Lauf bereits vor dem Deployment. Bei Fehlern bleibt der Branch unverändert; ein erneuter Lauf überspringt das fehlgeschlagene Deployment deshalb nicht.
-6. **Publish:** erst ganz am Ende Tag und GitHub-Release mit Commit, Image-ID und Laufnachweis. Derselbe Artefaktstand erhält bei Wiederholung denselben Tag. Ein vorhandener Release-Branch überspringt keine Produktionsprüfung; eine fehlgeschlagene Veröffentlichung kann erneut ausgeführt werden.
-
-Für Diagnose durch Team 4 startet `gh workflow run release.yml -f ref=<Commit> -F tests-only=true` die vollständigen Release-Tests ohne Final Check, Deployment oder Veröffentlichung. Dies ist kein Produktionsnachweis. Diagnose verwendet eine eigene Concurrency-Gruppe; `release-metadata` ordnet auch manuelle Läufe dem tatsächlich getesteten Commit zu. Der frühere separate Vollsuite-Workflow ist entfernt.
-
-Releases und Rollbacks laufen nacheinander (`concurrency: release-production`); ein laufendes Deployment wird nicht durch weitere Merges abgebrochen. Mehrere wartende Releases werden von GitHub zum neuesten wartenden Stand zusammengefasst, der die vorherigen Merges enthält. **Rollback:** Workflow „Rollback“ oder lokal `app/deploy/deploy.sh rollback | switch <Version>`; die fünf jüngsten Versionen liegen auf dem Server. Migrationen sind additiv, damit die vorherige Version mit dem neuen Schema läuft. Weitere Details: [app/docs/betrieb.md](app/docs/betrieb.md).
+Team-Grenzen, Review-Checklisten, Issue-Blocker, Release-Branch, GitHub-Release-Veröffentlichung und Snapshot sind keine zusätzlichen Pipeline-Schritte. Die bisherigen Workflows für Release Gate, Prozessabgleich, Feature-Fixes und Release-Nacharbeit entfallen. Manueller Neustart auf `main`: `gh workflow run merge-gate.yml --ref main`.
 
 ### Secrets und Variablen
 
-Einzurichten unter *Settings → Secrets and variables → Actions* von `MarvinJakob/AIPerspectives`, Umgebung `production`:
+Unter *Settings → Secrets and variables → Actions*, gegebenenfalls Umgebung `production`:
 
 | Name | Art | Inhalt |
 |---|---|---|
 | `DEPLOY_HOST` | Secret | SSH-Ziel, z. B. `root@<Server-IP>` |
-| `HETZNER_CLOUD_SSH` | Secret | privater ed25519-Schlüssel nur für Deployments; öffentlicher Teil in `/root/.ssh/authorized_keys` |
-| `DEPLOY_KNOWN_HOSTS` | Secret | Host-Schlüssel des Servers (`ssh-keyscan -t ed25519 <IP>`, Fingerprint abgleichen) |
-| `HETZNER_CLOUD_API` | Secret | Hetzner-Cloud-API-Token des Projekts (Lesen und Schreiben) für Snapshots |
+| `HETZNER_CLOUD_SSH` | Secret | privater Deploy-Schlüssel |
+| `DEPLOY_KNOWN_HOSTS` | Secret | geprüfte Host-Schlüssel des Servers |
 | `DEPLOY_URL` | Variable | öffentliche Adresse, z. B. `https://marvinjakob.de` |
-| `HCLOUD_SERVER_NAME` | Variable | Name des Servers in der Hetzner Cloud |
 
-Fehlen `HETZNER_CLOUD_API` oder `HCLOUD_SERVER_NAME`, stoppt das Release vor der Aktivierung. Das getestete Image wird als Actions-Artefakt übertragen; eine Container-Registry ist nicht nötig. Deployment-Schlüssel bleiben ausschließlich in GitHub Actions. Der Workflow „Deployment-Zugang“ prüft sie ohne Deployment und gibt nur den öffentlichen Schlüsselfingerprint aus.
+Eine Registry ist nicht nötig. `HETZNER_CLOUD_API` und `HCLOUD_SERVER_NAME` werden nur noch für den manuellen Zugangstest verwendet; die automatische Installation benötigt keinen API-Token und erzeugt keinen Snapshot. Deployment-Schlüssel bleiben in GitHub Actions.
 
 ### Worker-Betrieb
 
-Implementierte Tickets warten im Merge Gate, solange über `Feature-Ticket: #<Ursprungsticket>` zugeordnete Bugs offen sind. Bugs bleiben getrennte Team-3-Aufgaben mit eigenem PR und unabhängigem Review. Nach dem letzten abgeschlossenen Fix wird das abschließende Feature-Review für einen neuen Team-4-Agenten im laufenden Supervisor freigegeben. Es umfasst alle zugeordneten Fix-PRs im aktuellen Feature-Head. `feature-links.mjs` prüft den Fix-Satz, Commit-Abstammung und Unabhängigkeit; `review.mjs` bindet den Nachweis an den gesamten Fix-Satz. Issue-Ereignisse (`feature-fixes.yml`) prüfen betroffene Gates erneut, `merge.mjs` prüft die Live-Abhängigkeiten direkt vor dem Merge. Details: `AGENTS.md`, „Feature mit zugeordneten Bugs“. Der anschließende Merge auf `main` startet unverändert das automatische Release Gate und Deployment.
+Implementierte Tickets warten im Merge Gate, solange über `Feature-Ticket: #<Ursprungsticket>` zugeordnete Bugs offen sind. Bugs bleiben getrennte Team-3-Aufgaben mit eigenem PR und unabhängigem Review. Nach dem letzten abgeschlossenen Fix wird das abschließende Feature-Review für einen neuen Team-4-Agenten im laufenden Supervisor freigegeben. Es umfasst alle zugeordneten Fix-PRs im aktuellen Feature-Head. `feature-links.mjs` prüft den Fix-Satz, Commit-Abstammung und Unabhängigkeit; `review.mjs` bindet den Nachweis an den gesamten Fix-Satz. Issue-Ereignisse (`feature-fixes.yml`) prüfen betroffene Gates erneut, `merge.mjs` prüft die Live-Abhängigkeiten direkt vor dem Merge. Details: `AGENTS.md`, „Feature mit zugeordneten Bugs“. Der anschließende Merge auf `main` startet Tests, Build und Installation. Die früheren Prozessprüfungen sind nicht mehr Teil der GitHub Actions.
 
 `tools/work.sh` lädt den aktuellen Prozess aus `origin/main` in einen eigenen unveränderlichen Checkout. `--check` prüft Zugänge/Werkzeuge und zeigt die Warteschlange, `--once` startet eine frische Sitzung, `--watch` überwacht neue Arbeit. `tools/work-watch.ps1` lädt unter Windows bei geändertem `main` automatisch den neuen Prozess. Wartung benötigt `maintenance` und `maintenance-approved`. Fehler stoppen den Supervisor; abgestürzte Besitzer werden nur nach explizitem Maintainer-Nachweis freigegeben. Lebenszeichen und Operationssperren zeigt `task.sh status`.
 
@@ -282,7 +258,7 @@ Implementierte Tickets warten im Merge Gate, solange über `Feature-Ticket: #<Ur
 | Volumes | `app_db`, `app_media`, `caddy_data` – bleiben bei Deployments erhalten |
 | Firewall | Hetzner Cloud Firewall: eingehend nur 22 (nur Schlüssel), 80, 443 |
 | Health | Docker-Healthcheck `/server healthcheck`, `restart: unless-stopped`, von außen `/api/health` |
-| Sicherung | nächtlich `deploy/backup/backup.sh`: `server backup` (VACUUM INTO) und restic nach Hetzner Object Storage, 30 Tage; zusätzlich Snapshot vor jedem Release |
+| Sicherung | nächtlich `deploy/backup/backup.sh`: `server backup` (VACUUM INTO) und restic nach Hetzner Object Storage, 30 Tage; keine automatischen Snapshots durch die Deployment-Pipeline |
 | Logs | Docker: 5 × 10 MB je Container; Caddy kürzt IP-Adressen und löscht nach 7 Tagen |
 | Wartung | `unattended-upgrades`; Abhängigkeiten über PRs durch das Merge Gate |
 

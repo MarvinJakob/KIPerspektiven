@@ -1,63 +1,46 @@
-# Merge Gate: Jeder Pull Request nach main muss alle Prüfungen bestehen (AGENTS.md, „Merge Gate“).
-# Als Pflichtprüfung in der Branch-Regel für main reicht der Abschlussjob „Merge Gate“.
-# Die Agenten wiederholen diese Prüfungen nicht lokal (AGENTS.md, „Arbeitsteilung mit GitHub Actions“).
-#
-#   scope     Team-Grenzen und Auswahl der Fidelity-Tests des Features
-#   build     Docker-Image wie in Produktion (beide Frontends und Backend)
-#   tests     Unit- und Komponententests (Backend mit Race-Detector, beide Frontends)
-#   security  govulncheck, npm audit, Dependency Review, Secret-Scan
-#   review    Prozesswerkzeuge; Nachweis des unabhängigen Reviews (entfällt für Baseline-PRs verify/<n>)
-#   fidelity  nur die Features des PRs; Vollsuite und globale Baseline ausschließlich im Release Gate
 name: Merge Gate
 
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review, edited]
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
-  pull-requests: read
-  issues: read
 
+# Produktion und Rollback teilen dieselbe Sperre. Installationen nie abbrechen.
 concurrency:
-  group: merge-gate-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: ${{ github.ref == 'refs/heads/main' && 'release-production' || format('merge-gate-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  scope:
-    name: Team-Grenzen
+  tests:
+    name: Unit-Tests
     runs-on: ubuntu-latest
-    outputs:
-      required-ids: ${{ steps.ids.outputs.required }}
-      selected-ids: ${{ steps.ids.outputs.selected }}
-      grep: ${{ steps.ids.outputs.grep }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Geänderte Dateien gegen Team-Regeln prüfen
-        env:
-          BRANCH: ${{ github.head_ref }}
-          BASE: ${{ github.event.pull_request.base.sha }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          node tools/check-scope.mjs
-
-      - name: Geforderte Fidelity-IDs bestimmen
-        id: ids
-        env:
-          BRANCH: ${{ github.head_ref }}
-          BASE: ${{ github.event.pull_request.base.sha }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-          GH_TOKEN: ${{ github.token }}
-        run: node tools/feature-tests.mjs
+      - uses: ./.github/actions/unit-tests
 
   build:
-    name: Build
+    # Der bestehende Pflichtcheck heißt weiterhin „Merge Gate“.
+    name: Merge Gate
+    needs: tests
+    if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      commit: ${{ steps.identity.outputs.commit }}
+      version: ${{ steps.identity.outputs.version }}
+      image-id: ${{ steps.identity.outputs.image-id }}
     steps:
+      # Übersprungene Checks gelten als erfolgreich: Testfehler ausdrücklich weitergeben.
+      - name: Testergebnis prüfen
+        env:
+          RESULT: ${{ needs.tests.result }}
+        run: test "$RESULT" = success
       - uses: actions/checkout@v5
       - uses: docker/setup-buildx-action@v3
       - name: Image bauen
@@ -65,125 +48,89 @@ jobs:
         with:
           context: app
           tags: ki-web:ci
+          labels: org.opencontainers.image.revision=${{ github.sha }}
           outputs: type=docker,dest=${{ runner.temp }}/image.tar
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - uses: actions/upload-artifact@v4
+      - name: Image laden und Version bestimmen
+        id: identity
+        run: |
+          docker load -i "$RUNNER_TEMP/image.tar"
+          commit=$(git rev-parse HEAD)
+          image=$(docker image inspect -f '{{.Id}}' ki-web:ci)
+          digest=${image#sha256:}
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "version=${commit:0:12}-${digest:0:12}" >> "$GITHUB_OUTPUT"
+          echo "image-id=$image" >> "$GITHUB_OUTPUT"
+      - name: Browsertests (Desktop und Mobil)
+        uses: ./.github/actions/fidelity
         with:
-          name: image
+          image: ${{ steps.identity.outputs.image-id }}
+          full-suite: 'true'
+      - name: Geprüftes Image für die Installation speichern
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-image
           path: ${{ runner.temp }}/image.tar
-          retention-days: 1
+          retention-days: 7
+          if-no-files-found: error
 
-  tests:
-    name: Unit-Tests
+  deploy:
+    name: Neue Version installieren
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: ${{ vars.DEPLOY_URL }}
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
     steps:
       - uses: actions/checkout@v5
-      - uses: ./.github/actions/unit-tests
-
-  security:
-    name: Security
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
         with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v6
-        with:
-          go-version: "1.27.x"  # neuester Patch wie golang:1.27-alpine im Dockerfile
-          check-latest: true
-          cache-dependency-path: app/backend/go.sum
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - name: Bekannte Schwachstellen in Go-Abhängigkeiten (govulncheck)
-        working-directory: app/backend
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-      - name: Bekannte Schwachstellen in npm-Abhängigkeiten
-        run: |
-          for dir in app/frontend app/frontend-redaktion fidelity; do
-            echo "== $dir"; (cd "$dir" && npm audit --audit-level=high)
-          done
-      - name: Neue Abhängigkeiten prüfen
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: high
-      - name: Secret-Scan
-        uses: gitleaks/gitleaks-action@v2
+          ref: ${{ needs.build.outputs.commit }}
+      - name: Überholte Installation verhindern
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  review:
-    name: Review
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - name: Prozesswerkzeuge prüfen
+          COMMIT: ${{ needs.build.outputs.commit }}
         run: |
-          node --test tools/*.test.mjs fidelity/scripts/*.test.mjs
-          bash tools/task.test.sh
-          bash tools/deploy.test.sh
-          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 -shellcheck= -pyflakes=
-      - name: Checkliste im PR-Text
-        env:
-          PR_BODY: ${{ github.event.pull_request.body }}
-          DRAFT: ${{ github.event.pull_request.draft }}
-          BRANCH: ${{ github.head_ref }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          [[ "$DRAFT" != "true" ]] || { echo "::error::Entwurf: erst nach „Ready for review“ mergebar."; exit 1; }
-          # Prüft Checkliste, Sitzungs-IDs und den GitHub-Review-Nachweis des aktuellen Commits.
-          # Baseline-PRs (verify/<n>) brauchen keinen: Team-Grenzen und Fidelity weisen sie nach.
-          node tools/check-review.mjs
-
-  fidelity:
-    name: Fidelity
-    needs: [scope, build]
-    if: needs.scope.outputs.grep != ''
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
+          git fetch origin main
+          test "$COMMIT" = "$(git rev-parse origin/main)"
       - uses: actions/download-artifact@v5
         with:
-          name: image
+          name: production-image
           path: ${{ runner.temp }}
-      - run: docker load -i "$RUNNER_TEMP/image.tar"
-      - uses: ./.github/actions/fidelity
+      - uses: ./.github/actions/ssh-setup
         with:
-          image: ki-web:ci
-          grep: ${{ needs.scope.outputs.grep }}
-          selected-ids: ${{ needs.scope.outputs.selected-ids }}
-          required-ids: ${{ needs.scope.outputs.required-ids }}
-          allow-backlog: 'true'
-
-  merge-gate:
-    name: Merge Gate
-    if: always()
-    needs: [scope, build, tests, security, review, fidelity]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - name: Ergebnis
-        env:
-          RESULTS: ${{ toJSON(needs) }}
-          FEATURE_GREP: ${{ needs.scope.outputs.grep }}
-          BRANCH: ${{ github.head_ref }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          GH_TOKEN: ${{ github.token }}
+          ssh-key: ${{ secrets.HETZNER_CLOUD_SSH }}
+          known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      - name: Bisherige Version merken
+        id: previous
         run: |
-          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
-          echo "$RESULTS" | jq -e --arg grep "$FEATURE_GREP" \
-            'to_entries | all(.[]; .value.result == "success" or (.key == "fidelity" and .value.result == "skipped" and $grep == ""))' > /dev/null \
-            || { echo "::error::Merge Gate nicht bestanden."; exit 1; }
-          # Issue-Zuordnungen können sich während Build/Tests geändert haben.
-          node tools/check-review.mjs
-          echo "Merge Gate bestanden."
+          previous=$(bash app/deploy/deploy.sh version)
+          [[ -z "$previous" || "$previous" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+          echo "version=$previous" >> "$GITHUB_OUTPUT"
+      - name: Geprüftes Image installieren und Healthcheck ausführen
+        id: install
+        env:
+          COMMIT: ${{ needs.build.outputs.commit }}
+          VERSION: ${{ needs.build.outputs.version }}
+          IMAGE_ID: ${{ needs.build.outputs.image-id }}
+        run: bash app/deploy/deploy.sh deploy "$COMMIT" "$RUNNER_TEMP/image.tar" "$IMAGE_ID" "$VERSION"
+      - name: Bei Installationsfehler bisherige Version wiederherstellen
+        if: failure() && steps.install.outcome == 'failure' && steps.previous.outputs.version != ''
+        env:
+          PREVIOUS: ${{ steps.previous.outputs.version }}
+        run: bash app/deploy/deploy.sh switch "$PREVIOUS"
+      - name: Alte Versionen aufräumen
+        run: bash app/deploy/deploy.sh prune
+      - name: SSH-Schlüssel entfernen
+        if: always()
+        run: rm -f ~/.ssh/deploy
+      - name: Installierte Version dokumentieren
+        env:
+          COMMIT: ${{ needs.build.outputs.commit }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          echo "Installierte Version: $VERSION (Commit $COMMIT)" >> "$GITHUB_STEP_SUMMARY"

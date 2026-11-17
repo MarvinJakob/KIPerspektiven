@@ -1,5 +1,5 @@
 # Unit- und Komponententests des ganzen Codes: Backend (go vet, go test, Race-Detector) und beide Frontends.
-# Genutzt vom Merge Gate (.github/workflows/merge-gate.yml) und vom Release Gate (.github/workflows/release.yml).
+# Genutzt von .github/workflows/merge-gate.yml vor Build und Installation.
 name: Unit-Tests
 description: go vet, go test sowie Typprüfung und Tests beider Frontends
 

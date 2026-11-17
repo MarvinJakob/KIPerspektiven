@@ -81,38 +81,24 @@ cd /opt/ki-web && docker compose exec -it backend /server user create --email AD
 
 ## Automatisches Deployment
 
-Das **Release Gate** im Repository `MarvinJakob/AIPerspectives` startet automatisch nach jedem Push/Merge auf `main`. Damit werden implementierte Tickets nach bestandenem Merge Gate und Merge auf Hetzner bereitgestellt. Der Workflow [.github/workflows/release.yml](../../.github/workflows/release.yml) kann zusätzlich manuell gestartet werden (*Actions → Release Gate → Run workflow* oder `gh workflow run release.yml`) und
+Der Workflow [Merge Gate](../../.github/workflows/merge-gate.yml) führt bei Pull Requests nach `main` und nach Push/Merge auf `main` dieselben Prüfungen aus:
 
-1. legt den auslösenden Commit fest und baut dessen Image einmal; die Unit-Tests laufen parallel,
-2. führt alle Unit-Tests und ausschließlich hier die ganze Fidelity-Suite aus (gesamte Baseline muss bestehen; das Merge Gate prüft nur Feature-Tests),
-3. prüft, dass keine Issues mit `release-blocker` offen sind und `release` per Fast-Forward vorgezogen werden kann,
-4. prüft SSH, legt verpflichtend einen Hetzner-Snapshot an (die drei jüngsten bleiben), überträgt mit `deploy/deploy.sh deploy` das exakt getestete Image und prüft REQ-0 gegen `DEPLOY_URL`,
-5. zieht erst nach erfolgreichem Deployment und Smoke-Test den Branch `release` auf den geprüften Commit vor,
-6. legt erst am Ende Tag und GitHub-Release an.
+1. Unit-Tests, Typprüfungen und Backend-Race-Tests.
+2. Docker-Image bauen und die vollständigen Fidelity-Browsertests auf Desktop und Mobil gegen dieses Image ausführen. Die bestehende Baseline-Auswertung bleibt erhalten.
+3. Nur auf `main`: das geprüfte Image übertragen und als neue Version installieren. Docker-Healthcheck und HTTPS-Healthcheck müssen erfolgreich sein.
 
-Bei fehlgeschlagenem Start oder Produktions-Smoke-Test wird die zuvor gemerkte Version wieder gestartet und geprüft; der Lauf bleibt rot. Ohne Vorgängerversion ist bei einer Erstinstallation eine explizite Wiederherstellung nötig. `release` bleibt bis zum bestandenen Smoke-Test unverändert. Wiederholungen prüfen Produktion erneut und veröffentlichen dieselbe Commit-/Image-Kombination unter demselben Tag. Laufende Deployments werden durch weitere Merges nicht abgebrochen; wartende Läufe werden zum neuesten wartenden Stand zusammengefasst. Rückkehr ohne Kommandozeile: Workflow [Rollback](../../.github/workflows/rollback.yml), ebenfalls mit Produktions-Smoke. Ablauf: [ARCHITECTURE.md, Abschnitt 7](../../ARCHITECTURE.md#7-auslieferung).
+Bei fehlgeschlagener Installation wird die zuvor gemerkte Version wiederhergestellt; der Lauf bleibt rot. Ohne Vorgängerversion gibt es bei einer Erstinstallation keinen Rollback. Der Pflichtcheck `Merge Gate` schlägt auch bei fehlerhaften Unit-Tests fehl. Pull Requests installieren keine Version. Laufende Installationen und der manuelle Workflow [Rollback](../../.github/workflows/rollback.yml) teilen dieselbe Sperre und werden nicht abgebrochen.
 
-Einstellungen unter *Settings → Secrets and variables → Actions* von `MarvinJakob/AIPerspectives`:
+Die Installation benötigt die Secrets `DEPLOY_HOST`, `HETZNER_CLOUD_SSH`, `DEPLOY_KNOWN_HOSTS` sowie optional die Variable `DEPLOY_URL` für den Link zur Produktion. Eine Registry ist nicht nötig: Das gebaute Image wird als Actions-Artefakt übertragen und auf Hetzner geladen. Es wird dort nicht erneut gebaut. Die automatische Pipeline erstellt keine Snapshots, Release-Branches, Tags oder GitHub-Releases und erzeugt keine Team-4-Auswertungsaufgaben.
 
-| Name | Art | Inhalt |
-|---|---|---|
-| `DEPLOY_HOST` | Secret | `root@78.47.14.178` |
-| `HETZNER_CLOUD_SSH` | Secret | Privater Schlüssel nur für dieses Deployment (ed25519). Der öffentliche Teil steht auf dem Server in `/root/.ssh/authorized_keys`. |
-| `DEPLOY_KNOWN_HOSTS` | Secret | Host-Schlüssel des Servers, z. B. aus `ssh-keyscan -t ed25519 78.47.14.178` nach Abgleich des Fingerprints |
-| `HETZNER_CLOUD_API` | Secret | Hetzner-Cloud-API-Token (Lesen und Schreiben) für den verpflichtenden Snapshot |
-| `DEPLOY_URL` | Variable | `https://marvinjakob.de` |
-| `HCLOUD_SERVER_NAME` | Variable | `KI-Perspektiven-PRD` |
-
-Eine Registry ist nicht nötig: Das getestete Image wird als Actions-Artefakt übertragen und auf Hetzner geladen, dort nicht erneut gebaut. Zugangstest ohne Deployment: `gh workflow run deploy-access.yml`. Er verwendet nur die GitHub-Secrets, prüft API/Server und SSH und zeigt den öffentlichen Schlüsselfingerprint. Fehlende Snapshot-Konfiguration ist ein Fehler. Den Schlüssel bei Verdacht auf Missbrauch auf dem Server aus `authorized_keys` löschen und neu erzeugen. Im alten Repository `MarvinJakob/aiboard` darf kein Deploy-Workflow mehr aktiv sein, sonst liefern zwei Repositorys auf denselben Server aus.
-
-Vollständige Tests ohne Deployment zur Diagnose durch Team 4: `gh workflow run release.yml -f ref=<main-Commit> -F tests-only=true`. Ein solcher Lauf gilt nicht als Produktionsnachweis. Der separate Fidelity-Vollsuite-Workflow entfällt. Erfolgreiche und fehlgeschlagene Release-Läufe erzeugen Auswertungsaufgaben für Team 4.
+Manueller Zugangstest ohne Deployment: `gh workflow run deploy-access.yml`. Dieser separate Diagnoseworkflow benötigt weiterhin `HETZNER_CLOUD_API` und `HCLOUD_SERVER_NAME`. Den SSH-Schlüssel bei Verdacht auf Missbrauch auf dem Server aus `authorized_keys` löschen und neu erzeugen. Im alten Repository `MarvinJakob/aiboard` darf kein Deploy-Workflow mehr aktiv sein.
 
 ## Neue Version bereitstellen
 
 Für einen erneuten Versuch eines bereits nach `main` gemergten Standes:
 
 ```bash
-gh workflow run release.yml -f ref=main
+gh workflow run merge-gate.yml --ref main
 ```
 
 Der Workflow verwendet [deploy/deploy.sh](../deploy/deploy.sh):
@@ -121,10 +107,10 @@ Der Workflow verwendet [deploy/deploy.sh](../deploy/deploy.sh):
 2. lädt das CI-Image per `docker load`, prüft die vollständige Image-ID und das Commit-Label und taggt es für Compose.
 3. kopiert `compose.yaml` und `deploy/Caddyfile` der Version nach `/opt/ki-web` und setzt `VERSION`.
 4. startet die Container mit `docker compose up -d --wait` und prüft danach `https://DOMAIN/api/health`. Erst wenn beides erfolgreich ist, wird die bisherige Version zu `PREVIOUS_VERSION`.
-5. startet bei einem Fehler wieder die bisherige Version und endet mit Fehler. Der Workflow stellt sie auch nach einem fehlgeschlagenen Produktions-Smoke-Test wieder her.
-6. räumt Builds älter als die fünf jüngsten erst nach erfolgreichem Smoke-Test auf; laufende und vorherige Version bleiben erhalten.
+5. startet bei einem Fehler wieder die bisherige Version und endet mit Fehler. Der Workflow stellt sie auch nach einer fehlgeschlagenen Image-Prüfung wieder her.
+6. räumt Builds älter als die fünf jüngsten erst nach erfolgreicher Installation auf; laufende und vorherige Version bleiben erhalten.
 
-Beim Austausch des Backend-Containers ist die Seite wenige Sekunden nicht erreichbar. Datenbank und Medien liegen in Volumes und bleiben erhalten. Der alte Befehl `deploy.sh release` bleibt für ausdrücklich beauftragte Notfallwartung verfügbar, ist aber kein Ersatz für das Release Gate.
+Beim Austausch des Backend-Containers ist die Seite wenige Sekunden nicht erreichbar. Datenbank und Medien liegen in Volumes und bleiben erhalten. Der alte Befehl `deploy.sh release` bleibt für ausdrücklich beauftragte Notfallwartung verfügbar, ist aber kein Ersatz für die automatische Pipeline.
 
 Die Migrationen laufen beim Start des Backends automatisch.
 
