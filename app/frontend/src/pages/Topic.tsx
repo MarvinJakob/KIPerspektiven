@@ -11,6 +11,7 @@ import { useHead, usePageFocus } from '../lib/page';
 import { getTopicContent } from '../lib/topicContent';
 import { NotFound } from './NotFound';
 import { SoftwareDevelopment } from './SoftwareDevelopment';
+import { VibeCoding } from './VibeCoding';
 
 /** Thema mit eigener Artikelseite nach Mock (#7) statt Einführung, Markdown-Inhalt und Beitragsliste. */
 const SOFTWARE_DEVELOPMENT = 'softwareentwicklung';
@@ -36,6 +37,7 @@ export function TopicPage() {
 
   const tp = topic.data;
   if (tp.slug === SOFTWARE_DEVELOPMENT) return <SoftwareDevelopment titleRef={h1} />;
+  if (tp.slug === 'vibe-coding') return <VibeCoding titleRef={h1} />;
   const fallback = tp.lang !== lang;
   const contentLang = fallback ? tp.lang : undefined;
   const content = getTopicContent(tp.slug, lang);

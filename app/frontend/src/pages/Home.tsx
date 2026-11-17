@@ -160,6 +160,11 @@ function TopicSection({ topic, index }: { topic: HomeTopic; index: number }) {
             <Link className="text-link" to={href(lang, `/themen/${topic.slug}`)}>
               {topic.articleLink}
             </Link>
+            {topic.slug === 'softwareentwicklung' && (
+              <><br /><Link className="text-link" to={href(lang, '/themen/vibe-coding')}>
+                {lang === 'de' ? 'Zum Artikel: Vibe Coding' : 'Read the article: Vibe Coding'}
+              </Link></>
+            )}
           </p>
         </div>
       </div>
