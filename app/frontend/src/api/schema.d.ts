@@ -193,6 +193,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/contact-messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Nachricht über die Kontaktseite senden
+         * @description Anforderung #4. Die öffentliche Kontaktseite sendet Name, optional Unternehmen, E-Mail-Adresse, Nachricht
+         *     und die Sprache der Seite. Das Backend speichert die Nachricht für die Redaktion
+         *     (`GET /api/admin/contact-messages`). Fehlende Pflichtangaben, ungültige Adressen und zu lange Angaben lehnt
+         *     es mit `422` ab, Anfragen von fremder Herkunft mit `403`, zu große Anfragetexte mit `413` und mehr als
+         *     100 angenommene Nachrichten je IP-Adresse und Stunde mit `429`.
+         */
+        post: operations["sendContactMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -494,6 +518,26 @@ export interface paths {
          * @description Ticket
          */
         get: operations["adminListReadinessResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/contact-messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Nachrichten der Kontaktseite, neueste zuerst
+         * @description Anforderung
+         */
+        get: operations["adminListContactMessages"];
         put?: never;
         post?: never;
         delete?: never;
@@ -893,6 +937,34 @@ export interface components {
             items: components["schemas"]["ReadinessResult"][];
         };
         /**
+         * @description Nachricht von der Kontaktseite (Anforderung #4). Name, E-Mail-Adresse und Nachricht sind Pflicht, das
+         *     Unternehmen ist optional. Leere oder zu lange Angaben und ungültige Adressen lehnt das Backend mit `422` ab.
+         */
+        ContactMessageInput: {
+            name: string;
+            /** @description Optional; leer oder fehlend, wenn nicht angegeben */
+            company?: string;
+            email: string;
+            message: string;
+            lang: components["schemas"]["Lang"];
+        };
+        ContactMessage: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /** @description Leer, wenn nicht angegeben */
+            company: string;
+            /** @description Normalisiert (ohne Leerzeichen, kleingeschrieben) */
+            email: string;
+            message: string;
+            lang: components["schemas"]["Lang"];
+            /** Format: date-time */
+            receivedAt: string;
+        };
+        ContactMessageList: {
+            items: components["schemas"]["ContactMessage"][];
+        };
+        /**
          * @description Anfrage für ein kostenloses Beratungsgespräch (Ticket #136). Die E-Mail-Adresse ist die einzige
          *     Angabe der Person. Leere oder ungültige Adressen lehnt das Backend mit `422` ab.
          */
@@ -1218,6 +1290,40 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             422: components["responses"]["Unprocessable"];
             /** @description Zu viele Anfragen, später erneut versuchen */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    sendContactMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactMessageInput"];
+            };
+        };
+        responses: {
+            /** @description Nachricht eingegangen */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Unprocessable"];
+            /** @description Zu viele Nachrichten, später erneut versuchen */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -1777,6 +1883,28 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminListContactMessages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Alle Nachrichten */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactMessageList"];
+                };
+            };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };

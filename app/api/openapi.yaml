@@ -214,6 +214,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /api/contact-messages:
+    post:
+      operationId: sendContactMessage
+      summary: Nachricht über die Kontaktseite senden
+      description: |
+        Anforderung #4. Die öffentliche Kontaktseite sendet Name, optional Unternehmen, E-Mail-Adresse, Nachricht
+        und die Sprache der Seite. Das Backend speichert die Nachricht für die Redaktion
+        (`GET /api/admin/contact-messages`). Fehlende Pflichtangaben, ungültige Adressen und zu lange Angaben lehnt
+        es mit `422` ab, Anfragen von fremder Herkunft mit `403`, zu große Anfragetexte mit `413` und mehr als
+        100 angenommene Nachrichten je IP-Adresse und Stunde mit `429`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactMessageInput'
+      responses:
+        '204':
+          description: Nachricht eingegangen
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          description: Zu viele Nachrichten, später erneut versuchen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/health:
     get:
       operationId: getHealth
@@ -733,6 +764,24 @@ paths:
                 $ref: '#/components/schemas/ReadinessResultPage'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/contact-messages:
+    get:
+      operationId: adminListContactMessages
+      summary: Nachrichten der Kontaktseite, neueste zuerst
+      description: Anforderung #4. Für die Rollen `editor` und `admin`.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Alle Nachrichten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactMessageList'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1450,6 +1499,58 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ReadinessResult'
+    ContactMessageInput:
+      type: object
+      description: |
+        Nachricht von der Kontaktseite (Anforderung #4). Name, E-Mail-Adresse und Nachricht sind Pflicht, das
+        Unternehmen ist optional. Leere oder zu lange Angaben und ungültige Adressen lehnt das Backend mit `422` ab.
+      required: [name, email, message, lang]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        company:
+          type: string
+          maxLength: 200
+          description: Optional; leer oder fehlend, wenn nicht angegeben
+        email:
+          type: string
+          maxLength: 254
+        message:
+          type: string
+          maxLength: 5000
+        lang:
+          $ref: '#/components/schemas/Lang'
+    ContactMessage:
+      type: object
+      required: [id, name, company, email, message, lang, receivedAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        company:
+          type: string
+          description: Leer, wenn nicht angegeben
+        email:
+          type: string
+          description: Normalisiert (ohne Leerzeichen, kleingeschrieben)
+        message:
+          type: string
+        lang:
+          $ref: '#/components/schemas/Lang'
+        receivedAt:
+          type: string
+          format: date-time
+    ContactMessageList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactMessage'
     ConsultationRequestInput:
       type: object
       description: |

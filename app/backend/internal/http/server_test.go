@@ -70,6 +70,7 @@ func newServer(t *testing.T, devSeed bool, opts ...func(*httpserver.Config)) (*h
 		Editorial:     service.NewEditorial(db),
 		Statistics:    stats,
 		Consultations: service.NewConsultations(db),
+		Contact:       service.NewContact(db),
 		EditorialSite: web.NewEditorial(accounts, editorialFiles, log),
 		Media:         media.NewStore(mediaDir),
 		MediaPath:     mediaDir,

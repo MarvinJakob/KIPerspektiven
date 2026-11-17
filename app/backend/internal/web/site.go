@@ -160,6 +160,8 @@ func (s *Site) resolve(r *http.Request, parts []string) (int, Meta, error) {
 		m := s.staticMeta(service.DE, "understandAi", "/ki-verstehen")
 		m.Alternates = s.alternates([]service.Lang{service.DE}, "/ki-verstehen")
 		return http.StatusOK, m, nil
+	case len(rest) == 1 && rest[0] == "kontakt": // Anforderung #4
+		return http.StatusOK, s.staticMeta(lang, "contact", "/kontakt"), nil
 	case len(rest) == 1 && rest[0] == "impressum":
 		return http.StatusOK, s.staticMeta(lang, "imprint", "/impressum"), nil
 	case len(rest) == 1 && rest[0] == "datenschutz":

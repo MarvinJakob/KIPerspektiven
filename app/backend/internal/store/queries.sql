@@ -284,3 +284,13 @@ SELECT id, email, lang, requested_at FROM consultation_requests ORDER BY request
 
 -- name: DeleteConsultationRequest :execrows
 DELETE FROM consultation_requests WHERE id = ?;
+
+-- ---------------------------------------------------------------------------
+-- Nachrichten der Kontaktseite (Anforderung #4)
+-- ---------------------------------------------------------------------------
+
+-- name: InsertContactMessage :exec
+INSERT INTO contact_messages (name, company, email, message, lang, received_at) VALUES (?, ?, ?, ?, ?, ?);
+
+-- name: ListContactMessages :many
+SELECT id, name, company, email, message, lang, received_at FROM contact_messages ORDER BY received_at DESC, id DESC;

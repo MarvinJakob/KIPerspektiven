@@ -22,12 +22,15 @@ type apiServer struct {
 	editorial     *service.Editorial
 	stats         *service.Statistics
 	consultations *service.Consultations
+	contact       *service.Contact
 	media         *media.Store
 	secureCookies bool
 	log           *slog.Logger
 
 	// consultationLimiter begrenzt angenommene Beratungsanfragen je IP-Adresse (Ticket #136).
 	consultationLimiter *auth.Limiter
+	// contactLimiter begrenzt angenommene Nachrichten der Kontaktseite je IP-Adresse (Anforderung #4).
+	contactLimiter *auth.Limiter
 
 	// Anmeldung (Ticket #138). login prüft die Zugangsdaten samt Argon2-Passwortprüfung (accounts.Login).
 	// Tests im Paket halten die Prüfung dort an, um parallele Anmeldeversuche deterministisch zu zählen.

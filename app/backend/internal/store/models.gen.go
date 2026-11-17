@@ -15,6 +15,16 @@ type ConsultationRequest struct {
 	RequestedAt string
 }
 
+type ContactMessage struct {
+	ID         int64
+	Name       string
+	Company    string
+	Email      string
+	Message    string
+	Lang       string
+	ReceivedAt string
+}
+
 type MediaTranslation struct {
 	MediaID int64
 	Lang    string

@@ -50,6 +50,10 @@ type Querier interface {
 	GetTopicBySlug(ctx context.Context, slug string) (Topic, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
+	// ---------------------------------------------------------------------------
+	// Nachrichten der Kontaktseite (Anforderung #4)
+	// ---------------------------------------------------------------------------
+	InsertContactMessage(ctx context.Context, arg InsertContactMessageParams) error
 	InsertMediaTranslation(ctx context.Context, arg InsertMediaTranslationParams) error
 	InsertPostTopic(ctx context.Context, arg InsertPostTopicParams) error
 	InsertPostTranslation(ctx context.Context, arg InsertPostTranslationParams) error
@@ -60,6 +64,7 @@ type Querier interface {
 	// ---------------------------------------------------------------------------
 	ListAllPosts(ctx context.Context) ([]Post, error)
 	ListConsultationRequests(ctx context.Context) ([]ConsultationRequest, error)
+	ListContactMessages(ctx context.Context) ([]ContactMessage, error)
 	ListDuePosts(ctx context.Context, scheduledAt sql.NullString) ([]ListDuePostsRow, error)
 	ListMedia(ctx context.Context, mediaIds []int64) ([]ListMediaRow, error)
 	ListMediaTranslations(ctx context.Context, mediaIds []int64) ([]MediaTranslation, error)

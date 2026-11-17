@@ -125,6 +125,10 @@ Die Feature-Seite `/{lang}/ki-verstehen` erklärt Sprachmodelle, Agenten und fü
 
 Die unveränderte Grafik `ressources/grafiken/Agent.png` hat eine Web-Kopie unter `frontend/src/assets/topics/Agent.png`. Bei Bildänderungen beide Kopien aktualisieren. Zuordnung, Alternativtext und Link zur Originalgröße folgen dem bestehenden Verfahren für Themengrafiken. Automatisierte Prüfungen und Browsernachweise bei 375 und 1440 px stehen in [docs/ki-verstehen-abnahme.md](docs/ki-verstehen-abnahme.md).
 
+## Kontaktseite (#4)
+
+Die öffentliche Kontaktseite `/{lang}/kontakt` (`frontend/src/pages/Contact.tsx`) ist über den Link „Kontakt“ bzw. „Contact“ im Fußbereich erreichbar. Name, E-Mail-Adresse und Nachricht sind Pflicht, das Unternehmen ist optional. Fehler stehen am Feld (`aria-invalid`, `aria-describedby`), Eingaben bleiben erhalten; nach dem Absenden ersetzt eine Bestätigung das Formular. `POST /api/contact-messages` speichert die Nachricht in `contact_messages` (Migration `00016`, ohne IP-Adresse und User-Agent), prüft Herkunft, Pflichtangaben, E-Mail-Adresse und Höchstlängen (200/200/254/5000 Zeichen), begrenzt den Anfragetext auf 64 KiB und nimmt je IP-Adresse höchstens 100 Nachrichten pro Stunde an. Die Redaktion sieht die Nachrichten unter `/redaktion/nachrichten` (Navigationseintrag „Nachrichten“, Rollen `editor` und `admin`, neueste zuerst) über `GET /api/admin/contact-messages`; ohne Sitzung antwortet die API mit `401` und die Seite führt zur Anmeldung. Löschen und Benachrichtigung per E-Mail sind nicht Teil der Anforderung.
+
 ## Lokal entwickeln
 
 Voraussetzungen: Go 1.27, Node 24 oder neuer. Docker ist nur für die Compose-Variante nötig.

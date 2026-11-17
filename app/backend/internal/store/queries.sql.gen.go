@@ -531,6 +531,35 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 	return i, err
 }
 
+const insertContactMessage = `-- name: InsertContactMessage :exec
+
+INSERT INTO contact_messages (name, company, email, message, lang, received_at) VALUES (?, ?, ?, ?, ?, ?)
+`
+
+type InsertContactMessageParams struct {
+	Name       string
+	Company    string
+	Email      string
+	Message    string
+	Lang       string
+	ReceivedAt string
+}
+
+// ---------------------------------------------------------------------------
+// Nachrichten der Kontaktseite (Anforderung #4)
+// ---------------------------------------------------------------------------
+func (q *Queries) InsertContactMessage(ctx context.Context, arg InsertContactMessageParams) error {
+	_, err := q.db.ExecContext(ctx, insertContactMessage,
+		arg.Name,
+		arg.Company,
+		arg.Email,
+		arg.Message,
+		arg.Lang,
+		arg.ReceivedAt,
+	)
+	return err
+}
+
 const insertMediaTranslation = `-- name: InsertMediaTranslation :exec
 INSERT INTO media_translations (media_id, lang, alt_text) VALUES (?, ?, ?)
 `
@@ -665,6 +694,41 @@ func (q *Queries) ListConsultationRequests(ctx context.Context) ([]ConsultationR
 			&i.Email,
 			&i.Lang,
 			&i.RequestedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listContactMessages = `-- name: ListContactMessages :many
+SELECT id, name, company, email, message, lang, received_at FROM contact_messages ORDER BY received_at DESC, id DESC
+`
+
+func (q *Queries) ListContactMessages(ctx context.Context) ([]ContactMessage, error) {
+	rows, err := q.db.QueryContext(ctx, listContactMessages)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ContactMessage{}
+	for rows.Next() {
+		var i ContactMessage
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Company,
+			&i.Email,
+			&i.Message,
+			&i.Lang,
+			&i.ReceivedAt,
 		); err != nil {
 			return nil, err
 		}

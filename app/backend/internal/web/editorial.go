@@ -114,6 +114,8 @@ func route(rest string) access {
 		return accessEditor
 	case rest == "statistik": // Ticket #130
 		return accessEditor
+	case rest == "nachrichten": // Anforderung #4
+		return accessEditor
 	case rest == "beratungsanfragen": // Ticket #136
 		return accessEditor
 	case rest == "benutzer":

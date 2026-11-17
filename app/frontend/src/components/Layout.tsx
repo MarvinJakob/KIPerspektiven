@@ -85,6 +85,9 @@ function Footer() {
                 <Link to={href(lang, '/datenschutz')}>{t('footer.privacy')}</Link>
               </li>
               <li>
+                <Link to={href(lang, '/kontakt')}>{t('nav.contact')}</Link>
+              </li>
+              <li>
                 <CookieSettings />
               </li>
             </ul>

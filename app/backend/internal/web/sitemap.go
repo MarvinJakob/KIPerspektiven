@@ -69,6 +69,7 @@ func (s *Site) sitemap(w http.ResponseWriter, r *http.Request) {
 	add(service.Langs, "", latest)
 	add(service.Langs, "/blog", latest)
 	add(service.Langs, "/profil", time.Time{})
+	add(service.Langs, "/kontakt", time.Time{})
 	add(service.Langs, "/ki-einsatzfelder", time.Time{})
 	add([]service.Lang{service.DE}, "/ki-verstehen", time.Time{})
 	for _, t := range topics {

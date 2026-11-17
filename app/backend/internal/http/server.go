@@ -26,6 +26,7 @@ type Config struct {
 	Editorial     *service.Editorial
 	Statistics    *service.Statistics    // Seitenaufrufe und Ergebnisse der Selbsteinschätzung (Ticket #130)
 	Consultations *service.Consultations // Anfragen für ein Beratungsgespräch (Ticket #136)
+	Contact       *service.Contact       // Nachrichten der Kontaktseite (Anforderung #4)
 	Site          *web.Site
 	EditorialSite *web.Editorial
 	MediaPath     string // optional: liefert /media/* lokal aus (in Produktion übernimmt das Caddy)
@@ -56,11 +57,13 @@ func newAPIServer(cfg Config) *apiServer {
 		editorial:     cfg.Editorial,
 		stats:         cfg.Statistics,
 		consultations: cfg.Consultations,
+		contact:       cfg.Contact,
 		media:         cfg.Media,
 		secureCookies: cfg.SecureCookies,
 		log:           cfg.Log,
 
 		consultationLimiter: auth.NewLimiter(consultationMaxRequests, consultationWindow),
+		contactLimiter:      auth.NewLimiter(contactMaxMessages, contactWindow),
 
 		login:          cfg.Accounts.Login,
 		limiter:        auth.NewLimiter(loginMaxFailures, loginWindow),
@@ -98,12 +101,23 @@ func publicWrite(p string) bool {
 	return p == "/api/readiness-results" || strings.HasPrefix(p, "/api/readiness-results/") || p == "/api/consultation-requests"
 }
 
+// contactPath nimmt Nachrichten der öffentlichen Kontaktseite an (Anforderung #4).
+const contactPath = "/api/contact-messages"
+
+// maxContactBytes begrenzt den Anfragetext einer Kontaktnachricht ohne Anmeldung. Er reicht für die
+// Höchstlängen aus api/openapi.yaml (5000 Zeichen Nachricht, je 200 Zeichen Name und Unternehmen) auch dann,
+// wenn jedes Zeichen als JSON-Escape-Folge ankommt (bis zu 12 Byte je Zeichen außerhalb der BMP).
+const maxContactBytes = 64 << 10
+
 // limitBody lässt höchstens maxRequestBytes aus dem Anfragetext lesen, bei öffentlichen Schreibzugriffen
-// höchstens maxPublicWriteBytes. Größere Anfragen scheitern beim Lesen (413).
+// höchstens maxPublicWriteBytes bzw. maxContactBytes. Größere Anfragen scheitern beim Lesen (413).
 func limitBody(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limit := int64(maxRequestBytes)
-		if publicWrite(r.URL.Path) {
+		switch {
+		case r.URL.Path == contactPath:
+			limit = maxContactBytes
+		case publicWrite(r.URL.Path):
 			limit = maxPublicWriteBytes
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, limit)

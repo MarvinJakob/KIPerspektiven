@@ -152,6 +152,7 @@ func runServer(cfg config, log *slog.Logger) error {
 		Editorial:      editorial,
 		Statistics:     stats,
 		Consultations:  service.NewConsultations(db),
+		Contact:        service.NewContact(db),
 		Media:          media.NewStore(cfg.mediaPath),
 		EditorialSite:  web.NewEditorial(accounts, nil, log),
 		SecureCookies:  strings.HasPrefix(cfg.baseURL, "https://"),

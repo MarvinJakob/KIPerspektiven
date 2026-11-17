@@ -262,6 +262,36 @@ type ConsultationRequestList struct {
 	Items []ConsultationRequest `json:"items"`
 }
 
+// ContactMessage defines model for ContactMessage.
+type ContactMessage struct {
+	// Company Leer, wenn nicht angegeben
+	Company string `json:"company"`
+
+	// Email Normalisiert (ohne Leerzeichen, kleingeschrieben)
+	Email      string    `json:"email"`
+	Id         int64     `json:"id"`
+	Lang       Lang      `json:"lang"`
+	Message    string    `json:"message"`
+	Name       string    `json:"name"`
+	ReceivedAt time.Time `json:"receivedAt"`
+}
+
+// ContactMessageInput Nachricht von der Kontaktseite (Anforderung #4). Name, E-Mail-Adresse und Nachricht sind Pflicht, das
+// Unternehmen ist optional. Leere oder zu lange Angaben und ungültige Adressen lehnt das Backend mit `422` ab.
+type ContactMessageInput struct {
+	// Company Optional; leer oder fehlend, wenn nicht angegeben
+	Company *string `json:"company,omitempty"`
+	Email   string  `json:"email"`
+	Lang    Lang    `json:"lang"`
+	Message string  `json:"message"`
+	Name    string  `json:"name"`
+}
+
+// ContactMessageList defines model for ContactMessageList.
+type ContactMessageList struct {
+	Items []ContactMessage `json:"items"`
+}
+
 // EditorPost defines model for EditorPost.
 type EditorPost struct {
 	Cover    *Image `json:"cover,omitempty"`
@@ -717,6 +747,9 @@ type LoginJSONRequestBody = LoginRequest
 // RequestConsultationJSONRequestBody defines body for RequestConsultation for application/json ContentType.
 type RequestConsultationJSONRequestBody = ConsultationRequestInput
 
+// SendContactMessageJSONRequestBody defines body for SendContactMessage for application/json ContentType.
+type SendContactMessageJSONRequestBody = ContactMessageInput
+
 // SaveReadinessResultJSONRequestBody defines body for SaveReadinessResult for application/json ContentType.
 type SaveReadinessResultJSONRequestBody = ReadinessResultInput
 
@@ -728,6 +761,9 @@ type ServerInterface interface {
 	// AdminDeleteConsultationRequest Erledigte Anfrage löschen
 	// (DELETE /api/admin/consultation-requests/{id})
 	AdminDeleteConsultationRequest(w http.ResponseWriter, r *http.Request, id Id)
+	// AdminListContactMessages Nachrichten der Kontaktseite, neueste zuerst
+	// (GET /api/admin/contact-messages)
+	AdminListContactMessages(w http.ResponseWriter, r *http.Request)
 	// AdminListPosts Alle Beiträge inklusive Entwürfe, zuletzt geänderte zuerst
 	// (GET /api/admin/posts)
 	AdminListPosts(w http.ResponseWriter, r *http.Request)
@@ -794,6 +830,9 @@ type ServerInterface interface {
 	// RequestConsultation Kostenloses Beratungsgespräch nach der Selbsteinschätzung anfragen
 	// (POST /api/consultation-requests)
 	RequestConsultation(w http.ResponseWriter, r *http.Request)
+	// SendContactMessage Nachricht über die Kontaktseite senden
+	// (POST /api/contact-messages)
+	SendContactMessage(w http.ResponseWriter, r *http.Request)
 	// GetHealth Zustand der Anwendung und der Datenbank
 	// (GET /api/health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
@@ -857,6 +896,20 @@ func (siw *ServerInterfaceWrapper) AdminDeleteConsultationRequest(w http.Respons
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AdminDeleteConsultationRequest(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminListContactMessages operation middleware
+func (siw *ServerInterfaceWrapper) AdminListContactMessages(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminListContactMessages(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1392,6 +1445,20 @@ func (siw *ServerInterfaceWrapper) RequestConsultation(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// SendContactMessage operation middleware
+func (siw *ServerInterfaceWrapper) SendContactMessage(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SendContactMessage(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetHealth operation middleware
 func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Request) {
 
@@ -1738,6 +1805,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/readiness-results", wrapper.SaveReadinessResult)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/readiness-results/{key}", wrapper.DeleteReadinessResult)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/consultation-requests", wrapper.RequestConsultation)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/contact-messages", wrapper.SendContactMessage)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/health", wrapper.GetHealth)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/auth/login", wrapper.Login)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/auth/logout", wrapper.Logout)
@@ -1758,6 +1826,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/admin/users/{id}", wrapper.AdminUpdateUser)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/admin/statistics/page-views", wrapper.AdminGetPageViews)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/admin/statistics/readiness-results", wrapper.AdminListReadinessResults)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/admin/contact-messages", wrapper.AdminListContactMessages)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/admin/consultation-requests", wrapper.AdminListConsultationRequests)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/admin/consultation-requests/{id}", wrapper.AdminDeleteConsultationRequest)
 
@@ -1879,6 +1948,55 @@ func (response AdminDeleteConsultationRequest404JSONResponse) VisitAdminDeleteCo
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminListContactMessagesRequestObject struct {
+}
+
+type AdminListContactMessagesResponseObject interface {
+	VisitAdminListContactMessagesResponse(w http.ResponseWriter) error
+}
+
+type AdminListContactMessages200JSONResponse ContactMessageList
+
+func (response AdminListContactMessages200JSONResponse) VisitAdminListContactMessagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminListContactMessages401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response AdminListContactMessages401JSONResponse) VisitAdminListContactMessagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminListContactMessages403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response AdminListContactMessages403JSONResponse) VisitAdminListContactMessagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -3412,6 +3530,78 @@ func (response RequestConsultation429JSONResponse) VisitRequestConsultationRespo
 	return err
 }
 
+type SendContactMessageRequestObject struct {
+	Body *SendContactMessageJSONRequestBody
+}
+
+type SendContactMessageResponseObject interface {
+	VisitSendContactMessageResponse(w http.ResponseWriter) error
+}
+
+type SendContactMessage204Response struct {
+}
+
+func (response SendContactMessage204Response) VisitSendContactMessageResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SendContactMessage400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SendContactMessage400JSONResponse) VisitSendContactMessageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SendContactMessage403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response SendContactMessage403JSONResponse) VisitSendContactMessageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SendContactMessage422JSONResponse struct{ UnprocessableJSONResponse }
+
+func (response SendContactMessage422JSONResponse) VisitSendContactMessageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SendContactMessage429JSONResponse Error
+
+func (response SendContactMessage429JSONResponse) VisitSendContactMessageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetHealthRequestObject struct {
 }
 
@@ -3731,6 +3921,9 @@ type StrictServerInterface interface {
 	// AdminDeleteConsultationRequest Erledigte Anfrage löschen
 	// (DELETE /api/admin/consultation-requests/{id})
 	AdminDeleteConsultationRequest(ctx context.Context, request AdminDeleteConsultationRequestRequestObject) (AdminDeleteConsultationRequestResponseObject, error)
+	// AdminListContactMessages Nachrichten der Kontaktseite, neueste zuerst
+	// (GET /api/admin/contact-messages)
+	AdminListContactMessages(ctx context.Context, request AdminListContactMessagesRequestObject) (AdminListContactMessagesResponseObject, error)
 	// AdminListPosts Alle Beiträge inklusive Entwürfe, zuletzt geänderte zuerst
 	// (GET /api/admin/posts)
 	AdminListPosts(ctx context.Context, request AdminListPostsRequestObject) (AdminListPostsResponseObject, error)
@@ -3797,6 +3990,9 @@ type StrictServerInterface interface {
 	// RequestConsultation Kostenloses Beratungsgespräch nach der Selbsteinschätzung anfragen
 	// (POST /api/consultation-requests)
 	RequestConsultation(ctx context.Context, request RequestConsultationRequestObject) (RequestConsultationResponseObject, error)
+	// SendContactMessage Nachricht über die Kontaktseite senden
+	// (POST /api/contact-messages)
+	SendContactMessage(ctx context.Context, request SendContactMessageRequestObject) (SendContactMessageResponseObject, error)
 	// GetHealth Zustand der Anwendung und der Datenbank
 	// (GET /api/health)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
@@ -3902,6 +4098,30 @@ func (sh *strictHandler) AdminDeleteConsultationRequest(w http.ResponseWriter, r
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(AdminDeleteConsultationRequestResponseObject); ok {
 		if err := validResponse.VisitAdminDeleteConsultationRequestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AdminListContactMessages operation middleware
+func (sh *strictHandler) AdminListContactMessages(w http.ResponseWriter, r *http.Request) {
+	var request AdminListContactMessagesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AdminListContactMessages(ctx, request.(AdminListContactMessagesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdminListContactMessages")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AdminListContactMessagesResponseObject); ok {
+		if err := validResponse.VisitAdminListContactMessagesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -4515,6 +4735,37 @@ func (sh *strictHandler) RequestConsultation(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RequestConsultationResponseObject); ok {
 		if err := validResponse.VisitRequestConsultationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SendContactMessage operation middleware
+func (sh *strictHandler) SendContactMessage(w http.ResponseWriter, r *http.Request) {
+	var request SendContactMessageRequestObject
+
+	var body SendContactMessageJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SendContactMessage(ctx, request.(SendContactMessageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SendContactMessage")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SendContactMessageResponseObject); ok {
+		if err := validResponse.VisitSendContactMessageResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

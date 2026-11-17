@@ -642,6 +642,26 @@ svg { display: block; }
 .consult-actions { margin-top: 8px; }
 @media (max-width: 520px) { .consult { padding: 22px 18px; } }
 
+/* Kontaktseite (Anforderung #4): Felder untereinander, volle Breite bis zur Lesebreite des Artikels. */
+.contact-form { display: grid; gap: 20px; margin-top: 32px; }
+.contact-field { display: grid; gap: 8px; min-width: 0; }
+.contact-field label { font-weight: 650; }
+.contact-field input,
+.contact-field textarea {
+  width: 100%; min-width: 0; min-height: 52px; padding: 12px 16px; border: 1px solid var(--text-2); border-radius: var(--radius-small);
+  background: var(--surface); color: var(--text); font: inherit;
+}
+.contact-field textarea { min-height: 180px; resize: vertical; line-height: 1.6; }
+.contact-field input:focus-visible,
+.contact-field textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.contact-field [aria-invalid="true"] { border: 2px solid var(--accent); }
+.contact-error { color: var(--accent); font-size: .9375rem; font-weight: 650; overflow-wrap: break-word; }
+.contact-status:empty { display: none; }
+.contact-hint { color: var(--text-2); font-size: .9375rem; line-height: 1.55; overflow-wrap: break-word; }
+.contact-hint a { color: var(--accent); font-weight: 650; }
+.contact-done { display: grid; gap: 16px; justify-items: start; margin-top: 32px; }
+.contact-done p { line-height: 1.65; overflow-wrap: anywhere; }
+
 /* aria-disabled statt disabled: Der Button bleibt fokussierbar und erklärt per aria-describedby, was fehlt. */
 .btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 .btn-primary[aria-disabled="true"]:hover { background: var(--accent-fill); transform: none; }

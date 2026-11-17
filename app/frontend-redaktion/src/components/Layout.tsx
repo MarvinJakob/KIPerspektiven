@@ -61,6 +61,9 @@ function Header({ me }: { me: Me }) {
               <NavLink className="nav-btn press" to="/beratungsanfragen">
                 Beratungsanfragen
               </NavLink>
+              <NavLink className="nav-btn press" to="/nachrichten">
+                Nachrichten
+              </NavLink>
             </>
           )}
           {canManageUsers(me.role) && (

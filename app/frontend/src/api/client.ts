@@ -119,3 +119,14 @@ export const useAuditDimension = (slug: string, lang: Lang) =>
     queryFn: () =>
       unwrap(client.GET('/api/audit/dimensions/{slug}', { params: { path: { slug }, query: { lang } } })),
   });
+
+export type ContactMessageInput = components['schemas']['ContactMessageInput'];
+
+/**
+ * Sendet eine Nachricht der Kontaktseite (Anforderung #4). Wie requestConsultation ohne unwrap: Ein Fehler
+ * führt nicht zur Anmeldung, sondern zu einer Meldung im Formular, das sich erneut senden lässt.
+ */
+export async function sendContactMessage(body: ContactMessageInput) {
+  const { response } = await client.POST('/api/contact-messages', { body });
+  if (!response.ok) throw new ApiError(response.status, response.statusText);
+}

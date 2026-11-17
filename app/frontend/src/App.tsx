@@ -13,6 +13,7 @@ import { Home } from './pages/Home';
 import { Legal } from './pages/Legal';
 import { NotFound } from './pages/NotFound';
 import { PostPage } from './pages/Post';
+import { Contact } from './pages/Contact';
 import { Profile } from './pages/Profile';
 import { TopicPage } from './pages/Topic';
 import { UnderstandAi } from './pages/UnderstandAi';
@@ -31,6 +32,7 @@ export const routes: RouteObject[] = [
       { path: 'blog', element: <Blog /> },
       { path: 'blog/:slug', element: <PostPage /> },
       { path: 'profil', element: <Profile /> },
+      { path: 'kontakt', element: <Contact /> },
       { path: 'ki-einsatzfelder', element: <AiUses /> },
       { path: 'ki-verstehen', element: <UnderstandAi /> },
       { path: 'impressum', element: <Legal page="imprint" /> },

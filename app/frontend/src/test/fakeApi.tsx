@@ -7,6 +7,7 @@ import type {
   AuditOverview,
   AuditQuestion,
   ConsultationRequestInput,
+  ContactMessageInput,
   Post,
   PostSummary,
   ReadinessResultInput,
@@ -190,8 +191,18 @@ export function holdConsultation() {
   return answer;
 }
 
+/** Gesendete Nachrichten der Kontaktseite (Anforderung #4) seit dem letzten installFakeApi. */
+export const contactCalls: ContactMessageInput[] = [];
+const contactAnswers: number[] = [];
+/** Legt die Statuscodes der nächsten Kontaktnachrichten fest, z. B. 500 oder 429; danach antwortet die API mit 204. */
+export const answerContact = (...statuses: number[]) => {
+  contactAnswers.push(...statuses);
+};
+
 /** Ersetzt fetch durch eine kleine Nachbildung der öffentlichen API. */
 export function installFakeApi(posts: FakePost[] = POSTS) {
+  contactCalls.length = 0;
+  contactAnswers.length = 0;
   readinessCalls.length = 0;
   readinessFails = false;
   heldReadiness.length = 0;
@@ -211,6 +222,11 @@ export function installFakeApi(posts: FakePost[] = POSTS) {
     if (parts[1] === 'consultation-requests' && input instanceof Request && input.method === 'POST') {
       consultationCalls.push(JSON.parse(await input.text()) as ConsultationRequestInput);
       const status = await (heldConsultations.shift() ?? consultationAnswers.shift() ?? 204);
+      return status === 204 ? new Response(null, { status }) : json(status, { message: 'Fehler.' });
+    }
+    if (parts[1] === 'contact-messages' && input instanceof Request && input.method === 'POST') {
+      contactCalls.push(JSON.parse(await input.text()) as ContactMessageInput);
+      const status = contactAnswers.shift() ?? 204;
       return status === 204 ? new Response(null, { status }) : json(status, { message: 'Fehler.' });
     }
     if (parts[1] === 'topics' && parts.length === 2) {
