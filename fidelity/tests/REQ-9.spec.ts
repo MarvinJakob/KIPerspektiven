@@ -10,13 +10,13 @@ const READINESS = { de: /KI Readiness/, en: /AI Readiness/ } as const;
 const SECONDARY: Record<Lang, { label: string; name: RegExp; target: 'topics' | RegExp }[]> = {
   de: [
     { label: 'Themen', name: /themen/i, target: 'topics' },
-    { label: 'News', name: /\bnews\b/i, target: /\/de\/blog(\/|$|\?|#)/ },
+    { label: 'News', name: /\bnews\b/i, target: /\/de\/(blog|news)(\/|$|\?|#)/ },
     { label: 'KI verstehen', name: /ki verstehen/i, target: /\/de\/ki-verstehen(\/|$|\?|#)/ },
     { label: 'Über mich', name: /über mich/i, target: /\/de\/profil(\/|$|\?|#)/ },
   ],
   en: [
     { label: 'Topics', name: /topics/i, target: 'topics' },
-    { label: 'News', name: /\bnews\b/i, target: /\/en\/blog(\/|$|\?|#)/ },
+    { label: 'News', name: /\bnews\b/i, target: /\/en\/(blog|news)(\/|$|\?|#)/ },
     { label: 'Understand AI', name: /understand ai/i, target: /\/en\/ki-verstehen(\/|$|\?|#)/ },
     { label: 'About me', name: /about me/i, target: /\/en\/profil(\/|$|\?|#)/ },
   ],
@@ -35,44 +35,80 @@ function hero(page: Page): Locator {
   return page.getByRole('region').filter({ has: page.getByRole('heading', { level: 1 }) }).first();
 }
 
+/** Zugänglicher Name der Themennavigation im Einstiegsbereich; nur ihre Links gehören nicht zu den Aktionen. */
+const TOPIC_INDEX = /^\s*(Direkt zu den Themen|Jump to the topics)\s*$/i;
+
 /**
- * Sichtbare Links und Schaltflächen des Einstiegsbereichs außerhalb verschachtelter Navigationen,
- * jeweils mit der Angabe, ob sie eine gefüllte Fläche (Button-Optik) haben.
+ * Sichtbare Links und Schaltflächen des Einstiegsbereichs außerhalb der Themennavigation,
+ * jeweils mit der Angabe, ob sie im Ruhezustand eine gefüllte Fläche (Button-Optik) haben.
  */
 async function heroActions(page: Page): Promise<Action[]> {
+  // Ruhezustand: Mauszeiger aus dem Einstiegsbereich nehmen, damit kein Hover-Zustand die Fläche verändert
+  await page.mouse.move(0, 0);
   const region = hero(page);
   await expect(region).toBeVisible();
+  // Andere Navigationen (z. B. ein eigenes <nav> für die nachrangigen Zugänge) zählen mit
+  const topicIndex = await region.getByRole('navigation', { name: TOPIC_INDEX }).elementHandles();
   const candidates = await region.getByRole('link').or(region.getByRole('button')).all();
   const actions: Action[] = [];
   for (const locator of candidates) {
     if (!(await locator.isVisible())) continue;
-    const { inNav, filled } = await locator.evaluate((el) => {
+    const { inTopicIndex, filled } = await locator.evaluate(async (el, navs) => {
+      // Laufende Übergänge (etwa vom Verlassen des Hover-Zustands) abwarten
+      await Promise.all(
+        el
+          .getAnimations()
+          .filter((a) => a instanceof CSSTransition)
+          .map((a) => a.finished.catch(() => undefined)),
+      );
+
+      // Farben über ein Canvas nach sRGB normalisieren, damit jedes CSS-Farbformat zählt (rgb, oklch, color-mix …)
+      const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true })!;
       const parse = (c: string) => {
-        const m = c.match(/rgba?\(([^)]+)\)/);
-        if (!m) return null;
-        const [r, g, b, a = '1'] = m[1].split(/[,\s/]+/).filter(Boolean);
-        return { r: Number(r), g: Number(g), b: Number(b), a: Number(a) };
+        ctx.clearRect(0, 0, 1, 1);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+        ctx.fillStyle = c;
+        ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+        return { r, g, b, a: a / 255 };
       };
       const own = getComputedStyle(el);
       const color = parse(own.backgroundColor);
       let behind = { r: 255, g: 255, b: 255, a: 1 };
       for (let e = el.parentElement; e; e = e.parentElement) {
         const c = parse(getComputedStyle(e).backgroundColor);
-        if (c && c.a > 0) {
+        if (c.a > 0) {
           behind = c;
           break;
         }
       }
       const differs =
-        !!color &&
         color.a > 0.1 &&
         Math.abs(color.r - behind.r) + Math.abs(color.g - behind.g) + Math.abs(color.b - behind.b) > 12;
-      return {
-        inNav: !!el.parentElement?.closest('nav, [role="navigation"]'),
-        filled: (own.backgroundImage !== 'none' && own.backgroundImage !== '') || differs,
+
+      // Bild oder Verlauf zählt nur als Fläche, wenn eine Ebene mindestens die halbe Breite und Höhe abdeckt.
+      // Schmale Verläufe als Unterstreichung und auf den Text beschnittene Verläufe sind keine Fläche.
+      const box = el.getBoundingClientRect();
+      const covers = (value: string | undefined, length: number) => {
+        if (!value || value === 'auto') return true;
+        if (value.endsWith('%')) return parseFloat(value) >= 50;
+        if (value.endsWith('px')) return parseFloat(value) >= length / 2;
+        return true;
       };
-    });
-    if (!inNav) actions.push({ locator, filled });
+      const hasImage = own.backgroundImage !== 'none' && own.backgroundImage !== '';
+      const clippedToText = /\btext\b/.test(`${own.backgroundClip} ${own.getPropertyValue('-webkit-background-clip')}`);
+      const imageCovers = own.backgroundSize.split(',').some((layer) => {
+        const [w, h] = layer.trim().split(/\s+/);
+        if (w === 'cover' || w === 'contain') return true;
+        return covers(w, box.width) && covers(h, box.height);
+      });
+
+      return {
+        inTopicIndex: navs.some((nav) => nav.contains(el)),
+        filled: (hasImage && !clippedToText && imageCovers) || differs,
+      };
+    }, topicIndex);
+    if (!inTopicIndex) actions.push({ locator, filled });
   }
   return actions;
 }

@@ -14,19 +14,19 @@ Besucher erkennen im Einstiegsbereich der Startseite sofort eine einzige Hauptak
 ## Begriffe
 
 - **Einstiegsbereich:** der oberste Bereich der Startseite (`/de`, `/en`), der die Hauptüberschrift (Ebene 1) enthält. Er ist als Region ausgezeichnet, deren zugänglicher Name die Hauptüberschrift ist (z. B. `<section aria-labelledby>`). Die darin verschachtelte Navigation zu den Themenabschnitten („Direkt zu den Themen“ / „Jump to the topics“) gehört **nicht** zu den Aktionen des Einstiegsbereichs.
-- **Aktionen des Einstiegsbereichs:** alle sichtbaren Links und Schaltflächen im Einstiegsbereich außerhalb verschachtelter Navigationen.
-- **Gefüllte Fläche (Button-Optik):** Eine Aktion hat eine gefüllte Fläche, wenn ihr berechneter Hintergrund ein Bild/Verlauf ist oder eine nicht transparente Hintergrundfarbe, die sich vom tatsächlich dahinterliegenden Hintergrund unterscheidet. Rahmen allein zählen nicht als gefüllte Fläche.
+- **Aktionen des Einstiegsbereichs:** alle sichtbaren Links und Schaltflächen im Einstiegsbereich außerhalb der Themennavigation. Andere Navigationen im Einstiegsbereich (z. B. ein eigenes `<nav>` für die nachrangigen Zugänge) sind erlaubt; ihre Links zählen zu den Aktionen.
+- **Gefüllte Fläche (Button-Optik):** Eine Aktion hat eine gefüllte Fläche, wenn ihr berechneter Hintergrund ein Bild/Verlauf ist, das mindestens die halbe Breite und Höhe der Aktion abdeckt, oder eine nicht transparente Hintergrundfarbe (gleich in welchem CSS-Farbformat), die sich vom tatsächlich dahinterliegenden Hintergrund unterscheidet. Rahmen allein, schmale Verläufe als Unterstreichung und auf den Text beschnittene Verläufe (`background-clip: text`) zählen nicht als gefüllte Fläche. Bewertet wird der Ruhezustand ohne Mauszeiger über der Aktion, nach Abschluss laufender Übergänge.
 - **Hauptaktion:** die einzige Aktion des Einstiegsbereichs mit gefüllter Fläche.
 - **Nachrangige Zugänge:** die Aktionen des Einstiegsbereichs ohne gefüllte Fläche, mit diesen zugänglichen Namen und Zielen:
 
   | Zugang | Deutsch (Name enthält) | Englisch (Name enthält) | Ziel |
   |---|---|---|---|
   | Themen | „Themen“ | „Topics“ | Themenübersicht der Startseite: Die Überschrift „Gute Fragen. Neue Perspektiven.“ bzw. „Good questions. New perspectives.“ liegt danach im sichtbaren Bereich |
-  | News | „News“ | „News“ | Seite unter `/<lang>/blog` |
+  | News | „News“ | „News“ | Seite unter `/<lang>/blog` oder `/<lang>/news` |
   | KI verstehen | „KI verstehen“ | „Understand AI“ | Seite unter `/<lang>/ki-verstehen` |
   | Über mich | „Über mich“ | „About me“ | Seite unter `/<lang>/profil` |
 
-  „KI verstehen“ ist nach Erstellung des Issues hinzugekommen und zählt zu den „übrigen Einstiegen“, die erhalten bleiben. Die Ziel-URLs sind die heutigen Ziele; das Issue verlangt keine Änderung der Linkziele (vgl. #8: keine Umbenennung von URLs).
+  „KI verstehen“ ist nach Erstellung des Issues hinzugekommen und zählt zu den „übrigen Einstiegen“, die erhalten bleiben. Die Ziel-URLs sind die heutigen Ziele; das Issue verlangt keine Änderung der Linkziele. Weil REQ-8 „Blog“ in „News“ umbenennt und eine geänderte URL zulässt, solange alle Links funktionieren, ist für News zusätzlich `/<lang>/news` zulässig.
 - **Startseite der KI Readiness:** Seite unter `/<lang>/…` mit Hauptüberschrift „KI Readiness“ (Deutsch) bzw. „AI Readiness“ (Englisch); heute `/<lang>/themen/ai-audit`.
 - **Ansichten:** Desktop (Desktop Chrome, 1280 × 720) und Mobil (Pixel 7, 412 × 839), jeweils als eigenes Playwright-Projekt.
 
@@ -91,7 +91,8 @@ Besucher erkennen im Einstiegsbereich der Startseite sofort eine einzige Hauptak
 - Inhalte und Ablauf der KI Readiness selbst.
 - Der KI-Readiness-Banner weiter unten auf der Startseite und die Themennavigation „Direkt zu den Themen“ im Einstiegsbereich.
 - Ein eigener Test für die Gestaltung des Fokusrahmens; Tastaturbedienbarkeit wird über Erreichbarkeit und Enter geprüft.
-- Neue URLs für Blog, KI verstehen oder Profil.
+- Ob die Hauptaktion beim Laden von fixierten Elementen (z. B. Kopfzeile oder Hinweisbanner) verdeckt wird; AC6 prüft nur, dass sie vollständig im sichtbaren Bereich liegt (`toBeInViewport` erkennt keine Verdeckung).
+- Neue URLs für KI verstehen oder Profil; für News siehe Begriffe.
 
 ## Verifikation der Tests (Team 1)
 
@@ -100,9 +101,16 @@ Besucher erkennen im Einstiegsbereich der Startseite sofort eine einzige Hauptak
 - [x] Gegenprobe: Jeder Test wurde mindestens einmal rot gesehen (Funktion fehlt, falsche Erwartung oder bewusst verfälschte Erwartung) und ist danach unverändert zurückgesetzt.
 - [x] Die Tests laufen auf Desktop und Mobil und hängen nicht voneinander oder von der Reihenfolge ab.
 - [x] Testdaten kommen nur aus dem Entwicklungs-Seed (`DEV_SEED=true`) oder werden im Test selbst angelegt.
+- [x] Vollständigkeit: Jede Aussage des Issues ist einem Kriterium oder „Nicht Teil der Anforderung“ zugeordnet (genau eine hervorgehobene Hauptaktion → AC1, AC2; direkt zur KI Readiness mit diesem Namen → AC1–AC3; übrige Einstiege erreichbar → AC4, AC5; mobil keine lange Buttonliste, Hauptaktion sofort erkennbar → AC6; Desktop, Mobil und beide Sprachen → alle Kriterien über beide Projekte und `/de`, `/en`; Tastatur und verständliche Beschriftungen → AC7 sowie Namen in AC1, AC2, AC4, AC5; freie Gestaltung → Nicht Teil).
 
 **Ergebnis 2026-11-16** (App aus `origin/main` 72175f5, Port 20009, Desktop und Mobil):
 
 - Stand `main`: AC1–AC5 und AC7 sowie AC6 mobil rot aus dem richtigen Grund. Heute ist „Themen entdecken“ die einzige Aktion mit gefüllter Fläche, „KI Reifegrad einschätzen“ ist nur ein Textlink, und mobil stehen die vier Textlinks in vier Zeilen untereinander. AC6 Desktop grün, denn dort stehen die Links bereits in einer Zeile.
 - Positivprobe: Mit einer lokal simulierten, nicht committeten Umsetzung („KI Readiness starten“ / „Start AI Readiness“ als gefüllter Button, vier Textlinks umbrechend darunter) bestehen alle 14 Läufe, auch mit `--repeat-each 3` (42/42).
 - Gegenprobe gegen die Simulation: verfälschter Name (AC1–AC3), Zeilenzahl 0 (AC6), falsches Linkziel (AC4, AC5), zu wenige Tab-Schritte (AC7). Jeder Test wurde rot, danach unverändert zurückgesetzt.
+
+**Testkorrektur #34 (Team 3, 2026-11-17)** (App aus `origin/main` 6a54f6c, Port 20034, Desktop und Mobil): Aktionen schließen nur noch die Themennavigation (über ihren zugänglichen Namen) aus; Hintergrundfarben werden formatunabhängig über ein Canvas verglichen; Verläufe zählen nur ab halber Breite und Höhe und nicht bei `background-clip: text`; vor dem Auslesen wird der Mauszeiger entfernt und laufende Übergänge werden abgewartet; News darf auch unter `/<lang>/news` liegen.
+
+- Stand `main`: unverändert AC1–AC5 und AC7 rot aus dem richtigen Grund („Themen entdecken“ statt KI Readiness als einzige gefüllte Aktion).
+- Positivprobe: lokal simulierte, nicht committete Umsetzung mit Hauptaktion in `oklch()`-Farbe, nachrangigen Zugängen in einem eigenen `<nav>`, Unterstreichung per schmalem Verlauf und Hover-Hintergrund mit Übergang: 42/42 mit `--repeat-each 3`. Der bisherige Test scheitert an derselben Simulation (keine bzw. nicht gefundene Aktionen).
+- Gegenprobe gegen eine zweite Simulation (Hauptaktion als vollflächiger Verlauf, „News“ zusätzlich gefüllt): AC1, AC2, AC4, AC5 rot (zwei gefüllte Aktionen bzw. „News“ nicht nachrangig). Simulation vollständig zurückgenommen.
