@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Vibe Coding: Warum schneller Code allein nicht reicht und wie fünf Engineering-Perspektiven helfen, Verantwortung für das Ergebnis zu übernehmen.">
+  <title>Vibe Coding · KI Perspektiven</title>
+  <link rel="stylesheet" href="../design_cimt/styles.css">
+  <link rel="stylesheet" href="../landing_v03/styles.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="../landing_v03/script.js" defer></script>
+</head>
+<body>
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M20 12H5m6-6-6 6 6 6"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 15.5A9 9 0 0 1 8.5 4 9 9 0 1 0 20 15.5Z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  </svg>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../landing_v03/index.html" aria-label="KI Perspektiven – Startseite"><span class="brand-mark" aria-hidden="true">ki<span>.</span></span><span class="brand-name">KI Perspektiven<span>Wissen trifft Umsetzung.</span></span></a>
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="navigation"><span class="menu-lines" aria-hidden="true"></span><span id="menu-label">Menü</span></button>
+      <nav class="navigation" id="navigation" aria-label="Hauptnavigation"><a href="../landing_v03/index.html#themen" class="is-section">Themen</a><a href="../design/index.html#/blog">News</a><a href="../landing_v03/index.html#reifegrad">KI-Reifegrad</a><a href="../profil/index.html">Über mich</a></nav>
+      <div class="header-actions"><button class="icon-button" id="theme-toggle" type="button" aria-label="Dunkle Darstellung" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg></button></div>
+    </div>
+  </header>
+
+  <main id="inhalt" tabindex="-1">
+    <!-- Hero -->
+    <section class="topic-hero" id="start" aria-labelledby="topic-title">
+      <div class="container">
+        <nav class="breadcrumb" aria-label="Brotkrumen"><a href="../landing_v03/index.html">Start</a><span aria-hidden="true">/</span><a href="../landing_v03/index.html#themen">Themen</a><span aria-hidden="true">/</span><span aria-current="page">Vibe Coding</span></nav>
+        <div class="hero-center">
+          <h1 id="topic-title">Vibe Coding</h1>
+          <p class="topic-subtitle">Willkommen beim Vibe Coding: Dem einfachsten Weg, <span>SLOP</span> zu erzeugen.</p>
+          <div class="topic-meta"><span><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>ca. 7 Min. Lesezeit</span><span>Stand: 16. November 2026</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Einleitung: gesamter Text unter „Willkommen beim Vibe Coding“ -->
+    <section class="container intro" aria-label="Einleitung">
+      <div class="intro-body">
+        <p class="intro-lead">Du beschreibst, was du möchtest und die KI schreibt den Code. Das macht Spaß. Genial. Du siehst zu, wie ganze Welten vor deinen Augen entstehen, die ungefähr so aussehen wie in deiner Vorstellung. Falls nicht, folgt die nächste hoch durchdachte und präzise Anforderung: „Mach, dass es irgendwie moderner aussieht.“ Und schon hast du die nächsten Token verbrannt und dazu beigetragen, etwas maximal Mittelmäßiges auf den großen Haufen sinnloser Dinge zu generieren.</p>
+        <p>Zwischen Idee und vorzeigbarem Ergebnis liegt so plötzlich kaum noch Zeit. Ein Prototyp <em>darf</em> improvisiert sein. Für Unternehmen ist genau das sehr verführerisch. Er hat abgerundete Ecken, einen Dark Mode und eine Startseite, die „Deine Produktivität. Neu gedacht.“ verspricht. Was dann passiert, erfahren wir, sobald es jemand produktiv nehmen möchte. Denn eine Anwendung kann beeindruckend aussehen und trotzdem bei der ersten ernst gemeinten Benutzung auseinanderfallen.</p>
+        <figure class="example-note">
+          <figcaption>STELL DIR VOR</figcaption>
+          <p>Wir öffnen ein Formular und geben unsere Daten ein. Der Speichern-Button zeigt „Erfolgreich gespeichert“. Ob etwas gespeichert wurde, ist eine philosophische Anschlussfrage. „Oh, du möchtest ausschließlich deine eigenen Daten sehen?“ Was für ein überraschend anspruchsvoller Sonderwunsch für eine Anwendung mit Benutzerkonten. Wir melden den Fehler der KI. Sie behebt ihn. Dafür verschwindet die Navigation. Wir lassen die Navigation reparieren. Jetzt ist der Login optional. Nach zwölf Runden läuft die Demo wieder, und wir beschließen, während der Präsentation ausschließlich sehr kontrollierte Mausbewegungen auszuführen. So wächst Software, deren innere Zusammenhänge irgendwann niemand mehr erklären kann. Aber alle erinnern sich noch, dass sie am Anfang wirklich schnell entstanden ist.</p>
+        </figure>
+        <p>Während wir noch überlegen, ob die erste Lösung sinnvoll war, hat die KI bereits drei weitere implementiert. Code ist plötzlich im Überfluss vorhanden. Die Verantwortung für das Ergebnis bleibt trotzdem bei uns. Also müssten wir beurteilen, was da entsteht. Aber können wir das überhaupt noch, wenn die KI schneller neue Funktionen schreibt, als wir die bestehenden verstehen? Wer jede erzeugte Zeile persönlich kontrollieren möchte, hat sich gerade einen sehr anstrengenden Job als menschliche Bremse geschaffen.</p>
+        <blockquote class="pull-quote"><p>„Humans should review <span>ideas</span>, not code.“</p></blockquote>
+        <p>Diese fünf Engineering-Perspektiven helfen dabei, diese Verantwortung in den Entwicklungsprozess aufzunehmen.</p>
+        <ol class="perspective-index">
+        <li><a href="#prompt"><span>01</span><strong>Prompt Engineering<small>Den Auftrag verständlich formulieren</small></strong><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></li>
+        <li><a href="#context"><span>02</span><strong>Context Engineering<small>Die KI war beim entscheidenden Meeting leider nicht dabei</small></strong><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></li>
+        <li><a href="#harness"><span>03</span><strong>Harness Engineering<small>„Work-Life-Balance“ für die KI</small></strong><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></li>
+        <li><a href="#specification"><span>04</span><strong>Specification Engineering<small>„Sind wir schon da?“</small></strong><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></li>
+        <li><a href="#product"><span>05</span><strong>Product Engineering<small>Braucht jemand dieses Formular noch oder kann das weg?</small></strong><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Perspektiven 01–05 -->
+    <div class="perspectives">
+      <article class="container split perspective" id="prompt" aria-labelledby="p1-title">
+        <header class="split-head">
+          <span class="split-number" aria-hidden="true">01</span>
+          <p class="eyebrow">PROMPT ENGINEERING</p>
+          <h2 id="p1-title">Den Auftrag verständlich formulieren.</h2>
+        </header>
+        <div class="split-body">
+          <p>Einen guten Prompt zu schreiben bedeutet, eine Anfrage so zu formulieren, dass die KI möglichst klar erkennt, was sie tun soll. Dazu gehören das gewünschte Ergebnis, die Zielgruppe, wichtige Grenzen und das Format. Auch der KI zu erklären, <em>warum</em>, hilft ihr, zwischen mehreren möglichen Lösungen zu wählen.</p>
+          <figure class="example-note">
+            <figcaption>IM BEISPIEL</figcaption>
+            <p>Statt „Fasse das Dokument zusammen“ könnte der Auftrag lauten: „Fasse das Dokument für unsere Geschäftsführung in fünf kurzen Punkten zusammen. Sie soll entscheiden können, ob sich ein Pilotprojekt lohnt. Nenne deshalb Nutzen, Aufwand und offene Fragen.“</p>
+          </figure>
+          <p>Ein guter Prompt verbessert die Voraussetzungen, garantiert aber keine richtige Antwort. Trotzdem ist das Prinzip „Shit in → Shit out“ immer noch grundlegend richtig.</p>
+        </div>
+      </article>
+
+      <article class="container split perspective" id="context" aria-labelledby="p2-title">
+        <header class="split-head">
+          <span class="split-number" aria-hidden="true">02</span>
+          <p class="eyebrow">CONTEXT ENGINEERING</p>
+          <h2 id="p2-title">Die KI war beim entscheidenden Meeting leider nicht dabei.</h2>
+        </header>
+        <div class="split-body">
+          <p>Context Engineering beschäftigt sich damit, die jeweils relevanten Informationen bereitzustellen und während der Arbeit aktuell zu halten: passende Codeausschnitte, Schnittstellen, Projektregeln, fachliche Begriffe und frühere Entscheidungen.</p>
+          <figure class="example-note">
+            <figcaption>IN UNSEREM FORMULAR</figcaption>
+            <p>Unser Auftrag ist jetzt klar. Nur weiß die KI noch nicht, dass es bereits einen Speicherdienst gibt, warum bestimmte Daten getrennt bleiben müssen und welche technische Altlast seit drei Jahren liebevoll „Übergangslösung“ heißt.</p>
+          </figure>
+          <p>Entscheidend ist, dass die KI das passende Wissen zum passenden Zeitpunkt findet und widersprüchliche oder veraltete Angaben erkennen kann. Sonst implementiert sie eine ausgesprochen elegante Lösung für ein Unternehmen, das es seit der letzten Umstrukturierung nicht mehr gibt.</p>
+        </div>
+      </article>
+
+      <article class="container split perspective" id="harness" aria-labelledby="p3-title">
+        <header class="split-head">
+          <span class="split-number" aria-hidden="true">03</span>
+          <p class="eyebrow">HARNESS ENGINEERING</p>
+          <h2 id="p3-title">„Work-Life-Balance“ für die KI.</h2>
+        </header>
+        <div class="split-body">
+          <p>Jetzt kennt die KI ihren Auftrag und unser Projekt. Damit sie über mehrere Arbeitsschritte verlässlich vorankommt, braucht sie eine technische Arbeitsumgebung. Wir statten unseren Agenten mit Werkzeugen aus, um Schnittstellen zu benutzen und Aktionen auszuführen. Geschickte Administratoren können in einer Organisation eigene Regeln hinzufügen. So können unter anderem Freigaben und Zugriffe verwaltet werden.</p>
+          <figure class="example-note">
+            <figcaption>IN UNSEREM FORMULAR</figcaption>
+            <p>Für unser Formular heißt das: Der Agent kann den Fehler nachstellen, eine Änderung vornehmen und anschließend prüfen, ob Speichern, Neuladen, Login und Navigation noch zusammenspielen. Schlägt eine Prüfung fehl, fließt das Ergebnis in den nächsten Versuch ein.</p>
+          </figure>
+          <p>Im Harness Engineering steuern wir die Fähigkeiten, die unser Agent erhält, um unsere Aufgabe zu erfüllen.</p>
+        </div>
+      </article>
+
+      <article class="container split perspective" id="specification" aria-labelledby="p4-title">
+        <header class="split-head">
+          <span class="split-number" aria-hidden="true">04</span>
+          <p class="eyebrow">SPECIFICATION ENGINEERING</p>
+          <h2 id="p4-title">„Sind wir schon da?“</h2>
+        </header>
+        <div class="split-body">
+          <p>Damit unser Agent einschätzen kann, wann er „fertig“ ist, braucht er allerdings einen Maßstab. Wir sollten uns selbst klar darüber werden, was das gewünschte Ergebnis eigentlich ist. Dann machen wir aus unseren Ideen klare, überprüfbare und gepflegte Beschreibungen des gewünschten Verhaltens. „Oder wie wäre das Gleiche in Grün?“ Auch das Design sowie das Look and Feel gehören mit dazu.</p>
+          <figure class="example-note">
+            <figcaption>IN UNSEREM FORMULAR</figcaption>
+            <p>Auch KI kann noch keine Gedanken lesen. Soll die Eingabe nur den nächsten Seitenwechsel überleben oder auch einen Neustart? Wer darf sie lesen, ändern oder löschen? Was passiert, wenn die Datenbank nicht erreichbar ist? Es ist Zeit, mal genauer hinzuschauen.</p>
+          </figure>
+          <p>Und wenn sich die Anforderungen ändern, müssen Beschreibung und Prüfungen mitziehen. Sonst automatisieren wir mit beeindruckender Konsequenz die Wünsche vom vorletzten Donnerstag.</p>
+        </div>
+      </article>
+
+      <article class="container split perspective" id="product" aria-labelledby="p5-title">
+        <header class="split-head">
+          <span class="split-number" aria-hidden="true">05</span>
+          <p class="eyebrow">PRODUCT ENGINEERING</p>
+          <h2 id="p5-title">Braucht jemand dieses Formular noch oder kann das weg?</h2>
+        </header>
+        <div class="split-body">
+          <p>Wir sprechen mit den Menschen, beobachten ihre Abläufe, prüfen Annahmen mit kleinen Experimenten und schauen, ob die fertige Lösung tatsächlich Zeit oder Fehler spart. Product Engineering verbindet das Verständnis für Nutzerprobleme mit Gestaltung, technischer Umsetzung und Lernen im Betrieb.</p>
+          <figure class="example-note">
+            <figcaption>IN UNSEREM FORMULAR</figcaption>
+            <p>Was ist eigentlich mit diesem Formular dort? Vielleicht wollen die Menschen überhaupt keine Daten eingeben. Vielleicht wollen sie nur einen Antrag genehmigen und tippen dafür Informationen ab, die im Unternehmen längst vorliegen. Dann wäre doch eine schlankere Lösung viel hilfreicher als unser inzwischen hervorragend getestetes Formular.</p>
+          </figure>
+          <p>KI kann diese Versuche beschleunigen. Welche Probleme wir lösen und woran wir Erfolg erkennen, müssen wir weiterhin klären. Sonst erzeugen wir schneller zusätzliche Arbeit und geben ihr eine sehr geschmackvolle Benutzeroberfläche.</p>
+        </div>
+      </article>
+    </div>
+
+    <!-- Fazit -->
+    <section class="container split conclusion" aria-labelledby="conclusion-title">
+      <div class="split-head">
+        <p class="eyebrow">FAZIT</p>
+        <h2 id="conclusion-title">KI hat das Tempo erhöht.<br><span>Jetzt den Anspruch anheben.</span></h2>
+      </div>
+      <div class="split-body">
+        <p>KI hat das Tempo erhöht. Jetzt wäre ein guter Moment, auch den Anspruch anzuheben. Die fünf Engineering-Perspektiven helfen uns, die gewonnene Geschwindigkeit sinnvoll zu nutzen. Sie geben unserer Arbeit genug Verlässlichkeit, damit wir uns mehr trauen können. Das bietet Raum, um neugierig zu sein, Gewohntes zu hinterfragen und Ideen voranzubringen, die noch keine Erfolgsgarantie mitbringen. Kreativität hält sich schließlich selten an den Projektplan. Es wäre schade, wenn wir dank KI für alles Zeit hätten, außer für einen originellen Gedanken.</p>
+        <p>Genau darin liegt eine große Chance: Wir können mehr ausprobieren, mutiger gestalten und herausfinden, was Menschen tatsächlich weiterbringt. Dafür braucht es unsere Fantasie, unser Urteilsvermögen und gelegentlich die charmante Unverschämtheit, das bisher Selbstverständliche infrage zu stellen. Wenn wir schon Software in bislang unbekanntem Tempo entwickeln können, dürfen wir uns ruhig etwas einfallen lassen.</p>
+      </div>
+    </section>
+
+    <!-- Weiter -->
+    <nav class="container next-topics" aria-label="Weiterlesen">
+      <a href="../landing_v03/index.html#themen"><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg><span><small>ALLE THEMEN</small>Zur Themenübersicht</span></a>
+      <a href="../landing_v03/index.html#reifegrad"><span><small>DER NÄCHSTE SCHRITT</small>KI-Reifegrad einschätzen</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    </nav>
+  </main>
+
+  <footer class="container landing-footer"><a class="brand" href="../landing_v03/index.html"><span class="brand-mark" aria-hidden="true">ki<span>.</span></span><span class="brand-name">KI Perspektiven</span></a><p>Lokaler Designentwurf · Themenseite Vibe Coding v1<br>cimt-Farben · Keine Datenübertragung</p><a class="quiet-link" href="#start">Nach oben ↑</a></footer>
+</body>
+</html>

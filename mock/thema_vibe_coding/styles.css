@@ -1,0 +1,133 @@
+/* Shared brand, navigation and accessibility tokens come from design_cimt/styles.css.
+   Header and footer come from landing_v03/styles.css. No illustrations: graphics are designed separately.
+   Layout idea: every section is a split – heading on the left (sticky while reading), text on the right. */
+.navigation > a.is-section { color: var(--brand-ink); }
+
+/* ---------- Split: the one layout pattern of this page ---------- */
+.split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 88px; align-items: start; }
+.split-head { position: sticky; top: 120px; min-width: 0; }
+.split-head .eyebrow { font-size: 11px; margin-bottom: 16px; }
+.split-head h2 { font-size: clamp(1.9rem, 2.7vw, 2.5rem); line-height: 1.15; letter-spacing: -.035em; }
+.split-body { min-width: 0; max-width: 680px; }
+.split-body > p { color: var(--muted); font-size: 16.5px; line-height: 1.85; }
+.split-body > p + p { margin-top: 18px; }
+.split-body em { color: var(--ink); }
+
+/* ---------- Hero: centered title ---------- */
+.topic-hero { background: var(--warm); padding-block: 28px 104px; }
+.breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.breadcrumb a { color: var(--muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--brand-ink); text-decoration: underline; }
+.breadcrumb [aria-current] { color: var(--ink); font-weight: 600; }
+.hero-center { max-width: 860px; margin: 72px auto 0; text-align: center; }
+.topic-hero h1 { font-size: clamp(3.6rem, 8vw, 7rem); line-height: 1; letter-spacing: -.06em; }
+.topic-subtitle { font-size: clamp(1.4rem, 2.4vw, 2rem); line-height: 1.3; letter-spacing: -.025em; font-weight: 600; margin-top: 26px; text-wrap: balance; }
+.topic-subtitle > span { color: var(--brand-ink); letter-spacing: .02em; }
+.topic-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 26px; margin-top: 32px; font-size: 12px; color: var(--muted); }
+.topic-meta > span { display: inline-flex; align-items: center; gap: 8px; }
+.topic-meta .icon { width: 16px; height: 16px; color: var(--brand-ink); }
+
+/* ---------- Intro: whole introductory text in one centered reading column ---------- */
+.intro { padding-block: 96px 104px; }
+.intro-body { max-width: 680px; margin-inline: auto; }
+.intro-body > p { color: var(--muted); font-size: 16.5px; line-height: 1.85; }
+.intro-body > p + p, .intro-body > figure + p, .intro-body > blockquote + p { margin-top: 18px; }
+.intro-body em { color: var(--ink); }
+.intro-body > .intro-lead { color: var(--ink); font-size: 19px; line-height: 1.75; letter-spacing: -.01em; }
+.pull-quote { margin: 56px 0; padding-block: 36px; border-block: 1px solid var(--line); text-align: center; }
+.pull-quote p { font-size: clamp(1.9rem, 3.6vw, 2.75rem); font-weight: 700; line-height: 1.12; letter-spacing: -.045em; text-wrap: balance; }
+.pull-quote span { color: var(--brand-ink); }
+
+/* ---------- Example note (italic passages of the source text) ---------- */
+.example-note { margin: 28px 0; padding: 22px 24px; background: var(--warm); border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: 0 16px 16px 0; }
+.example-note figcaption { font-size: 10px; font-weight: 650; letter-spacing: .12em; color: var(--brand-ink); margin-bottom: 10px; }
+.example-note p { font-size: 15.5px; line-height: 1.8; font-style: italic; color: var(--ink); }
+
+/* ---------- Perspective index ---------- */
+.perspective-index { list-style: none; margin: 28px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.perspective-index li { border-bottom: 1px solid var(--line); }
+.perspective-index a { display: flex; align-items: center; gap: 20px; min-height: 68px; padding-block: 12px; text-decoration: none; }
+.perspective-index a > span { font-size: 11px; font-weight: 650; color: var(--brand-ink); align-self: flex-start; padding-top: 5px; }
+.perspective-index strong { font-size: 16px; font-weight: 650; letter-spacing: -.01em; }
+.perspective-index small { display: block; font-size: 12.5px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.perspective-index .icon { width: 18px; height: 18px; margin-left: auto; color: var(--brand-ink); transition: transform .2s; }
+.perspective-index a:hover strong { color: var(--brand-ink); }
+.perspective-index a:hover .icon { transform: translateX(4px); }
+
+/* Five perspectives: one continuous block, separated by hairlines instead of background changes */
+.perspectives { background: var(--soft); }
+.perspective { padding-block: 72px; border-top: 1px solid var(--line); scroll-margin-top: 96px; }
+.perspectives > .perspective:first-child { border-top: 0; padding-top: 96px; }
+.perspectives > .perspective:last-child { padding-bottom: 104px; }
+.perspectives .example-note { background: var(--paper); }
+.split-number { display: block; font-size: clamp(3.5rem, 5vw, 4.75rem); font-weight: 250; line-height: .9; letter-spacing: -.05em; color: var(--brand-ink); margin-bottom: 22px; font-variant-numeric: tabular-nums; }
+
+/* ---------- Conclusion ---------- */
+.conclusion { padding: 64px; margin-block: 64px 32px; background: var(--navy); color: #fff; border-radius: 32px; gap: 72px; }
+.conclusion .split-head { position: static; }
+.conclusion .eyebrow { color: #f39b56; }
+.conclusion h2 { font-size: clamp(2rem, 3.2vw, 2.9rem); }
+.conclusion h2 > span { color: #f39b56; }
+.conclusion .split-body p { color: #bdcbd7; font-size: 15.5px; }
+.conclusion .split-body p + p { margin-top: 18px; }
+
+.next-topics { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 64px; }
+.next-topics a { display: flex; align-items: center; gap: 18px; min-height: 92px; padding: 18px 26px; border: 1px solid var(--line); border-radius: 22px; text-decoration: none; font-size: 18px; font-weight: 650; letter-spacing: -.02em; transition: border-color .2s; }
+.next-topics a:last-child { justify-content: flex-end; text-align: right; }
+.next-topics a:hover { border-color: var(--brand); }
+.next-topics small { display: block; font-size: 10px; letter-spacing: .12em; color: var(--brand-ink); margin-bottom: 4px; }
+.next-topics .icon { color: var(--brand-ink); width: 22px; height: 22px; }
+
+.landing-footer { border-top: 1px solid var(--line); }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1180px) {
+  .split { gap: 56px; }
+  .conclusion { gap: 44px; padding: 52px 44px; }
+}
+@media (max-width: 850px) {
+  .split { grid-template-columns: 1fr; gap: 28px; }
+  .split-head { position: static; }
+  .split-body { max-width: none; }
+  .topic-hero { padding-bottom: 72px; }
+  .hero-center { margin-top: 52px; }
+  .intro { padding-block: 72px; }
+  .perspective { padding-block: 56px; }
+  .perspectives > .perspective:first-child { padding-top: 64px; }
+  .perspectives > .perspective:last-child { padding-bottom: 72px; }
+  .split-number { font-size: 3.25rem; margin-bottom: 16px; }
+  .conclusion { gap: 24px; padding: 42px 32px; }
+}
+@media (max-width: 650px) {
+  .topic-hero { padding-top: 20px; padding-bottom: 56px; }
+  .hero-center { margin-top: 40px; }
+  .topic-hero h1 { font-size: clamp(3rem, 15vw, 4rem); }
+  .intro-body > p, .split-body > p { font-size: 15px; }
+  .intro-body > .intro-lead { font-size: 17px; }
+  .intro { padding-block: 52px 56px; }
+  .pull-quote { margin-block: 40px; padding-block: 28px; }
+  .pull-quote p { font-size: 1.85rem; }
+  .example-note { padding: 18px; margin-block: 22px; }
+  .example-note p { font-size: 14px; }
+  .perspective { padding-block: 44px; }
+  .split-head h2 { font-size: 27px; }
+  .split-number { font-size: 2.75rem; }
+  .conclusion { padding: 32px 24px; border-radius: 24px; margin-block: 40px 24px; }
+  .next-topics { grid-template-columns: 1fr; margin-bottom: 44px; }
+  .next-topics a { font-size: 16px; min-height: 76px; padding: 14px 20px; }
+}
+@media (max-width: 359px) {
+  .perspective-index a { gap: 12px; }
+  .perspective-index small { font-size: 11.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .perspective-index .icon, .next-topics a { transition: none; }
+  .perspective-index a:hover .icon { transform: none; }
+}
+@media print {
+  .breadcrumb, .next-topics { display: none; }
+  .split { grid-template-columns: 1fr; gap: 16px; }
+  .split-head { position: static; }
+  .conclusion { background: none; color: inherit; padding: 0; }
+  .conclusion .split-body p { color: inherit; }
+}

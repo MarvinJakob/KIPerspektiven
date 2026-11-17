@@ -41,7 +41,7 @@ test('test dependencies must all complete; unrelated human blockers survive', ()
 
 test('maintainer answers remain available for a worker to inspect and unblock', () => {
   const waiting = issue(['maintenance', 'maintenance-approved', 'blocked']);
-  const board = [{ number: 7, status: 'In Arbeit', repository: { nameWithOwner: 'MarvinJakob/AIPerspectives' } }];
+  const board = [{ number: 7, status: 'In Arbeit', repository: { nameWithOwner: 'MarvinJakob/KIPerspektiven' } }];
   assert.equal(candidates([waiting], [], board).length, 1);
   board[0].status = 'Blocked';
   assert.equal(candidates([waiting], [], board).length, 0);
@@ -53,7 +53,7 @@ test('work selects authorized maintenance and reviews, excludes blocked and unau
     { ...issue(['bug', 'waiting-for-test']), number: 3 }, { ...issue(['bug', 'in-progress']), number: 4 },
     { ...issue(['requirement', 'needs-analysis']), number: 5 }, { ...issue(['bug', 'release-blocker']), number: 6 },
   ];
-  const board = [{ number: 5, status: 'Merge Gate', repository: { nameWithOwner: 'MarvinJakob/AIPerspectives' } }];
+  const board = [{ number: 5, status: 'Merge Gate', repository: { nameWithOwner: 'MarvinJakob/KIPerspektiven' } }];
   const result = candidates(data, [{ number: 10, state: 'open', head: { ref: 'spec/5' } }], board);
   assert.deepEqual(result.map((i) => i.number), [6, 5, 2]);
   assert.equal(result[2].team, 'maint');
@@ -70,14 +70,14 @@ test('Team 2 tests a requirement only while no bug or test-defect ticket for it 
   assert.equal(result.find((i) => i.number === 8).guide, 'AGENTS_TESTER.md');
   assert.equal(result.find((i) => i.number === 20).guide, 'AGENTS_FIXER.md');
   // Ein freigegebener Zwischenstand von Team 2 bleibt trotz offener Bug-Tickets wiederaufnehmbar.
-  const board = [{ number: 7, status: 'In Arbeit', repository: { nameWithOwner: 'MarvinJakob/AIPerspectives' } }];
+  const board = [{ number: 7, status: 'In Arbeit', repository: { nameWithOwner: 'MarvinJakob/KIPerspektiven' } }];
   assert.ok(candidates(data, [], board).some((i) => i.number === 7 && i.team === 'verify'));
 });
 
 test('reviews and release follow-up belong to the reviewer role', () => {
   const data = [{ ...issue(['maintenance', 'maintenance-approved', 'release-failure']), number: 3 },
     { ...issue(['bug']), number: 4 }, { ...issue(['maintenance', 'maintenance-approved']), number: 5 }];
-  const board = [{ number: 4, status: 'Merge Gate', repository: { nameWithOwner: 'MarvinJakob/AIPerspectives' } }];
+  const board = [{ number: 4, status: 'Merge Gate', repository: { nameWithOwner: 'MarvinJakob/KIPerspektiven' } }];
   const result = candidates(data, [{ number: 10, state: 'open', head: { ref: 'fix/4' } }], board);
   assert.deepEqual(result.map((i) => [i.number, i.guide]),
     [[4, 'AGENTS_REVIEWER.md'], [3, 'AGENTS_REVIEWER.md'], [5, 'AGENTS.md']]);
@@ -111,7 +111,7 @@ test('vier Teams: Testdefekte und offene Features gehen an Team 3, erfolgreiche 
 
 test('unbeschriftete Anforderungen in Neu werden gewählt, unautorisierte Wartung bleibt gesperrt', () => {
   const data = [{ ...issue([]), number: 1 }, { ...issue(['maintenance']), number: 2 }];
-  const board = data.map((i) => ({ number: i.number, status: 'Neu', repository: { nameWithOwner: 'MarvinJakob/AIPerspectives' } }));
+  const board = data.map((i) => ({ number: i.number, status: 'Neu', repository: { nameWithOwner: 'MarvinJakob/KIPerspektiven' } }));
   assert.deepEqual(candidates(data, [], board).map((i) => [i.number, i.team]), [[1, 'spec']]);
 });
 
@@ -145,7 +145,7 @@ test('offene PR-Aufgaben behalten aktive Arbeit und Rückgaben nach Review-Befun
   assert.equal(planIssue(issue(['bug']), ev).status, undefined);
 });
 
-const board = (entries) => entries.map(([number, status]) => ({ number, status, repository: { nameWithOwner: 'MarvinJakob/AIPerspectives' } }));
+const board = (entries) => entries.map(([number, status]) => ({ number, status, repository: { nameWithOwner: 'MarvinJakob/KIPerspektiven' } }));
 const requirementWith = (...extra) => ({ ...issue(['requirement', 'specified', ...extra]), number: 5 });
 const followUpTicket = (number, title = `[REQ-5-AC${number}] Lücke`) => ({ ...issue(['bug']), number, title });
 const fixPR = (number, pr) => ({ number: pr, state: 'open', head: { ref: `fix/${number}` } });

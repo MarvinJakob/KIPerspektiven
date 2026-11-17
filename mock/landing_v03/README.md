@@ -5,8 +5,8 @@
 ## Grundlagen
 
 - Inhalt: `content/Landingpage_v03.md` im lokalen Arbeitsverzeichnis, Stand 10. November 2026. Der vom Nutzer genannte Name `Landingpage_v0.3.md` entspricht dieser Datei.
-- Design: [DESIGN_CIMT.md](../../DESIGN_CIMT.md) und [cimt-Designentwurf](../design_cimt/index.html). Orange `#dc6e14`, Dunkelblau, warme helle Flächen, Systemschrift und dauerhaft aktive Glasnavigation mit den bestehenden Barrierefreiheits-Fallbacks.
-- Bild und persönliche Angaben: vorhandener [Profilentwurf](../profil/index.html) und `ressources/profil/MarvinJakob2.jpg`.
+- Design: [DESIGN.md](../../DESIGN.md) und [cimt-Designentwurf](../design_cimt/index.html). Orange `#dc6e14`, Dunkelblau, warme helle Flächen, Systemschrift und dauerhaft aktive Glasnavigation mit den bestehenden Barrierefreiheits-Fallbacks.
+- Bild und persönliche Angaben: vorhandener [Profilentwurf](../profil/index.html) und `res/profil/MarvinJakob.jpg`.
 
 Hero und drei Themen übernehmen den vollständigen Vorlagentext. In den drei Textspalten stehen Leitfrage, sämtliche Absätze und Artikel-Verweis wortgetreu und direkt sichtbar auf der Seite; auch Zeichensetzung und Hervorhebungen bleiben erhalten. Zusätzliche Kurzzeilen in diesen Textspalten entfallen. Die Artikel-Verweise öffnen die vorhandenen Markdown-Artikel unter `content/`. Illustrationen, Spaltenaufbau, Farben, Typografie und Styles bleiben unverändert.
 

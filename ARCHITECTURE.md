@@ -1,6 +1,6 @@
-# Architektur – AI Perspectives
+# Architektur – KI Perspektiven
 
-> **Stand:** 2026-11-17 · Repository [MarvinJakob/AIPerspectives](https://github.com/MarvinJakob/AIPerspectives) (Nachfolger von `MarvinJakob/aiboard`) · Arbeitsweise der Agenten: [AGENTS.md](AGENTS.md) und je Rolle [Analyst](AGENTS_ANALYST.md), [Tester](AGENTS_TESTER.md), [Fixer](AGENTS_FIXER.md), [Reviewer](AGENTS_REVIEWER.md)
+> **Stand:** 2026-11-17 · Repository [MarvinJakob/KIPerspektiven](https://github.com/MarvinJakob/KIPerspektiven) (Nachfolger von `MarvinJakob/AIPerspectives` und `MarvinJakob/aiboard`) · [Board](https://github.com/users/MarvinJakob/projects/4) · Arbeitsweise der Agenten: [AGENTS.md](AGENTS.md) und je Rolle [Analyst](AGENTS_ANALYST.md), [Tester](AGENTS_TESTER.md), [Fixer](AGENTS_FIXER.md), [Reviewer](AGENTS_REVIEWER.md)
 
 Dieses Dokument beschreibt den Aufbau der Anwendung (Abschnitte 1–4) und ihrer Umgebung: Tests, Entwicklung mit parallelen Agenten, GitHub, Auslieferung und Betrieb auf Hetzner (Abschnitte 5–10). Begründungen wichtiger Entscheidungen stehen in den ADRs unter [app/docs/adr](app/docs/adr).
 
@@ -204,7 +204,7 @@ Die aktuellen Vorgaben des Maintainers in AGENTS.md gelten auch gegenüber älte
 | Branch `release` | historischer Release-Stand; wird von der vereinfachten Pipeline nicht fortgeschrieben |
 | Team-Branches | `spec/<n>`, `verify/<n>`, `fix/<n>`, kurzlebig |
 | Image-Version `<Commit>-<Image>` | identifiziert die installierte Version |
-| Projekt „AI Perspectives“ | Board mit Feld Status einschließlich Ready, In Progress, Review und Blocked; bisherige Namen In Arbeit/Merge Gate werden von den Werkzeugen unterstützt; weitere fachliche Stati bleiben erhalten |
+| Projekt „KI Perspektiven“ ([Board](https://github.com/users/MarvinJakob/projects/4)) | Feld Status mit den Spalten Backlog, Spezifiziert, In Arbeit, Merge Gate, Bug offen, Funktioniert; zusätzlich Priority und Size |
 | Labels | `requirement`, `needs-analysis`, `specified`, `done`, `bug`, `feature`, `works`, `test-defect`, `release-blocker`, `release-failure`, `release-review`, `maintenance`, `maintenance-approved`, `in-progress`, `blocked`, `waiting-for-test` |
 
 Branch-Schutz für `main`: Pull Request und Statusprüfung `Merge Gate` sind verpflichtend, der Branch muss vor Merge aktuell sein. Die Regel gilt auch für Administratoren; Force-Push und Branch-Löschung sind gesperrt.
@@ -227,7 +227,7 @@ Team-Grenzen, Review-Checklisten, Issue-Blocker, Release-Branch, GitHub-Release-
 
 ### Secrets und Variablen
 
-Unter *Settings → Secrets and variables → Actions*, gegebenenfalls Umgebung `production`:
+Unter *Settings → Secrets and variables → Actions*, Umgebung `prd` (Deployments nur von `main`):
 
 | Name | Art | Inhalt |
 |---|---|---|

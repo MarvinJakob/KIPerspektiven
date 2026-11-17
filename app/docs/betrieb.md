@@ -91,7 +91,7 @@ Bei fehlgeschlagener Installation wird die zuvor gemerkte Version wiederhergeste
 
 Die Installation benötigt die Secrets `DEPLOY_HOST`, `HETZNER_CLOUD_SSH`, `DEPLOY_KNOWN_HOSTS` sowie optional die Variable `DEPLOY_URL` für den Link zur Produktion. Eine Registry ist nicht nötig: Das gebaute Image wird als Actions-Artefakt übertragen und auf Hetzner geladen. Es wird dort nicht erneut gebaut. Die automatische Pipeline erstellt keine Snapshots, Release-Branches, Tags oder GitHub-Releases und erzeugt keine Team-4-Auswertungsaufgaben.
 
-Manueller Zugangstest ohne Deployment: `gh workflow run deploy-access.yml`. Dieser separate Diagnoseworkflow benötigt weiterhin `HETZNER_CLOUD_API` und `HCLOUD_SERVER_NAME`. Den SSH-Schlüssel bei Verdacht auf Missbrauch auf dem Server aus `authorized_keys` löschen und neu erzeugen. Im alten Repository `MarvinJakob/aiboard` darf kein Deploy-Workflow mehr aktiv sein.
+Manueller Zugangstest ohne Deployment: `gh workflow run deploy-access.yml`. Dieser separate Diagnoseworkflow benötigt weiterhin `HETZNER_CLOUD_API` und `HCLOUD_SERVER_NAME`. Den SSH-Schlüssel bei Verdacht auf Missbrauch auf dem Server aus `authorized_keys` löschen und neu erzeugen. In den alten Repositories `MarvinJakob/AIPerspectives` und `MarvinJakob/aiboard` darf kein Deploy-Workflow mehr aktiv sein, sonst installieren zwei Pipelines auf denselben Server.
 
 ## Neue Version bereitstellen
 
