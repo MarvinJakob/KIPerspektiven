@@ -1,12 +1,13 @@
-name: Funktioniert (bestandene Fidelity-Tests)
+name: Feature (bestandene Fidelity-Tests)
 description: Von Team 2 angelegt und sofort geschlossen, wenn Akzeptanzkriterien einer Anforderung nachweislich funktionieren.
 title: "[REQ-<n>] funktioniert: <Kurzbeschreibung>"
-labels: [works]
+labels: [feature]
 body:
   - type: input
     id: ids
     attributes:
       label: Bestandene Test-IDs
+      description: Alle IDs, die Team 2 in diesem Testlauf neu in die Baseline aufgenommen hat
       placeholder: REQ-12-AC1 REQ-12-AC2
     validations:
       required: true
@@ -18,7 +19,10 @@ body:
     validations:
       required: true
   - type: input
-    id: lauf
+    id: nachweis
     attributes:
-      label: Testlauf
-      description: Link zum Lauf „Fidelity-Lauf“ oder geprüfter Commit
+      label: Nachweis
+      description: Getesteter Commit von main und Baseline-PR (dessen Merge Gate die IDs bestätigt hat)
+      placeholder: "Commit 7076cf6, PR #52"
+    validations:
+      required: true

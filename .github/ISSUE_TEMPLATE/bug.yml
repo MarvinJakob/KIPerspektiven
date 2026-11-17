@@ -1,5 +1,5 @@
 name: Bug (fehlgeschlagener Fidelity-Test)
-description: Von Team 2 angelegt, wenn ein Fidelity-Test nicht besteht. Team 3 behebt genau dieses Ticket.
+description: Von Team 2 angelegt, wenn ein Fidelity-Test seines Tickets nicht besteht. Team 3 behebt genau dieses Ticket.
 title: "[REQ-<n>-AC<m>] <Was funktioniert nicht>"
 labels: [bug]
 body:
@@ -7,7 +7,7 @@ body:
     id: ids
     attributes:
       label: Test-IDs
-      description: Alle fehlschlagenden IDs dieses Fehlers, Leerzeichen-getrennt
+      description: Alle fehlschlagenden IDs dieser Fehlerursache, Leerzeichen-getrennt. Team 3 übernimmt sie in die Zeile „Fidelity:“ seines PR.
       placeholder: REQ-12-AC2 REQ-12-AC3
     validations:
       required: true
@@ -22,18 +22,24 @@ body:
     id: ergebnis
     attributes:
       label: Erwartet und tatsächlich
-      description: Erwartetes Verhalten laut Spezifikation, tatsächliches Verhalten laut Testlauf (Fehlermeldung kürzen)
+      description: Erwartetes Verhalten laut Spezifikation (Kriterium zitieren), tatsächliches Verhalten laut Testlauf (Fehlermeldung kürzen). Angeben, wenn nur Desktop oder nur Mobil betroffen ist.
     validations:
       required: true
   - type: textarea
     id: reproduktion
     attributes:
-      label: Reproduktion
-      value: |
-        cd fidelity
-        BASE_URL=http://localhost:8080 npx playwright test --grep "REQ-<n>-AC<m>"
+      label: Nachstellen ohne Test
+      description: Team 3 führt keine Fidelity-Tests aus. Schritte, mit denen sich das Verhalten im Browser oder per HTTP beobachten lässt (URL, Testkonto aus DEV_SEED, Aktion, sichtbares Ergebnis).
+      placeholder: |
+        1. /de/kontakt öffnen
+        2. Formular ohne E-Mail absenden
+        3. Erwartet: Hinweis „Bitte E-Mail angeben“ – tatsächlich: keine Meldung
+    validations:
+      required: true
   - type: input
     id: lauf
     attributes:
-      label: Testlauf
-      description: Link zum Lauf „Fidelity-Lauf“ oder geprüfter Commit
+      label: Getesteter Stand
+      description: Commit von main, gegen den Team 2 getestet hat (bei Release-Nacharbeit zusätzlich der Link zum Lauf)
+    validations:
+      required: true

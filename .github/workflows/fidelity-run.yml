@@ -1,11 +1,11 @@
-# Testlauf der ganzen Fidelity-Suite auf main – Grundlage für Team 2 (AGENTS.md, „Team 2 – Tester“).
-# Läuft nach jedem Push auf main und auf Anforderung. Das Artefakt fidelity-main enthält results.json
-# und den Playwright-Bericht. Die Zusammenfassung des Laufs listet funktionierende und offene Test-IDs.
+# Ganze Fidelity-Suite auf main, nur auf Anforderung: `gh workflow run fidelity-run.yml`.
+# Nach jedem Push auf main läuft dieselbe Suite bereits im Release Gate (Artefakt fidelity-release) und vor
+# jedem Merge im Merge Gate. Team 2 führt nur die Tests seines Tickets lokal aus (AGENTS_TESTER.md).
+# Dieser Lauf dient dem Reviewer zur Diagnose, z. B. ob eine Regression stabil auftritt, ohne ein Release
+# auszulösen (AGENTS_REVIEWER.md). Das Artefakt fidelity-main enthält results.json, Inventar und Bericht.
 name: Fidelity-Lauf
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

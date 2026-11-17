@@ -1,6 +1,10 @@
 import { pathToFileURL } from 'node:url';
 import { api, repository } from './github.mjs';
 
+// Ein Baseline-PR von Team 2 ändert nur fidelity/baseline.txt (Job „Team-Grenzen“), und der Job „Fidelity“
+// weist nach, dass die ergänzten IDs bestehen. Ein zusätzliches Agenten-Review prüft dort nichts Weiteres.
+export function reviewRequired(branch) { return !/^verify\/\d+$/.test(branch); }
+
 export function checkReview(body, head, evidence) {
   const field = (name) => {
     const values = [...body.matchAll(new RegExp(`^${name}:[ \\t]*(.*)$`, 'gm'))];
@@ -32,6 +36,10 @@ export function checkReview(body, head, evidence) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
+    if (!reviewRequired(process.env.BRANCH ?? '')) {
+      console.log('Baseline-PR von Team 2: Team-Grenzen und Fidelity-Job weisen die Änderung nach, kein Agenten-Review nötig.');
+      process.exit(0);
+    }
     const body = process.env.PR_BODY ?? '';
     const reviewId = /^Review-ID: (\d+)\s*$/m.exec(body)?.[1];
     const pr = process.env.PR_NUMBER;

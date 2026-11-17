@@ -4,10 +4,14 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from '
 import { join, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { api, pages, repository, command, issueLabels } from './github.mjs';
-import { reconcile } from './reconcile.mjs';
+import { reconcile, followUps } from './reconcile.mjs';
+
+// Anweisung, die der Agent für diese Aufgabe zusätzlich zu AGENTS.md liest.
+const guides = { spec: 'AGENTS_ANALYST.md', verify: 'AGENTS_TESTER.md', fix: 'AGENTS_FIXER.md', maint: 'AGENTS.md' };
 
 export function candidates(issues, pulls, board) {
   const statuses = new Map(board.filter((i) => i.repository?.nameWithOwner === repository).map((i) => [i.number, i.status]));
+  const waiting = followUps(issues);
   return issues.filter((i) => !i.pull_request && i.state === 'open').flatMap((issue) => {
     const labels = issueLabels(issue);
     const status = statuses.get(issue.number) ?? '';
@@ -28,7 +32,12 @@ export function candidates(issues, pulls, board) {
     }
     const phase = ['Review', 'In review', 'Merge Gate'].includes(status) ? 0
       : ['In Progress', 'In progress', 'In Arbeit'].includes(status) ? 1 : 2;
-    return [{ number: issue.number, team, stage, phase, status, pr: pr?.number,
+    // Neuer Test einer Anforderung erst, wenn ihre Bug- und Testdefekt-Tickets geschlossen sind.
+    if (team === 'verify' && phase === 2 && waiting.has(issue.number)) return [];
+    // Review (phase 0) und Release-Nacharbeit gehören zur Rolle Reviewer. Baseline-PRs von Team 2
+    // brauchen kein Review: Ein dort wartender PR wird von einem Tester fortgesetzt.
+    const guide = (phase === 0 && team !== 'verify') || labels.has('release-failure') ? 'AGENTS_REVIEWER.md' : guides[team];
+    return [{ number: issue.number, team, guide, stage, phase, status, pr: pr?.number,
       updated: issue.updated_at, title: issue.title }];
   }).sort((a, b) => Number(b.stage === 0) - Number(a.stage === 0) || a.phase - b.phase || a.stage - b.stage || a.number - b.number);
 }
@@ -91,7 +100,7 @@ async function main() {
         const result = await new Promise((resolve, reject) => {
           child = spawn(program, args, { cwd: process.cwd(), env: childEnv, windowsHide: true, stdio: ['pipe', 'inherit', 'inherit'] });
           child.on('error', reject); child.on('exit', (code) => resolve(code));
-          child.stdin.end('work\n\nVerwende die AGENTS.md dieses aktuellen, unveränderlichen Prozess-Checkouts. Bearbeite genau eine passende Aufgabe einschließlich Übergabe bzw. Abschluss und ende danach. Verwende einen eigenen Aufgaben-Worktree; ändere diesen Prozess-Checkout nicht. Ein Reviewer muss eine andere Sitzung sein. GitHub-Secrets bleiben ausschließlich in Actions.\n');
+          child.stdin.end('work\n\nVerwende die AGENTS.md dieses aktuellen, unveränderlichen Prozess-Checkouts und die dort genannte Datei deiner Rolle (AGENTS_ANALYST.md, AGENTS_TESTER.md, AGENTS_FIXER.md oder AGENTS_REVIEWER.md). Bearbeite genau eine passende Aufgabe einschließlich Übergabe bzw. Abschluss und ende danach. Verwende einen eigenen Aufgaben-Worktree; ändere diesen Prozess-Checkout nicht. Ein Reviewer muss eine andere Sitzung sein. GitHub-Secrets bleiben ausschließlich in Actions.\n');
         });
         if (result !== 0) throw new Error(`Worker endete mit ${result}; Diagnose erforderlich, kein automatisches Überspringen.`);
         // Retry only on new evidence, not in a busy loop when every claim is occupied.

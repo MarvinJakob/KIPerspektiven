@@ -6,6 +6,17 @@ import { api, pages, repository, issueLabels, command } from './github.mjs';
 export function dependencies(body = '') {
   return [...body.matchAll(/^Test-Defect-Dependency: #([1-9]\d*)\s*$/gm)].map((m) => Number(m[1]));
 }
+// Anforderungen mit offenem Folgeticket (bug, test-defect; Titel nennt REQ-<n>). Team 2 testet eine
+// Anforderung erst wieder, wenn keines mehr offen ist (AGENTS_TESTER.md).
+export function followUps(issues) {
+  const result = new Set();
+  for (const issue of issues) {
+    const names = (issue.labels ?? []).map((label) => label.name);
+    if (issue.pull_request || issue.state !== 'open' || !(names.includes('bug') || names.includes('test-defect'))) continue;
+    for (const match of (issue.title ?? '').matchAll(/\bREQ-(\d+)\b/g)) result.add(Number(match[1]));
+  }
+  return result;
+}
 export function planIssue(issue, { specs, baseline, issues, pulls }) {
   const labels = issueLabels(issue), add = [], remove = [];
   let status, close = false;
@@ -18,7 +29,9 @@ export function planIssue(issue, { specs, baseline, issues, pulls }) {
     if (labels.has('needs-analysis')) remove.push('needs-analysis');
     // A completed specification is handed to Team 2; local cleanup remains with its owner.
     if (labels.has('needs-analysis') && labels.has('in-progress')) remove.push('in-progress');
-    if (!labels.has('in-progress') || labels.has('needs-analysis')) status = 'Spezifiziert';
+    if (!labels.has('in-progress') || labels.has('needs-analysis')) {
+      status = followUps(issues.values()).has(issue.number) ? 'Bug offen' : 'Spezifiziert';
+    }
     if (ids.every((id) => baseline.has(id))) {
       if (!labels.has('done')) add.push('done');
       close = issue.state === 'open';

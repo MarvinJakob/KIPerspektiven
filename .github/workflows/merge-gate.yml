@@ -1,12 +1,14 @@
 # Merge Gate: Jeder Pull Request nach main muss alle Prüfungen bestehen (AGENTS.md, „Merge Gate“).
 # Als Pflichtprüfung in der Branch-Regel für main reicht der Abschlussjob „Merge Gate“.
+# Die Agenten wiederholen diese Prüfungen nicht lokal (AGENTS.md, „Arbeitsteilung mit GitHub Actions“).
 #
-#   scope     Team-Grenzen: Welche Dateien darf der Branch-Präfix (spec/, verify/, fix/) ändern?
+#   scope     Team-Grenzen: spec/ nur Spezifikationen und Tests, verify/ nur Baseline, fix/ nur app/
 #   build     Docker-Image wie in Produktion (beide Frontends und Backend)
 #   tests     Unit- und Komponententests (Backend mit Race-Detector, beide Frontends)
 #   security  govulncheck, npm audit, Dependency Review, Secret-Scan
-#   review    Checkliste im PR-Text vollständig abgehakt (unabhängiges Review ist erfolgt)
-#   fidelity  Fidelity-Suite gegen das gebaute Image: keine Regression der Baseline, geforderte IDs bestehen
+#   review    Prozesswerkzeuge; Nachweis des unabhängigen Reviews (entfällt für Baseline-PRs verify/<n>)
+#   fidelity  ganze Fidelity-Suite gegen das gebaute Image: keine Regression der Baseline, geforderte IDs
+#             bestehen. Für Team 3 ist dieser Job der Test der Zeile „Fidelity:“; es führt die Tests nicht aus.
 name: Merge Gate
 
 on:
@@ -53,7 +55,7 @@ jobs:
           required=$(printf '%s\n%s\n' "$from_body" "$from_baseline" | grep -v '^$' | sort -u | tr '\n' ' ' || true)
           echo "Geforderte IDs: ${required:-keine}"
           if [[ "$BRANCH" == fix/* && -z "$required" ]]; then
-            echo "::error::Team-3-PRs nennen im PR-Text die Test-IDs ihres Tickets, z. B. „Fidelity: REQ-12-AC2“."
+            echo "::error::Team-3-PRs nennen im PR-Text die Test-IDs ihres Bug-Tickets, z. B. „Fidelity: REQ-12-AC2“. Der Job Fidelity prüft sie."
             exit 1
           fi
           echo "required=$required" >> "$GITHUB_OUTPUT"
@@ -135,18 +137,14 @@ jobs:
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           DRAFT: ${{ github.event.pull_request.draft }}
+          BRANCH: ${{ github.head_ref }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ github.token }}
         run: |
           [[ "$DRAFT" != "true" ]] || { echo "::error::Entwurf: erst nach „Ready for review“ mergebar."; exit 1; }
-          printf '%s\n' "$PR_BODY" | grep -qE '^\s*- \[[xX]\] .*Review' \
-            || { echo "::error::Im PR-Text fehlt der abgehakte Punkt zum unabhängigen Review (.github/pull_request_template.md)."; exit 1; }
-          if printf '%s\n' "$PR_BODY" | grep -E '^\s*- \[ \]'; then
-            echo "::error::Nicht alle Punkte der Merge-Gate-Checkliste sind abgehakt. PR-Text anpassen und den Lauf neu starten."
-            exit 1
-          fi
-          echo "Checkliste vollständig."
+          # Prüft Checkliste, Sitzungs-IDs und den GitHub-Review-Nachweis des aktuellen Commits.
+          # Baseline-PRs (verify/<n>) brauchen keinen: Team-Grenzen und Fidelity weisen sie nach.
           node tools/check-review.mjs
 
   fidelity:

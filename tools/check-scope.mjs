@@ -4,7 +4,8 @@ import { pathToFileURL } from 'node:url';
 export function checkScope(branch, files, before, after) {
   const rule = branch.startsWith('spec/') ? /^fidelity\/(specs|tests)\//
     : branch.startsWith('verify/') ? /^fidelity\/baseline\.txt$/
-      : branch.startsWith('fix/') ? /^(app\/|fidelity\/baseline\.txt$)/ : null;
+      // Was funktioniert, stellt nur Team 2 fest: Team 3 ändert weder Tests noch Baseline.
+      : branch.startsWith('fix/') ? /^app\// : null;
   if (!rule) return; // Wartung braucht einen ausdrücklichen Maintainer-Auftrag und Review.
   const forbidden = files.filter((file) => !rule.test(file));
   if (forbidden.length) throw new Error(`Team-Grenze für ${branch} verletzt: ${forbidden.join(', ')}`);

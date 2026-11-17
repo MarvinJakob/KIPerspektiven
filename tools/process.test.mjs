@@ -58,3 +58,40 @@ test('work selects authorized maintenance and reviews, excludes blocked and unau
   assert.deepEqual(result.map((i) => i.number), [6, 5, 2]);
   assert.equal(result[2].team, 'maint');
 });
+
+test('Team 2 tests a requirement only while no bug or test-defect ticket for it is open', () => {
+  const requirement = (number) => ({ ...issue(['requirement', 'specified']), number });
+  const followUp = (number, label, title, state = 'open') => ({ ...issue([label]), number, title, state });
+  const data = [requirement(7), requirement(8), requirement(9), requirement(70),
+    followUp(20, 'bug', '[REQ-7-AC2] Seite fehlt (AC2–AC4)'), followUp(21, 'test-defect', '[REQ-9] Tests robuster machen'),
+    followUp(22, 'bug', '[REQ-8-AC1] bereits behoben', 'closed')];
+  const result = candidates(data, [], []);
+  assert.deepEqual(result.filter((i) => i.team === 'verify').map((i) => i.number), [8, 70]);
+  assert.equal(result.find((i) => i.number === 8).guide, 'AGENTS_TESTER.md');
+  assert.equal(result.find((i) => i.number === 20).guide, 'AGENTS_FIXER.md');
+  // Ein freigegebener Zwischenstand von Team 2 bleibt trotz offener Bug-Tickets wiederaufnehmbar.
+  const board = [{ number: 7, status: 'In Arbeit', repository: { nameWithOwner: 'MarvinJakob/AIPerspectives' } }];
+  assert.ok(candidates(data, [], board).some((i) => i.number === 7 && i.team === 'verify'));
+});
+
+test('reviews and release follow-up belong to the reviewer role', () => {
+  const data = [{ ...issue(['maintenance', 'maintenance-approved', 'release-failure']), number: 3 },
+    { ...issue(['bug']), number: 4 }, { ...issue(['maintenance', 'maintenance-approved']), number: 5 }];
+  const board = [{ number: 4, status: 'Merge Gate', repository: { nameWithOwner: 'MarvinJakob/AIPerspectives' } }];
+  const result = candidates(data, [{ number: 10, state: 'open', head: { ref: 'fix/4' } }], board);
+  assert.deepEqual(result.map((i) => [i.number, i.guide]),
+    [[4, 'AGENTS_REVIEWER.md'], [3, 'AGENTS_REVIEWER.md'], [5, 'AGENTS.md']]);
+  // Ein Baseline-PR braucht kein Review; in dieser Spalte wartend setzt ihn ein Tester fort.
+  const baseline = candidates([{ ...issue(['requirement', 'specified']), number: 4 }],
+    [{ number: 11, state: 'open', head: { ref: 'verify/4' } }], board);
+  assert.deepEqual(baseline.map((i) => [i.team, i.guide]), [['verify', 'AGENTS_TESTER.md']]);
+});
+
+test('the board shows a specified requirement as open bug while follow-up tickets exist', () => {
+  const ev = evidence();
+  assert.equal(planIssue(issue(['requirement', 'specified']), ev).status, 'Spezifiziert');
+  ev.issues.set(20, { number: 20, state: 'open', title: '[REQ-7-AC2] Seite fehlt', labels: [{ name: 'bug' }] });
+  assert.equal(planIssue(issue(['requirement', 'specified']), ev).status, 'Bug offen');
+  ev.issues.set(20, { ...ev.issues.get(20), state: 'closed' });
+  assert.equal(planIssue(issue(['requirement', 'specified']), ev).status, 'Spezifiziert');
+});

@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { addBlocked, resolveStatus, openItems } from './board.mjs';
-import { checkReview } from './check-review.mjs';
+import { checkReview, reviewRequired } from './check-review.mjs';
+
+test('nur Baseline-PRs von Team 2 brauchen kein Agenten-Review', () => {
+  assert.equal(reviewRequired('verify/12'), false);
+  for (const branch of ['spec/12', 'fix/12', 'codex/maint-12', 'chore/prozess', 'verify/12-extra', 'x/verify/12', ''])
+    assert.equal(reviewRequired(branch), true);
+});
 
 test('Blocked ergänzen erhält IDs und vorhandene Optionen unverändert', () => {
   const old = [{ id: 'ready', name: 'Ready', color: 'GREEN', description: 'Bereit' }];

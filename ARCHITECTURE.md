@@ -1,6 +1,6 @@
 # Architektur – AI Perspectives
 
-> **Stand:** 2026-11-16 · Repository [MarvinJakob/AIPerspectives](https://github.com/MarvinJakob/AIPerspectives) (Nachfolger von `MarvinJakob/aiboard`) · Arbeitsweise der Agenten: [AGENTS.md](AGENTS.md)
+> **Stand:** 2026-11-17 · Repository [MarvinJakob/AIPerspectives](https://github.com/MarvinJakob/AIPerspectives) (Nachfolger von `MarvinJakob/aiboard`) · Arbeitsweise der Agenten: [AGENTS.md](AGENTS.md) und je Rolle [Analyst](AGENTS_ANALYST.md), [Tester](AGENTS_TESTER.md), [Fixer](AGENTS_FIXER.md), [Reviewer](AGENTS_REVIEWER.md)
 
 Dieses Dokument beschreibt den Aufbau der Anwendung (Abschnitte 1–4) und ihrer Umgebung: Tests, Entwicklung mit parallelen Agenten, GitHub, Auslieferung und Betrieb auf Hetzner (Abschnitte 5–10). Begründungen wichtiger Entscheidungen stehen in den ADRs unter [app/docs/adr](app/docs/adr).
 
@@ -52,7 +52,8 @@ flowchart LR
 
 ```
 /
-├── AGENTS.md              Arbeitsweise der Agenten-Teams (CLAUDE.md verweist darauf)
+├── AGENTS.md              gemeinsame Arbeitsweise aller Agenten (CLAUDE.md verweist darauf)
+├── AGENTS_<ROLLE>.md      Ablauf je Rolle: ANALYST (Team 1), TESTER (Team 2), FIXER (Team 3), REVIEWER (Gates)
 ├── ARCHITECTURE.md        dieses Dokument
 ├── app/                   Anwendung (einziger Teil, der ausgeliefert wird)
 │   ├── api/openapi.yaml   Schnittstellenvertrag
@@ -65,7 +66,8 @@ flowchart LR
 │   ├── compose.yaml       Produktion; compose.dev.yaml für lokal
 │   └── .env.example       Vorlage für die Server-.env
 ├── fidelity/              Fidelity-Tests (Abschnitt 5)
-├── tools/                 task.sh (Aufgaben-Sperre), board.sh (Projektstatus)
+├── tools/                 task.sh (Aufgaben-Sperre), board.sh (Projektstatus), work.sh (Warteschlange, Betriebssteuerung),
+│                          reconcile.mjs (Prozessabgleich), review.mjs (Review-Nachweis), Prüfungen des Merge Gate
 ├── .github/               Workflows, Composite Actions, Issue- und PR-Vorlagen
 ├── content/
 │   ├── topics/<Thema>/    Quelltexte der Seiteninhalte (audit, data, home, persona, process, software,
@@ -143,7 +145,7 @@ Einstellungen: `journal_mode=WAL`, `foreign_keys=ON`, `busy_timeout=5000`. Ein W
 
 ## 5 Fidelity-Tests
 
-Fidelity-Tests prüfen von außen (Browser, HTTP), ob eine Anforderung **vollständig** umgesetzt ist. Sie werden von Team 1 geschrieben und verifiziert und sind unabhängig vom Code, den Team 3 ändert.
+Fidelity-Tests prüfen von außen (Browser, HTTP), ob eine Anforderung **vollständig** umgesetzt ist. Nur Team 1 schreibt und verifiziert sie. Team 2 führt jeweils die Tests der Anforderung aus, an der es arbeitet, und hält das Ergebnis als Feature-Tickets, Bug-Tickets und in der Baseline fest. Team 3 führt sie nicht aus: Der Job „Fidelity“ des Merge Gate prüft die IDs seines Bug-Tickets. Die ganze Suite läuft ausschließlich in GitHub Actions (Merge Gate, Release Gate).
 
 ```
 fidelity/
@@ -192,8 +194,8 @@ Der Auftrag vom 16. November 2026 macht den Text und beide Prozessgrafiken diese
 | Vorgabe | Umsetzung |
 |---|---|
 | Analysten schreiben und verifizieren Referenzszenarien einschließlich Sonderfällen und Fehlerbehandlung | Team 1, Spezifikationen und ausführbare Fidelity-Tests mit Gegenprobe |
-| Tester prüfen vorhandenen Code und dokumentieren funktionierendes und fehlendes Verhalten | Team 2, vollständiger Testlauf, `works`-/Bug-Tickets und wachsende Baseline |
-| Ein Fixer pro Fall, Mindeststandards vor Integration | atomare Aufgabenbelegung, eigener Worktree, Änderungen nur in `app/` und append-only Baseline; Merge Gate mit Build, Review, Security und Fidelity |
+| Tester prüfen vorhandenen Code und dokumentieren funktionierendes und fehlendes Verhalten | Team 2 führt die Tests seines Tickets aus: Feature-Tickets und wachsende Baseline für das, was funktioniert, Bug-Tickets für das, was nicht funktioniert |
+| Ein Fixer pro Fall, Mindeststandards vor Integration | atomare Aufgabenbelegung, eigener Worktree, Änderungen nur in `app/`; Merge Gate mit Build, Review, Security und Fidelity. Die Baseline ergänzt nur Team 2 nach erneutem Test |
 | Gesamte Testsuite und Final Check vor Release | Release Gate baut den festgelegten Commit neu, prüft alle Tests und sperrt bei Regressionen oder offenen Release-Blockern |
 | Veröffentlichung erst am Ende | Integrations-PRs und `main` sind das gemeinsame Arbeitsrepository. Release-Branch, Tag und GitHub-Release werden erst nach Deployment und verpflichtendem Smoke-Test veröffentlicht. |
 
@@ -212,7 +214,7 @@ Die letzte Vorgabe bezieht sich auf die Veröffentlichung des fertigen Releases.
 | Team-Branches | `spec/<n>`, `verify/<n>`, `fix/<n>`, kurzlebig |
 | Tags `vJJJJ.MM.TT-<Commit>-<Image>` | wiederholbares GitHub-Release je ausgeliefertem Artefakt |
 | Projekt „AI Perspectives“ | Board mit Feld Status einschließlich Ready, In Progress, Review und Blocked; bisherige Namen In Arbeit/Merge Gate werden von den Werkzeugen unterstützt; weitere fachliche Stati bleiben erhalten |
-| Labels | `requirement`, `needs-analysis`, `specified`, `done`, `bug`, `works`, `test-defect`, `release-blocker`, `in-progress`, `blocked` |
+| Labels | `requirement`, `needs-analysis`, `specified`, `done`, `bug`, `feature`, `test-defect`, `release-blocker`, `release-failure`, `maintenance`, `maintenance-approved`, `in-progress`, `blocked`, `waiting-for-test` |
 
 Branch-Schutz für `main`: Pull Request und Statusprüfung `Merge Gate` sind verpflichtend, der Branch muss vor Merge aktuell sein. Die Regel gilt auch für Administratoren; Force-Push und Branch-Löschung sind gesperrt. Die unabhängige Agentenprüfung wird zusätzlich durch den Review-Nachweis im PR abgesichert.
 
@@ -220,8 +222,8 @@ Branch-Schutz für `main`: Pull Request und Statusprüfung `Merge Gate` sind ver
 
 | Workflow | Auslöser | Inhalt |
 |---|---|---|
-| [merge-gate.yml](.github/workflows/merge-gate.yml) | PR nach `main` | Team-Grenzen, Build, Unit-Tests, Security, Review-Checkliste, Fidelity; Abschlussjob „Merge Gate“ |
-| [fidelity-run.yml](.github/workflows/fidelity-run.yml) | Push auf `main`, manuell | ganze Fidelity-Suite auf `main`, Artefakt `fidelity-main` für Team 2 |
+| [merge-gate.yml](.github/workflows/merge-gate.yml) | PR nach `main` | Team-Grenzen, Build, Unit-Tests, Security, Review-Nachweis (nicht für `verify/`), Fidelity; Abschlussjob „Merge Gate“ |
+| [fidelity-run.yml](.github/workflows/fidelity-run.yml) | manuell | ganze Fidelity-Suite auf `main` ohne Release, zur Diagnose durch den Reviewer (Artefakt `fidelity-main`) |
 | [release.yml](.github/workflows/release.yml) | Push auf `main`, manuell | Release Gate bis Hetzner und GitHub-Release |
 | [rollback.yml](.github/workflows/rollback.yml) | manuell | vorherige oder angegebene Version auf dem Server starten |
 | [deploy-access.yml](.github/workflows/deploy-access.yml) | manuell | GitHub-Secrets, Hetzner-API und SSH lesend prüfen |
@@ -272,7 +274,7 @@ Fehlen `HETZNER_CLOUD_API` oder `HCLOUD_SERVER_NAME`, stoppt das Release vor der
 
 `tools/work.sh` lädt den aktuellen Prozess aus `origin/main` in einen eigenen unveränderlichen Checkout. `--check` prüft Zugänge/Werkzeuge und zeigt die Warteschlange, `--once` startet eine frische Sitzung, `--watch` überwacht neue Arbeit. `tools/work-watch.ps1` lädt unter Windows bei geändertem `main` automatisch den neuen Prozess. Wartung benötigt `maintenance` und `maintenance-approved`. Fehler stoppen den Supervisor; abgestürzte Besitzer werden nur nach explizitem Maintainer-Nachweis freigegeben. Lebenszeichen und Operationssperren zeigt `task.sh status`.
 
-`tools/reconcile.mjs --apply --board` repariert unterbrochene Übergaben anhand eingecheckter Spezifikationen und Baseline; es verändert keine fremden Arbeitsdateien oder lokalen Sperren. `test-defect.mjs` trennt Testkorrekturen von wartenden Bugs. Reviews werden mit `review.mjs` aus der unabhängigen Sitzung als GitHub-Review für den konkreten Commit dokumentiert und vom Gate verifiziert. Einzelheiten und Befehle: [AGENTS.md](AGENTS.md).
+`tools/reconcile.mjs --apply --board` repariert unterbrochene Übergaben anhand eingecheckter Spezifikationen und Baseline; es verändert keine fremden Arbeitsdateien oder lokalen Sperren. `test-defect.mjs` trennt Testkorrekturen von wartenden Bugs. Reviews werden mit `review.mjs` aus der unabhängigen Sitzung als GitHub-Review für den konkreten Commit dokumentiert und vom Gate verifiziert. Einzelheiten und Befehle: [AGENTS.md](AGENTS.md) und [AGENTS_REVIEWER.md](AGENTS_REVIEWER.md).
 
 ---
 

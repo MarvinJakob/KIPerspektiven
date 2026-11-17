@@ -1,4 +1,4 @@
-# Fidelity-Tests (fidelity/, AGENTS.md Team 1) gegen eine laufende Anwendung und Auswertung mit scripts/gate.mjs.
+# Fidelity-Tests (fidelity/, geschrieben von Team 1: AGENTS_ANALYST.md) gegen eine laufende Anwendung und Auswertung mit scripts/gate.mjs.
 # Ohne base-url startet die Action das geladene Image `image` lokal mit Entwicklungs-Seed.
 # Mit base-url prüft sie eine bereits laufende Umgebung, z. B. die Produktion nach dem Deployment.
 name: Fidelity-Tests
