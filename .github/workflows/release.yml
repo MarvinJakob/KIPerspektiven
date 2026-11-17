@@ -159,7 +159,7 @@ jobs:
         uses: ./.github/actions/fidelity
         with:
           base-url: ${{ vars.DEPLOY_URL }}
-          grep: '^REQ-0-'
+          grep: 'REQ-0-AC'
           required-ids: REQ-0-AC1 REQ-0-AC2 REQ-0-AC3
           report-name: fidelity-production
       - name: Bei Deployment- oder Smoke-Fehler vorherige Version wiederherstellen

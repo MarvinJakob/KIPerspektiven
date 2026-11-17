@@ -12,7 +12,7 @@ inputs:
     description: Bereits laufende Anwendung statt eines lokalen Containers
     default: ''
   grep:
-    description: Optional nur Tests, deren Titel diesem regulären Ausdruck entspricht (z. B. ^REQ-0-)
+    description: Optional nur Tests, deren Titel diesem regulären Ausdruck entspricht (z. B. REQ-0-AC; Playwright prüft den ganzen Titelpfad mit Projekt und Datei, daher kein ^-Anker)
     default: ''
   required-ids:
     description: Test-IDs, die zusätzlich zur Baseline bestehen müssen (Leerzeichen-getrennt)
