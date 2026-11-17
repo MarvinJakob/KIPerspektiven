@@ -4,5 +4,3 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 
-# Mehrere Agenten ergänzen die Baseline parallel. Union-Merge übernimmt die Zeilen beider Seiten.
-fidelity/baseline.txt merge=union

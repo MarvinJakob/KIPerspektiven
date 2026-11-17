@@ -49,7 +49,7 @@ Der Agent präzisiert unklare Anforderungen vor der Umsetzung anhand vorhandener
 ## 2. Anforderungen spezifizieren
 
 1. Das Ticket vollständig lesen und alle fachlichen Aussagen Akzeptanzkriterien oder der Abgrenzung zuordnen.
-2. Die Spezifikation unter `fidelity/specs/REQ-<n>.md` anhand von `fidelity/specs/_VORLAGE.md` erstellen. Kriterien erhalten stabile IDs `REQ-<n>-AC<m>`; IDs werden nicht für andere Aussagen wiederverwendet. Ziel und Mehrwert aus dem Ticket erhalten.
+2. Die Spezifikation im Ticket ergänzen. Kriterien erhalten stabile IDs `REQ-<n>-AC<m>`; IDs werden nicht für andere Aussagen wiederverwendet. Ziel und Mehrwert aus dem Ticket erhalten.
 3. Die Spezifikation auf Vollständigkeit und eindeutige Akzeptanzkriterien prüfen und sichern. Anschließend das Ticket nach **Spezifiziert** verschieben.
 
 ## 3. Umsetzung in In Arbeit

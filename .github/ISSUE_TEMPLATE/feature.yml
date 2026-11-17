@@ -6,7 +6,7 @@ body:
   - type: input
     id: ids
     attributes:
-      label: Test-IDs
+      label: Kriterien-IDs
       description: Alle Kriterien dieses Implementierungsauftrags
       placeholder: REQ-12-AC1 REQ-12-AC2
     validations:
@@ -29,6 +29,6 @@ body:
     id: reproduktion
     attributes:
       label: Reproduktion und Nachweis
-      description: Schritte ohne Test, getesteter Commit, Befehl und Lauf/Fehlermeldung
+      description: Schritte, geprüfter Commit, Befehl und Lauf/Fehlermeldung
     validations:
       required: true

@@ -58,7 +58,7 @@ Noch nicht enthalten: eine eigene Medienverwaltung (`/redaktion/medien`). Titelb
 |---|---|
 | [93 cimt × Apple-Design](https://github.com/MarvinJakob/aiboard/issues/93) | Alle öffentlichen Seiten folgen [DESIGN_CIMT.md](../DESIGN_CIMT.md) und dem Mock `mock/design_cimt/`: Primärfarbe `#dc6e14`, dunkles Blau, Systemschrift, weiche opake Karten mit 28 px Radius und pillenförmige Buttons. Die Werte stehen als Tokens am Anfang von `frontend/src/styles.css`; die Komponenten nutzen nur die semantischen Rollen darunter. Die Kopfzeile ist eine schwebende Kapsel mit Wortmarke „ki.“; nur sie trägt Liquid Glass, ausschließlich per CSS (`@supports` mit `backdrop-filter`) und ohne Schalter. Bei reduzierter Transparenz, erhöhtem Kontrast, erzwungenen Farben, fehlender Blur-Unterstützung und beim Drucken wird sie opak. Bis 650 px Breite klappt ein Menübutton Navigation und Sprachwahl auf. Die Startseite erhält eine warme, einspaltige Hero-Fläche ohne dekorative Grafik, die Themenkarten Nummer und Symbol statt bunter Verläufe. Screenshots des ursprünglichen Stands: [docs/screenshots/93](docs/screenshots/93/). |
 | [102 Prozessautomatisierung und KI-Tipps und Tricks entfernen](https://github.com/MarvinJakob/aiboard/issues/102) | Die Themen `prozessautomatisierung` und `ki-tipps-und-tricks` gibt es nicht mehr. Migration `00010` löscht sie in bestehenden Datenbanken und bei Neuinstallationen; `00005` und `00008` bleiben unverändert. Ihre Sprachfassungen und Beitragszuordnungen entfernt die Datenbank mit, Beiträge und Entwürfe bleiben erhalten. Themenmenü, Footer und Sitemap folgen der Themen-API und zeigen die Themen nicht mehr; die beiden Startseitenkarten, die n8n-Vorteile (`AutomationBenefits`, `i18n/automation.ts`) und die Veröffentlichungskopie der Tipps-Seite sind entfernt. Die vier bisherigen URLs und ihre API-Einzelabrufe liefern `404`. Die redaktionellen Vorlagen unter `content/` bleiben. |
-| [101 Landingpage v0.3](https://github.com/MarvinJakob/aiboard/issues/101) | Die Startseite folgt der Textvorlage [content/Landingpage_v03.md](../content/Landingpage_v03.md) (Stand 10. November 2026) und dem Mock `mock/landing_v03/` aus [PR #100](https://github.com/MarvinJakob/aiboard/pull/100): zentrierter Hero mit „Themen entdecken“, „News“ (`/{lang}/blog`), „KI Reifegrad einschätzen“ (KI Readiness, Ticket #110) und „Über mich“ (`/{lang}/profil`), nummerierter Themenindex, drei ausführliche Abschnitte zu Data Analytics, Softwareentwicklung sowie Modelle und Kosten seit Ticket #118 ohne Grafiken in einer Lesespalte, KI-Reifegrad-Banner und Profil-Teaser. Leitfragen, Absätze, Hervorhebungen und Artikel-Linktexte stehen wortgleich und vollständig sichtbar in `frontend/src/i18n/home.ts`; `app.test.tsx` vergleicht sie mit der Vorlage. Die Artikel-Links öffnen die Themenseiten, Sprunglinks setzen den Fokus auf die Abschnittsüberschrift. Titel und Beschreibung stehen gleichlautend in `home.ts` und `backend/internal/web/meta.go`; ein Backend-Test prüft beides. Die sechs Themenkarten und der Grundlagenblock aus #78 entfallen; die Seite `/{lang}/ki-einsatzfelder` bleibt erhalten. |
+| [101 Landingpage v0.3](https://github.com/MarvinJakob/aiboard/issues/101) | Die Startseite folgt der Textvorlage [content/Landingpage_v03.md](../content/Landingpage_v03.md) (Stand 10. November 2026) und dem Mock `mock/landing_v03/` aus [PR #100](https://github.com/MarvinJakob/aiboard/pull/100): zentrierter Hero mit „Themen entdecken“, „News“ (`/{lang}/blog`), „KI Reifegrad einschätzen“ (KI Readiness, Ticket #110) und „Über mich“ (`/{lang}/profil`), nummerierter Themenindex, drei ausführliche Abschnitte zu Data Analytics, Softwareentwicklung sowie Modelle und Kosten seit Ticket #118 ohne Grafiken in einer Lesespalte, KI-Reifegrad-Banner und Profil-Teaser. Leitfragen, Absätze, Hervorhebungen und Artikel-Linktexte stehen wortgleich und vollständig sichtbar in `frontend/src/i18n/home.ts`. Die Artikel-Links öffnen die Themenseiten, Sprunglinks setzen den Fokus auf die Abschnittsüberschrift. Titel und Beschreibung stehen gleichlautend in `home.ts` und `backend/internal/web/meta.go`; ein Backend-Test prüft beides. Die sechs Themenkarten und der Grundlagenblock aus #78 entfallen; die Seite `/{lang}/ki-einsatzfelder` bleibt erhalten. |
 | [108 Website ohne vorgeschaltete Anmeldung](https://github.com/MarvinJakob/aiboard/issues/108) | Die Webseite ist ohne Anmeldung erreichbar: `REQUIRE_LOGIN` ist in `compose.yaml` und `.env.example` standardmäßig `false`. Der Zugangsschutz aus #49 bleibt als Schalter erhalten. Redaktion und `/api/admin/*` prüfen Sitzung, Rolle und CSRF-Token unverändert. Die Datenschutzerklärung enthält weiterhin Platzhalter. Details: [Öffentlicher Zugriff und Redaktion](#öffentlicher-zugriff-und-redaktion). |
 | [112 KI Readiness: Dimensionsübersicht mit aufklappbaren Erklärungen](https://github.com/MarvinJakob/aiboard/issues/112) | Die Readiness-Übersicht zeigt alle freigegebenen Dimensionen nummeriert in Katalogreihenfolge als aufklappbare Liste (`DimensionAccordion` in `components/AuditOverview.tsx`). Anfangs ist alles geschlossen; der Kopf jeder Dimension ist ein Button in einer Überschrift mit `aria-expanded` und `aria-controls` und öffnet auf derselben Seite Kategorie, Erklärung aus `content/KI Readiness.md` und den Link zur Dimensionsseite. Mehrere Erklärungen dürfen offen sein; Aufklappen bewertet nichts. `GET /api/audit` liefert dafür je Dimension `intro`. „Selbsteinschätzung starten“ steht nach der Einleitung und unter der Liste und führt zur ersten Dimension. Screenshots: [docs/screenshots/112](docs/screenshots/112/). |
 | [113 KI Readiness: Geführte Selbsteinschätzung](https://github.com/MarvinJakob/aiboard/issues/113) | Die Dimensionsseiten unter `/{lang}/themen/ai-audit/{dimension}` sind die Schritte der Selbsteinschätzung (`pages/AuditDimension.tsx`). Eine nummerierte Schrittliste (`components/AssessmentSteps.tsx`) steht auf breiten Bildschirmen links, bis 850 px kompakt darüber. Sie unterscheidet aktuelle, bewertete und offene Dimensionen auch ohne Farbe. Je Dimension zeigt die Seite Beschreibung und Nutzen, drei Reifegradkarten als Radiogruppe ohne Vorauswahl und die Prüffragen jeder Stufe als Lesehilfe ohne Antwortfelder. „Weiter“ ist ohne Auswahl gesperrt und nennt den Grund; die Auswahl allein wechselt den Schritt nicht. „Zurück“ und die Schrittliste erlauben Korrekturen. „Auswertung anzeigen“ führt erst nach Bewertung aller Dimensionen zu `/{lang}/themen/ai-audit/auswertung` (`pages/AuditResult.tsx`, `noindex`, nicht in der Sitemap). Die Bewertungen hält `lib/assessment.tsx` nur im Arbeitsspeicher. Der Ja/Nein-Fragebogen (`AuditQuiz`, `assess`), Reifegrad 0 und „Trifft nicht zu“ sind entfernt; die API liefert `notApplied` und `conditional` nicht mehr. Regeln und Durchlauf: [docs/audit-abnahme.md](docs/audit-abnahme.md), Screenshots: [docs/screenshots/113](docs/screenshots/113/). |
@@ -76,7 +76,7 @@ Themenseiten können zusätzlich Markdown unter `frontend/src/content/topics/{sl
 
 Der gemeinsame Markdown-Renderer `components/TopicContent.tsx` stellt Tabellen (über `components/ContentTable.tsx`, das auch die Tabellen der KI-Readiness-Übersicht darstellt; Bug #117), Quellenverweise (auch Bereiche wie `[8–11]`, aufgelöst in einzelne Verweise) und den Übersetzungshinweis dar. Dateien unter `content/topics/{slug}.{lang}.md` enthalten Metadaten vor dem ersten `---` und den Seiteninhalt danach; eine fehlende oder leere englische Fassung verwendet den deutschen Inhalt mit Sprachkennzeichnung. Die Themenseite „KI-Tipps und Tricks“ (#82) ist seit Ticket #102 entfernt.
 
-Die öffentliche Profilseite aus [Ticket #41](https://github.com/MarvinJakob/aiboard/issues/41) ist unter `/de/profil` und `/en/profil` erreichbar. Seit [Ticket #124](https://github.com/MarvinJakob/aiboard/issues/124) folgt sie der Textvorlage [content/Persona.md](../content/Persona.md) (Stand 14. November 2026) in deren Reihenfolge: Vorstellung mit Leitsatz, Schwerpunkten und Porträt mit Bildunterschrift, Beschreibung („Über mich“), drei Fakten, Kontakt sowie drei Beratungsangebote mit Leistungsumfang und Ergebnis. Die deutschen Texte stehen wortgleich, die englischen als Übersetzung in `frontend/src/i18n/profile.ts`; `profile.test.tsx` vergleicht die deutschen Texte und ihre Reihenfolge mit der Vorlage. Einziger Unterschied: Der einfache Bindestrich zwischen Wörtern wird als Gedankenstrich gesetzt. Das Porträt liegt in `frontend/src/assets/marvin-jakob.jpg`, die Komponente in `frontend/src/pages/Profile.tsx`. Titel und Beschreibung stehen gleichlautend in `profile.ts` und `backend/internal/web/meta.go`; ein Backend-Test prüft beides.
+Die öffentliche Profilseite aus [Ticket #41](https://github.com/MarvinJakob/aiboard/issues/41) ist unter `/de/profil` und `/en/profil` erreichbar. Seit [Ticket #124](https://github.com/MarvinJakob/aiboard/issues/124) folgt sie der Textvorlage [content/Persona.md](../content/Persona.md) (Stand 14. November 2026) in deren Reihenfolge: Vorstellung mit Leitsatz, Schwerpunkten und Porträt mit Bildunterschrift, Beschreibung („Über mich“), drei Fakten, Kontakt sowie drei Beratungsangebote mit Leistungsumfang und Ergebnis. Die deutschen Texte stehen wortgleich, die englischen als Übersetzung in `frontend/src/i18n/profile.ts`. Einziger Unterschied: Der einfache Bindestrich zwischen Wörtern wird als Gedankenstrich gesetzt. Das Porträt liegt in `frontend/src/assets/marvin-jakob.jpg`, die Komponente in `frontend/src/pages/Profile.tsx`. Titel und Beschreibung stehen gleichlautend in `profile.ts` und `backend/internal/web/meta.go`; ein Backend-Test prüft beides.
 
 Vorlage und Seite: Die Vorlage nennt für den Kontakt nur „LinkedIn“ und „Mail“. Der LinkedIn-Link führt zum Profil aus [Ticket #123](https://github.com/MarvinJakob/aiboard/issues/123) (`?locale=de-DE` bzw. `?locale=en-US`), der Mail-Link zur Adresse aus dem Impressum. Die Überschriften „Über mich“, „Auf einen Blick“ (Fakten, nur für Screenreader) und der Sprunglink „Beratungsangebote entdecken“ gliedern die Seite und ergänzen keine Inhalte. Die Abschnitte aus dem früheren Profilentwurf `mock/profil/index.html` ([Ticket #60](https://github.com/MarvinJakob/aiboard/issues/60)) – Expertise-Karten mit Themenlinks, Projekte, Qualifikationen und Bloglink – entfallen, weil die Vorlage sie nicht enthält. Die gemeinsame Kopf- und Fußzeile, die Design-Tokens und der Darstellungsschalter bleiben erhalten. Das Porträt wird mit einem Dateihash unter `/assets/` ausgeliefert und benötigt keine externe Bildquelle.
 
@@ -117,9 +117,9 @@ Seit [#7](https://github.com/MarvinJakob/AIPerspectives/issues/7) folgt `/{lang}
 
 Ziele: Vibe Coding unter `/{lang}/themen/vibe-coding` (#6), Kontaktformular unter `/{lang}/kontakt` (#4), weitere Themen auf die Themenseiten Data Analytics und Modelle und Kosten, „Themen“ und „Alle Themen“ auf `/{lang}#themen`. Solange #4 und #6 fehlen, liefern Vibe-Coding- und Kontaktlink 404.
 
-Die Originalgrafiken `res/development-process_{de,en}.png` und `res/releasegate_{de,en}.png` liegen als unveränderte Kopien unter `frontend/src/assets/topics/` (Prüfsummen siehe `fidelity/tests/REQ-7.spec.ts`). Bei Bildänderungen beide Kopien aktualisieren. Ein Klick oder Enter öffnet die Originalgrafik in einem neuen Tab. Die früheren Grafiken `AgenticSWDevProcess_{de,en}.png` sind entfernt.
+Die Originalgrafiken `res/development-process_{de,en}.png` und `res/releasegate_{de,en}.png` liegen als unveränderte Kopien unter `frontend/src/assets/topics/`. Bei Bildänderungen beide Kopien aktualisieren. Ein Klick oder Enter öffnet die Originalgrafik in einem neuen Tab. Die früheren Grafiken `AgenticSWDevProcess_{de,en}.png` sind entfernt.
 
-`softwareentwicklung.{de,en}.md` hält nur noch die Metadaten; `TestSoftwareDevelopmentMetadata` vergleicht sie mit API und HTML. Migration `00017` setzt Kurzbeschreibung und Einführung passend zum neuen Artikel in der Du-Ansprache; das Rollback stellt die Texte aus `00015` wieder her. `frontend/src/topicContent.test.tsx` prüft Aufbau, Reihenfolge, Grafiken, Linkziele, Sprachwechsel und die Vollständigkeit der Übersetzung.
+`softwareentwicklung.{de,en}.md` hält nur noch die Metadaten. Migration `00017` setzt Kurzbeschreibung und Einführung passend zum neuen Artikel in der Du-Ansprache; das Rollback stellt die Texte aus `00015` wieder her.
 
 ## KI verstehen (#151)
 
@@ -182,7 +182,7 @@ Die drei Testkonten der bereitgestellten Entwicklungsumgebung aus Ticket #55 sin
 docker compose -f compose.yaml -f compose.dev.yaml up --build
 ```
 
-## Code erzeugen und testen
+## Code erzeugen
 
 Nach Änderungen an `api/openapi.yaml` oder `backend/internal/store/queries.sql`:
 
@@ -198,29 +198,7 @@ cd frontend && npm run generate
 cd frontend-redaktion && npm run generate
 ```
 
-Tests:
-
-```bash
-cd backend && go vet ./... && go test ./...
-```
-
-```bash
-cd frontend && npm run typecheck && npm test
-```
-
-```bash
-cd frontend-redaktion && npm run typecheck && npm test
-```
-
-Mit `make` stehen dieselben Schritte als `make generate`, `make test`, `make build` und `make run` bereit.
-
-Parallelitätstests der Anmeldung mit Race-Detector (Ticket #138; braucht CGO und einen C-Compiler, die CI führt sie bei jedem Pull Request aus):
-
-```bash
-cd backend && CGO_ENABLED=1 go test -race -count=1 -run 'Limiter|Throttle|TestParallelLogins|TestPasswordChecks|TestLoginOutcomes|TestLoginRateLimit' ./internal/auth ./internal/http
-```
-
-Der lokale Lasttest der Anmeldung läuft nur auf Anforderung und nie gegen das Produktivsystem. Im Ordner `backend` misst `./scripts/login-lasttest.ps1` (Windows PowerShell) einen eigenen Serverprozess mit einem Kern; plattformunabhängig läuft `LOGIN_LASTTEST=1 go test -run TestLoginLoad -v ./internal/http/` im Testprozess. Ablauf und Ergebnisse: [docs/login-begrenzung.md](docs/login-begrenzung.md).
+Mit `make` stehen dieselben Schritte als `make generate`, `make build` und `make run` bereit.
 
 Hinweise:
 

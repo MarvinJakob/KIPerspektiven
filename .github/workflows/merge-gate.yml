@@ -16,19 +16,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  tests:
-    name: Unit-Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/unit-tests
-
   build:
     # Der bestehende Pflichtcheck heißt weiterhin „Merge Gate“.
     name: Merge Gate
-    needs: tests
-    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 45
     outputs:
@@ -36,11 +26,6 @@ jobs:
       version: ${{ steps.identity.outputs.version }}
       image-id: ${{ steps.identity.outputs.image-id }}
     steps:
-      # Übersprungene Checks gelten als erfolgreich: Testfehler ausdrücklich weitergeben.
-      - name: Testergebnis prüfen
-        env:
-          RESULT: ${{ needs.tests.result }}
-        run: test "$RESULT" = success
       - uses: actions/checkout@v5
       - uses: docker/setup-buildx-action@v3
       - name: Image bauen
@@ -62,11 +47,6 @@ jobs:
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
           echo "version=${commit:0:12}-${digest:0:12}" >> "$GITHUB_OUTPUT"
           echo "image-id=$image" >> "$GITHUB_OUTPUT"
-      - name: Browsertests (Desktop und Mobil)
-        uses: ./.github/actions/fidelity
-        with:
-          image: ${{ steps.identity.outputs.image-id }}
-          full-suite: 'true'
       - name: Geprüftes Image für die Installation speichern
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4

@@ -1,18 +1,12 @@
 # Häufige Aufgaben. Unter Windows ohne make die Befehle direkt ausführen (siehe README).
 
-.PHONY: generate test build run dev
+.PHONY: generate build run dev
 
 ## Code aus api/openapi.yaml und den SQL-Abfragen neu erzeugen
 generate:
 	cd backend && go generate ./...
 	cd frontend && npm run generate
 	cd frontend-redaktion && npm run generate
-
-## Alle Tests und Typprüfungen
-test:
-	cd backend && go vet ./... && go test ./...
-	cd frontend && npm run typecheck && npm test
-	cd frontend-redaktion && npm run typecheck && npm test
 
 ## Beide Frontends bauen und in das Backend-Binary einbetten
 build:

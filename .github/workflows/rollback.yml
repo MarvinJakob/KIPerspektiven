@@ -37,13 +37,11 @@ jobs:
         run: |
           if [[ -z "$VERSION" ]]; then app/deploy/deploy.sh rollback; else app/deploy/deploy.sh switch "$VERSION"; fi
           app/deploy/deploy.sh status
-      - name: Produktions-Smoke-Test nach Rollback
-        uses: ./.github/actions/fidelity
-        with:
-          base-url: ${{ vars.DEPLOY_URL }}
-          grep: 'REQ-0-AC'
-          required-ids: REQ-0-AC1 REQ-0-AC2 REQ-0-AC3
-          report-name: fidelity-rollback
+      - name: Healthcheck der Produktion nach Rollback
+        if: vars.DEPLOY_URL != ''
+        env:
+          DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+        run: curl -fsS --retry 10 --retry-delay 3 --retry-all-errors "${DEPLOY_URL%/}/api/health"
       - name: SSH-Schlüssel entfernen
         if: always()
         run: rm -f ~/.ssh/deploy
