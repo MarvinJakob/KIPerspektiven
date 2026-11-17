@@ -283,7 +283,7 @@ Fehlen `HETZNER_CLOUD_API` oder `HCLOUD_SERVER_NAME`, stoppt das Release vor der
 
 | Baustein | Stand |
 |---|---|
-| Server | Hetzner-Cloud-Server `docker-ce-ubuntu-2gb-nbg1-1` (Nürnberg, 1 vCPU, 2 GB RAM + 2 GB Swap), Ubuntu, Docker Engine mit Compose-Plugin; Domain `marvinjakob.de` |
+| Server | Hetzner-Cloud-Server `KI-Perspektiven-PRD` (2 GB RAM + 2 GB Swap, containerd-Image-Store), Ubuntu, Docker Engine mit Compose-Plugin; Domain `marvinjakob.de` |
 | Verzeichnis | `/opt/ki-web`: `.env`, aktive `compose.yaml` und `deploy/Caddyfile`, `build/<Version>/` |
 | Container | `caddy` (`caddy:2-alpine`, Ports 80/443, Let's Encrypt, Header, `/media`) und `backend` (`ki-web:<Version>`, distroless, nur intern, feste Proxy-IP `172.30.142.2`) |
 | Volumes | `app_db`, `app_media`, `caddy_data` – bleiben bei Deployments erhalten |

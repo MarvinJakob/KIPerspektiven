@@ -1,10 +1,10 @@
 # Betrieb auf Hetzner
 
-Die Anwendung läuft mit Docker Compose auf dem Hetzner-Cloud-Server `docker-ce-ubuntu-2gb-nbg1-1`. Caddy nimmt HTTPS-Anfragen an und leitet sie an das Backend weiter (siehe [ARCHITECTURE.md, Abschnitt 8](../../ARCHITECTURE.md#8-betrieb-auf-hetzner) und [ADR 0007](adr/0007-docker-compose-auf-hetzner.md)).
+Die Anwendung läuft mit Docker Compose auf dem Hetzner-Cloud-Server `KI-Perspektiven-PRD`. Caddy nimmt HTTPS-Anfragen an und leitet sie an das Backend weiter (siehe [ARCHITECTURE.md, Abschnitt 8](../../ARCHITECTURE.md#8-betrieb-auf-hetzner) und [ADR 0007](adr/0007-docker-compose-auf-hetzner.md)).
 
 | | |
 |---|---|
-| Server | `docker-ce-ubuntu-2gb-nbg1-1`, IPv4 `78.47.14.178`, Nürnberg, 1 vCPU, 2 GB RAM, 2 GB Swap |
+| Server | `KI-Perspektiven-PRD` seit 2026-11-17 (Neuaufbau, gleiche Primary IP), IPv4 `78.47.14.178`, Ubuntu 24.04, 2 GB RAM, 2 GB Swap |
 | Adresse | <https://marvinjakob.de> seit 2026-11-09. `www.marvinjakob.de` und die frühere Adresse `78-47-14-178.sslip.io` leiten dorthin um, siehe [Domain](#domain). |
 | Projektverzeichnis | `/opt/ki-web` |
 | Container | `caddy` (TLS, Medien) und `backend` (Image `ghcr.io/marvinjakob/ki-web:<VERSION>`) |
@@ -13,6 +13,7 @@ Die Anwendung läuft mit Docker Compose auf dem Hetzner-Cloud-Server `docker-ce-
 ## Voraussetzungen
 
 - **Server:** Ubuntu mit Docker CE und Compose-Plugin. Docker startet beim Systemstart (`systemctl is-enabled docker` ergibt `enabled`). Wegen des Image-Builds auf dem Server ist ein Swap von 2 GB eingerichtet (`/swapfile`, Eintrag in `/etc/fstab`).
+- **Image-Store:** Docker verwendet wie die CI den containerd-Image-Store (`/etc/docker/daemon.json`: `{"features": {"containerd-snapshotter": true}}`, danach `systemctl restart docker`; `docker info` zeigt `driver-type: io.containerd.snapshotter.v1`). Sonst berechnet der Server für das geladene CI-Image eine andere Image-ID und `deploy.sh deploy` bricht mit „No such image“ ab.
 - **Netz:** Die Ports 80 und 443 sind öffentlich erreichbar. Caddy holt das Zertifikat bei Let's Encrypt und leitet HTTP auf HTTPS um.
 - **Domain:** Die Domain löst auf die IP des Servers auf.
 - **Zugang:** SSH als `root` mit Schlüssel. Der private Deploy-Schlüssel liegt ausschließlich als GitHub-Secret `HETZNER_CLOUD_SSH`, das Hetzner-API-Token als `HETZNER_CLOUD_API` (in den Workflows intern `HCLOUD_TOKEN`); lokal gibt es keine Hetzner-Zugänge, nur `GH_TOKEN` für GitHub. Laufzeit-Konfiguration liegt auf dem Server in `/opt/ki-web/.env`.
@@ -100,7 +101,7 @@ Einstellungen unter *Settings → Secrets and variables → Actions* von `Marvin
 | `DEPLOY_KNOWN_HOSTS` | Secret | Host-Schlüssel des Servers, z. B. aus `ssh-keyscan -t ed25519 78.47.14.178` nach Abgleich des Fingerprints |
 | `HETZNER_CLOUD_API` | Secret | Hetzner-Cloud-API-Token (Lesen und Schreiben) für den verpflichtenden Snapshot |
 | `DEPLOY_URL` | Variable | `https://marvinjakob.de` |
-| `HCLOUD_SERVER_NAME` | Variable | `docker-ce-ubuntu-2gb-nbg1-1` |
+| `HCLOUD_SERVER_NAME` | Variable | `KI-Perspektiven-PRD` |
 
 Eine Registry ist nicht nötig: Das getestete Image wird als Actions-Artefakt übertragen und auf Hetzner geladen, dort nicht erneut gebaut. Zugangstest ohne Deployment: `gh workflow run deploy-access.yml`. Er verwendet nur die GitHub-Secrets, prüft API/Server und SSH und zeigt den öffentlichen Schlüsselfingerprint. Fehlende Snapshot-Konfiguration ist ein Fehler. Den Schlüssel bei Verdacht auf Missbrauch auf dem Server aus `authorized_keys` löschen und neu erzeugen. Im alten Repository `MarvinJakob/aiboard` darf kein Deploy-Workflow mehr aktiv sein, sonst liefern zwei Repositorys auf denselben Server aus.
 
@@ -230,7 +231,9 @@ Datenbankstand gehörenden Schlüssel bereitstellen. Bei Verlust oder bewusstem 
 Server einen neuen Zuordnungsbestand; alte absolute Zahlen bleiben erhalten und nicht mehr
 berechenbare IP-Summen werden als „Nicht verfügbar“ markiert. Kein stilles Vermischen beider Bestände.
 
-Compose verwendet ein eigenes Netz `proxy` (172.30.142.0/24) und die feste Caddy-IP 172.30.142.2.
+Compose verwendet ein eigenes Netz `proxy` (172.30.142.0/24), die feste Caddy-IP 172.30.142.2 und die
+feste Backend-IP 172.30.142.3. Ohne feste Backend-IP erhält das zuerst startende Backend die erste freie
+Adresse 172.30.142.2, und Caddy startet nicht (Ticket #17).
 Nur diese /32-Adresse steht in `TRUSTED_PROXIES`; der Backend-Port bleibt unveröffentlicht. So muss
 beim ersten Rollout das bisherige Default-Netz nicht umkonfiguriert werden. Vor dem ersten Rollout
 prüfen, dass das Subnetz nicht mit dem Servernetz/VPN kollidiert; bei Anpassung Subnetz, Caddy-IP und

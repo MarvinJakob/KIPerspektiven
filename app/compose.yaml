@@ -37,7 +37,11 @@ services:
       # Die Webseite ist öffentlich (Ticket #108); die Redaktion prüft Sitzung und Rolle unabhängig davon.
       # REQUIRE_LOGIN=true in der .env schaltet den optionalen Zugangsschutz aus Ticket #49 wieder ein.
       REQUIRE_LOGIN: ${REQUIRE_LOGIN:-false}
-    networks: [proxy]
+    # Feste Adresse: Startet das Backend vor Caddy, würde Docker ihm sonst die erste freie Adresse
+    # 172.30.142.2 zuweisen und Caddy scheitert mit „Address already in use“ (Ticket #17).
+    networks:
+      proxy:
+        ipv4_address: 172.30.142.3
     volumes:
       - app_db:/data/db
       - app_media:/data/media
