@@ -44,6 +44,8 @@ Der Auftrag im Chat nennt die Rolle, optional mit Ticket: `Team 1`, `Team 2`, `T
 
 Frei heißt: ohne `in-progress`, `blocked` und `waiting-for-test`. Der Agent nennt im Chat Rolle und Ticket und arbeitet danach genau nach der Datei dieser Rolle. Liefert `tools/task.sh claim` bzw. `resume` Exitcode `2`, nimmt er den nächsten Eintrag. Jeder andere Fehler (Exitcode `1`, Boardzugriff) zählt nicht als „belegt“: melden und enden. Nach `finish` oder `pause` wählt er erneut. Ist die Warteschlange leer, meldet er das und endet.
 
+**Auftrag `review`:** Der Agent arbeitet als Reviewer alle zu Beginn im Board-Status `Review` wartenden PRs nacheinander ab, mergt die grünen und verfolgt danach den Release-Lauf des letzten Merge-Commits bis zur Veröffentlichung. Ablauf und Bericht: [AGENTS_REVIEWER.md](AGENTS_REVIEWER.md#auftrag-review).
+
 ## Arbeitsteilung mit GitHub Actions
 
 Die Workflows sind Teil des Prozesses. **Was eine Action prüft, wiederholt kein Agent lokal.**

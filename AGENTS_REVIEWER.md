@@ -89,3 +89,20 @@ PRs von Team 1, Team 3 und Wartung brauchen vor dem Merge das Review einer Sitzu
 4. **Befunde:** Head-Commit, eigene Sitzungs-ID, Ergebnis und Befunde als PR-Kommentar, Board `In Progress`, `bash tools/task.sh pause <team> <n>`. Befunde nie selbst beheben und danach abnehmen. Wird das Merge Gate nach der Abnahme rot, gilt dasselbe. Jeder neue Commit braucht ein neues Review.
 
 Der Nachweis: `tools/review.mjs` legt ein GitHub-Review mit Sitzungs-ID, Commit und Ergebnis an und trägt dessen `Review-ID` in den PR ein. Der Job „Review“ prüft diesen Datensatz, die Berechtigung des Kontos, Sitzung und Commit. Gemeinsame GitHub-Zugänge trennen die Sitzungen nicht kryptographisch: Sitzungs-IDs müssen wahrheitsgemäß sein.
+
+## Auftrag `review`
+
+Der Chat-Auftrag `review` bündelt beide Aufgaben des Reviewers in einer Sitzung: alle wartenden PRs abarbeiten und den so entstandenen Stand bis zur Auslieferung verfolgen. Er ist kein eigenes Skript und kein eigenes Team; die Abschnitte oben gelten unverändert.
+
+1. **Kandidaten einmal zu Beginn erfassen:** `bash tools/board.sh list` und `gh pr list --state open --json number,headRefName,headRefOid,isDraft,body,createdAt`. Kandidat ist ein PR, dessen Ticket im Board-Status `Review` steht, mit Branch `spec/<n>`, `fix/<n>` oder `codex/maint-<n>`, ohne `blocked` und ohne die eigene Sitzungs-ID unter `Implementer-Agents:`. Später übergebene PRs gehören zum nächsten Aufruf. Tickets mit `release-blocker` zuerst, danach nach Erstellungszeit.
+2. **Je Kandidat** [Review vor dem Merge Gate](#review-vor-dem-merge-gate), Schritte 1–4. Liefert `resume` Exitcode `2` oder einen anderen Fehler: Kandidat überspringen, im Bericht nennen, mit dem nächsten weitermachen. Weil `main` vor jedem Merge aktuell sein muss, laufen die Kandidaten nacheinander: Nach jedem Merge den nächsten Branch aktualisieren und dessen neuen Head prüfen.
+3. **Merge absichern:** Es zählt nur der Merge-Gate-Lauf, der nach der letzten Änderung an Commit, PR-Text und Draft-Status gestartet wurde; ältere grüne Läufe zählen nicht. Unmittelbar vor dem Merge Head und Draft-Status erneut abfragen, dann `gh pr merge <PR> --squash --match-head-commit <geprüfter SHA> --delete-branch` und `gh pr view <PR> --json state,mergeCommit` (Status `MERGED`).
+4. **Auslieferung verfolgen:** Den Release-Lauf des letzten Merge-Commits über `headSha` zuordnen, nie pauschal den neuesten nehmen:
+   ```bash
+   gh run list -w release.yml -b main --event push --json databaseId,headSha,status,conclusion
+   gh run watch <Lauf> --exit-status
+   ```
+   Erfolgreich ist nur ein vollständig grüner Lauf bis einschließlich Veröffentlichung. Schlägt er fehl, gilt [Release Gate](#release-gate): Die Release-Nacharbeit legt das Ticket an, und nach einem fehlgeschlagenen Smoke-Test stellt der Workflow die vorherige Version selbst wieder her. `rollback.yml` startet weiterhin nur der Maintainer oder ein ausdrücklicher Auftrag am Ticket. Wurde nichts gemergt, nur den Stand des letzten Release-Laufs berichten.
+5. **Bericht:** gemergte PRs mit Ticket und Gate-Lauf; zurückgegebene oder übersprungene PRs mit Grund; letzter Merge-Commit, Release-Lauf und Tag. „Gemergt“ und „produktiv ausgeliefert“ getrennt ausweisen.
+
+Der Auftrag erlaubt ohne weitere Rückfrage: PR-Kommentare, Änderungen an PR-Text, Labels und Board, das Aktualisieren übergebener Branches über GitHub, Merges mit grünem Merge Gate, den Ticketabschluss und einen einmaligen Neustart eines infrastrukturbedingt abgebrochenen Laufs (`gh run rerun <Lauf> --failed`). Kein `--admin`, kein Umgehen von Checks, keine Änderungen an fremden Branches über das Aktualisieren hinaus.

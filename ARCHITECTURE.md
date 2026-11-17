@@ -179,6 +179,7 @@ Mehrere Agenten (Claude Code, Codex u. a.) arbeiten gleichzeitig auf einem Windo
 | `tools/task.sh pause` / `resume` | erhält Branch und Worktree für Übergaben; atomare Übernahme nur freigegebener Aufgaben mit eindeutiger Agentensitzungs-ID |
 | Board `Blocked` | konkrete Rückfrage im Issue; nach Antwort und Rückkehr nach `In Progress` übernimmt ein freier Agent |
 | Board `Review` | ein anderer, an der Implementierung unbeteiligter Agent prüft den aktuellen Commit; IDs und Commit stehen im PR |
+| Chat-Auftrag `review` | eine Reviewer-Sitzung arbeitet alle wartenden PRs nacheinander ab (Review, Merge Gate, Merge, `finish`) und verfolgt den Release-Lauf bis zur Veröffentlichung; [AGENTS_REVIEWER.md](AGENTS_REVIEWER.md#auftrag-review) |
 | Branch-Präfix `spec/`, `verify/`, `fix/` | das Merge Gate prüft die Team-Grenzen (welche Dateien geändert werden dürfen) |
 | `tools/task.sh claim maint <n>` | nur bei ausdrücklichem Wartungsauftrag: Branch `codex/maint-<n>`, Worktree `.worktrees/maint-<n>`; unabhängiges Review und Merge Gate bleiben Pflicht |
 | `fidelity/baseline.txt` mit `merge=union` | parallele Ergänzungen der Baseline ohne Merge-Konflikt |
