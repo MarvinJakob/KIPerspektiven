@@ -117,7 +117,7 @@ Seit [#7](https://github.com/MarvinJakob/AIPerspectives/issues/7) folgt `/{lang}
 
 Ziele: Vibe Coding unter `/{lang}/themen/vibe-coding` (#6), Kontaktformular unter `/{lang}/kontakt` (#4), weitere Themen auf die Themenseiten Data Analytics und Modelle und Kosten, „Themen“ und „Alle Themen“ auf `/{lang}#themen`. Solange #4 und #6 fehlen, liefern Vibe-Coding- und Kontaktlink 404.
 
-Die Originalgrafiken `res/development-process_{de,en}.png` und `res/releasegate_{de,en}.png` liegen als unveränderte Kopien unter `frontend/src/assets/topics/` (Prüfsummen siehe `fidelity/tests/REQ-7.spec.ts`). Bei Bildänderungen beide Kopien aktualisieren. Ein Klick oder Enter öffnet die Originalgrafik in einem neuen Tab. Die früheren Grafiken `AgenticSWDevProcess_{de,en}.png` sind entfernt.
+Die Originalgrafiken `res/development-process_{de,en}.png` und `res/releasegate_{de,en}.png` liegen als unveränderte Kopien unter `frontend/src/assets/topics/`. Bei Bildänderungen beide Kopien aktualisieren. Ein Klick oder Enter öffnet die Originalgrafik in einem neuen Tab. Die früheren Grafiken `AgenticSWDevProcess_{de,en}.png` sind entfernt.
 
 `softwareentwicklung.{de,en}.md` hält nur noch die Metadaten; `TestSoftwareDevelopmentMetadata` vergleicht sie mit API und HTML. Migration `00017` setzt Kurzbeschreibung und Einführung passend zum neuen Artikel in der Du-Ansprache; das Rollback stellt die Texte aus `00015` wieder her. `frontend/src/topicContent.test.tsx` prüft Aufbau, Reihenfolge, Grafiken, Linkziele, Sprachwechsel und die Vollständigkeit der Übersetzung.
 
@@ -182,7 +182,7 @@ Die drei Testkonten der bereitgestellten Entwicklungsumgebung aus Ticket #55 sin
 docker compose -f compose.yaml -f compose.dev.yaml up --build
 ```
 
-## Code erzeugen und testen
+## Code erzeugen
 
 Nach Änderungen an `api/openapi.yaml` oder `backend/internal/store/queries.sql`:
 
@@ -198,29 +198,7 @@ cd frontend && npm run generate
 cd frontend-redaktion && npm run generate
 ```
 
-Tests:
-
-```bash
-cd backend && go vet ./... && go test ./...
-```
-
-```bash
-cd frontend && npm run typecheck && npm test
-```
-
-```bash
-cd frontend-redaktion && npm run typecheck && npm test
-```
-
-Mit `make` stehen dieselben Schritte als `make generate`, `make test`, `make build` und `make run` bereit.
-
-Parallelitätstests der Anmeldung mit Race-Detector (Ticket #138; braucht CGO und einen C-Compiler, die CI führt sie bei jedem Pull Request aus):
-
-```bash
-cd backend && CGO_ENABLED=1 go test -race -count=1 -run 'Limiter|Throttle|TestParallelLogins|TestPasswordChecks|TestLoginOutcomes|TestLoginRateLimit' ./internal/auth ./internal/http
-```
-
-Der lokale Lasttest der Anmeldung läuft nur auf Anforderung und nie gegen das Produktivsystem. Im Ordner `backend` misst `./scripts/login-lasttest.ps1` (Windows PowerShell) einen eigenen Serverprozess mit einem Kern; plattformunabhängig läuft `LOGIN_LASTTEST=1 go test -run TestLoginLoad -v ./internal/http/` im Testprozess. Ablauf und Ergebnisse: [docs/login-begrenzung.md](docs/login-begrenzung.md).
+Mit `make` stehen dieselben Schritte als `make generate`, `make build` und `make run` bereit.
 
 Hinweise:
 

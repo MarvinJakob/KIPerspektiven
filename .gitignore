@@ -28,13 +28,6 @@ __pycache__/
 *.test
 *.out
 
-# Fidelity-Tests (Playwright): Berichte und Ergebnisse einzelner Läufe
-/fidelity/playwright-report/
-/fidelity/test-results/
-/fidelity/blob-report/
-/fidelity/results.json
-/fidelity/inventory.json
-
 # Daten, Medien und Geheimnisse
 statistics-ip.key
 .token/

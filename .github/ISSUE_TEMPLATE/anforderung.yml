@@ -21,7 +21,7 @@ body:
     id: kriterien
     attributes:
       label: Akzeptanzkriterien
-      description: Nummerierte, beobachtbare Bedingungen (Gegeben/Wenn/Dann), einschließlich relevanter Fehler- und Grenzfälle. Daraus entstehen vor der Umsetzung Fidelity-Tests.
+      description: Nummerierte, beobachtbare Bedingungen (Gegeben/Wenn/Dann), einschließlich relevanter Fehler- und Grenzfälle.
     validations:
       required: true
   - type: textarea

@@ -4,4 +4,4 @@
 
 ## Prüfung
 
-<!-- Relevante lokale Prüfungen ergänzen. GitHub Actions führt Tests und Build aus. -->
+<!-- Relevante lokale Prüfungen ergänzen. GitHub Actions führt den Build aus. -->

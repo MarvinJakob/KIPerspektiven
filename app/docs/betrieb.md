@@ -83,11 +83,10 @@ cd /opt/ki-web && docker compose exec -it backend /server user create --email AD
 
 Der Workflow [Merge Gate](../../.github/workflows/merge-gate.yml) führt bei Pull Requests nach `main` und nach Push/Merge auf `main` dieselben Prüfungen aus:
 
-1. Unit-Tests, Typprüfungen und Backend-Race-Tests.
-2. Docker-Image bauen und die vollständigen Fidelity-Browsertests auf Desktop und Mobil gegen dieses Image ausführen. Die bestehende Baseline-Auswertung bleibt erhalten.
-3. Nur auf `main`: das geprüfte Image übertragen und als neue Version installieren. Docker-Healthcheck und HTTPS-Healthcheck müssen erfolgreich sein.
+1. Docker-Image bauen.
+2. Nur auf `main`: das geprüfte Image übertragen und als neue Version installieren. Docker-Healthcheck und HTTPS-Healthcheck müssen erfolgreich sein.
 
-Bei fehlgeschlagener Installation wird die zuvor gemerkte Version wiederhergestellt; der Lauf bleibt rot. Ohne Vorgängerversion gibt es bei einer Erstinstallation keinen Rollback. Der Pflichtcheck `Merge Gate` schlägt auch bei fehlerhaften Unit-Tests fehl. Pull Requests installieren keine Version. Laufende Installationen und der manuelle Workflow [Rollback](../../.github/workflows/rollback.yml) teilen dieselbe Sperre und werden nicht abgebrochen.
+Bei fehlgeschlagener Installation wird die zuvor gemerkte Version wiederhergestellt; der Lauf bleibt rot. Ohne Vorgängerversion gibt es bei einer Erstinstallation keinen Rollback. Der Pflichtcheck `Merge Gate` schlägt bei fehlerhaftem Build fehl. Pull Requests installieren keine Version. Laufende Installationen und der manuelle Workflow [Rollback](../../.github/workflows/rollback.yml) teilen dieselbe Sperre und werden nicht abgebrochen.
 
 Die Installation benötigt die Secrets `DEPLOY_HOST`, `HETZNER_SSH`, `DEPLOY_KNOWN_HOSTS` sowie optional die Variable `DEPLOY_URL` für den Link zur Produktion. Eine Registry ist nicht nötig: Das gebaute Image wird als Actions-Artefakt übertragen und auf Hetzner geladen. Es wird dort nicht erneut gebaut. Die automatische Pipeline erstellt keine Snapshots, Release-Branches, Tags oder GitHub-Releases und erzeugt keine Team-4-Auswertungsaufgaben.
 

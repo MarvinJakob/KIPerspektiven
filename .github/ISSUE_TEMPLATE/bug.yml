@@ -1,4 +1,4 @@
-name: Bug (fehlgeschlagener Fidelity-Test)
+name: Bug
 description: Team 2 oder Team 4 dokumentiert fehlerhaftes Verhalten für Team 3.
 title: "[REQ-<n>-AC<m>] <Was funktioniert nicht>"
 labels: [bug]
@@ -10,8 +10,8 @@ body:
   - type: input
     id: ids
     attributes:
-      label: Test-IDs
-      description: Alle fehlschlagenden IDs dieser Fehlerursache, Leerzeichen-getrennt. Team 3 übernimmt sie in die Zeile „Fidelity:“ seines PR.
+      label: Kriterien-IDs
+      description: Alle betroffenen Akzeptanzkriterien dieser Fehlerursache, Leerzeichen-getrennt.
       placeholder: REQ-12-AC2 REQ-12-AC3
     validations:
       required: true
@@ -26,14 +26,14 @@ body:
     id: ergebnis
     attributes:
       label: Erwartet und tatsächlich
-      description: Erwartetes Verhalten laut Spezifikation (Kriterium zitieren), tatsächliches Verhalten laut Testlauf (Fehlermeldung kürzen). Angeben, wenn nur Desktop oder nur Mobil betroffen ist.
+      description: Erwartetes Verhalten laut Spezifikation (Kriterium zitieren), tatsächliches Verhalten (Fehlermeldung kürzen). Angeben, wenn nur Desktop oder nur Mobil betroffen ist.
     validations:
       required: true
   - type: textarea
     id: reproduktion
     attributes:
-      label: Nachstellen ohne Test
-      description: Schritte für Browser oder HTTP unabhängig vom Testlauf (URL, Testkonto aus DEV_SEED, Aktion, sichtbares Ergebnis). Team 3 darf ergänzend gezielte Feature-Tests ausführen.
+      label: Nachstellen
+      description: Schritte für Browser oder HTTP (URL, Testkonto aus DEV_SEED, Aktion, sichtbares Ergebnis).
       placeholder: |
         1. /de/kontakt öffnen
         2. Formular ohne E-Mail absenden
@@ -43,7 +43,7 @@ body:
   - type: input
     id: lauf
     attributes:
-      label: Getesteter Stand
-      description: Commit von main, gegen den Team 2 getestet hat (bei Release-Nacharbeit zusätzlich der Link zum Lauf)
+      label: Geprüfter Stand
+      description: Geprüfter Commit und gegebenenfalls Link zum CI-Lauf
     validations:
       required: true

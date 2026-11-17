@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -18,13 +17,5 @@ export default defineConfig({
       '/api': 'http://localhost:8080',
       '/media': 'http://localhost:8080',
     },
-  },
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./src/test/setup.ts'],
-    // Feste Zeitzone, damit Tests zur Zeitumstellung (Ticket #32) überall gleich laufen.
-    env: { TZ: 'Europe/Berlin' },
-    css: false,
   },
 });

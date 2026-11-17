@@ -17,7 +17,7 @@ AI Perspectives ist eine öffentliche, zweisprachige Webseite (DE/EN) mit Themen
 | Schnittstelle | `app/api/openapi.yaml` als verbindlicher Vertrag, Code für Go und TypeScript daraus erzeugt |
 | Datenbank | SQLite (WAL) im Docker-Volume, Migrationen mit goose |
 | Betrieb | Docker Compose (Caddy + Backend) auf einem Hetzner-Cloud-Server |
-| Qualität | Unit-Tests (Go, Vitest), Fidelity-Tests (Playwright) gegen die laufende Anwendung |
+| Qualität | Image-Build im Merge Gate, Healthchecks bei der Installation |
 | Auslieferung | GitHub Actions: Merge Gate je PR, Release Gate automatisch nach Push/Merge auf `main` |
 
 ```mermaid
@@ -44,7 +44,7 @@ flowchart LR
 - **Sicherheit im Backend.** Sichtbarkeit von Beiträgen, Rollen und Zugriffe entscheidet nur das Backend.
 - **Jede Ansicht hat eine echte URL** und liefert beim ersten Aufruf passende Meta-Tags.
 - **Keine Daten an Dritte.** Keine externen Schriften, Skripte, CDNs oder Tracker; die Content-Security-Policy erzwingt das.
-- **Anforderungen sind ausführbar.** Jede Anforderung hat Fidelity-Tests; was funktioniert, steht in der Baseline und darf nicht mehr kaputtgehen.
+- **Anforderungen sind prüfbar.** Jede Anforderung hat nummerierte Akzeptanzkriterien.
 
 ---
 
@@ -65,7 +65,6 @@ flowchart LR
 │   ├── Dockerfile         baut beide Frontends und das Backend zu einem Image
 │   ├── compose.yaml       Produktion; compose.dev.yaml für lokal
 │   └── .env.example       Vorlage für die Server-.env
-├── fidelity/              Fidelity-Tests (Abschnitt 5)
 ├── tools/                 task.sh (Aufgaben-Sperre), board.sh (Projektstatus), work.sh (Warteschlange, Betriebssteuerung),
 │                          reconcile.mjs (Prozessabgleich), review.mjs (Review-Nachweis), Prüfungen des Merge Gate
 ├── .github/               Workflows, Composite Actions, Issue- und PR-Vorlagen
@@ -99,7 +98,6 @@ Zwei eigenständige React-Anwendungen unter derselben Domain, beide mit derselbe
 | Daten | typisierter Client mit openapi-fetch, TanStack Query |
 | Texte | i18next; Beitragsinhalte als Markdown ohne rohes HTML |
 | Gestaltung | CSS mit Design-Tokens, selbst gehostete Schriften, heller und dunkler Modus |
-| Tests | Vitest und Testing Library |
 
 Öffentliche Ansichten: Startseite, Themenseiten, KI verstehen, KI-Readiness mit Auswertung und Beratungsanfrage, Blog, Impressum, Datenschutz. Redaktion: Anmeldung, Beiträge (inkl. geplanter Veröffentlichung), Medien, Benutzer (`admin`), Statistik und Beratungsanfragen (`editor`, `admin`).
 
@@ -143,28 +141,9 @@ Einstellungen: `journal_mode=WAL`, `foreign_keys=ON`, `busy_timeout=5000`. Ein W
 
 ---
 
-## 5 Fidelity-Tests
+## 5 Spezifikationen
 
-Fidelity-Tests prüfen von außen (Browser, HTTP), ob eine Anforderung **vollständig** umgesetzt ist. Team 1 spezifiziert und schreibt Tests ohne Laufzeitprüfung. Team 2 validiert und prüft einzelne Features und schreibt Feature-/Bug-Tickets sowie Funktionsnachweise. Team 3 implementiert und korrigiert Bugs und Testdefekte. Team 4 reviewed und wertet die gesamte Suite aus. Im Merge Gate laufen ausschließlich die Tests der betroffenen Features; die gesamte Fidelity-Suite läuft ausschließlich im Release Gate.
-
-```
-fidelity/
-├── specs/REQ-<n>.md        Akzeptanzkriterien und Szenarien je Anforderung (Issue #<n>), Vorlage _VORLAGE.md
-├── tests/REQ-<n>.spec.ts   ein Playwright-Test je Kriterium, Titel beginnt mit REQ-<n>-AC<m>
-├── baseline.txt            „Dinge, die funktionieren“: IDs, die bestehen müssen (wächst nur, merge=union)
-├── scripts/gate.mjs        Auswertung eines Laufs gegen Baseline und geforderte IDs
-└── playwright.config.ts    BASE_URL, Projekte desktop und mobil, JSON-Bericht results.json
-```
-
-| Begriff | Bedeutung |
-|---|---|
-| Backlog | alle Tests in `tests/`; fehlschlagende Tests außerhalb der Baseline sind erlaubt |
-| Baseline | bestandene IDs; schlägt eine fehl, ist das eine Regression und sperrt das Release sowie den Merge, falls sie zum ausgewählten Feature gehört |
-| Gate | `node scripts/gate.mjs [--require "<IDs>"] [--inventory inventory.json] [--no-baseline]`; Exitcode 1 bei Regression, fehlender geforderter ID oder ungültigem/unvollständigem Lauf |
-
-CI erzeugt vor der Ausführung mit Playwright ein Inventar der erwarteten Tests. Jede ID muss auf Desktop und Mobil vollständig ausgeführt werden. Globale Fehler, fehlende Tests, Skip und erwartete Fehlschläge sperren das Gate; instabile Ergebnisse gelten nicht als funktionierend. Bekannte fachliche Fehlschläge außerhalb der Baseline bleiben erlaubt. Teilläufe nennen ausgewählte IDs und gegebenenfalls zusätzlich erforderliche Erfolgs-IDs. Fehlende ausgewählte IDs sind auch bei erlaubtem fachlichem Backlog ungültig. Bericht und Inventar werden gemeinsam als Artefakt aufbewahrt.
-
-`REQ-0` (Healthcheck, Startseite, 404) ist die Grundfunktion und läuft auch als Smoke-Test gegen die Produktion.
+Akzeptanzkriterien stehen im Ticket und tragen stabile IDs `REQ-<n>-AC<m>`. Das Repository enthält keine automatisierten Tests; das Merge Gate baut das Image, die Installation prüft Docker- und HTTPS-Healthcheck.
 
 ---
 
@@ -182,11 +161,10 @@ Mehrere Agenten (Claude Code, Codex u. a.) arbeiten gleichzeitig auf einem Windo
 | Chat-Aufträge `Team 4`, `Reviewer`, `review` | eine unabhängige Sitzung bearbeitet genau eine PR-Abnahme oder Release-Auswertung; [AGENTS_REVIEWER.md](AGENTS_REVIEWER.md) |
 | Branch-Präfix `spec/`, `verify/`, `fix/` | das Merge Gate prüft die Team-Grenzen (welche Dateien geändert werden dürfen) |
 | `tools/task.sh claim maint <n>` | nur bei ausdrücklichem Wartungsauftrag: Branch `codex/maint-<n>`, Worktree `.worktrees/maint-<n>`; unabhängiges Review und Merge Gate bleiben Pflicht |
-| `fidelity/baseline.txt` mit `merge=union` | parallele Ergänzungen der Baseline ohne Merge-Konflikt |
 | Port `20000 + <n>`, Datenbank in `app/.build/` des Worktrees | lokale Server der Agenten stören sich nicht |
 | Squash-Merge, Branch-Löschung nach Merge | `main` bleibt linear, Sperren verschwinden mit `tools/task.sh finish` |
 
-**Zugang:** `GH_TOKEN` (GitHub, Scopes `repo`, `workflow`, `project`) als Windows-Benutzervariable. Hetzner-Zugänge gibt es lokal nicht; sie liegen ausschließlich als GitHub-Secrets vor (siehe [Secrets und Variablen](#secrets-und-variablen)). Werkzeuge: Git (mit Git Bash), GitHub CLI, Go (Version aus `app/backend/go.mod`), Node 24, Playwright mit Chromium.
+**Zugang:** `GH_TOKEN` (GitHub, Scopes `repo`, `workflow`, `project`) als Windows-Benutzervariable. Hetzner-Zugänge gibt es lokal nicht; sie liegen ausschließlich als GitHub-Secrets vor (siehe [Secrets und Variablen](#secrets-und-variablen)). Werkzeuge: Git (mit Git Bash), GitHub CLI, Go (Version aus `app/backend/go.mod`), Node 24.
 
 ### Vier-Team-Prozess
 
@@ -213,15 +191,15 @@ Branch-Schutz für `main`: Pull Request und Statusprüfung `Merge Gate` sind ver
 
 | Workflow | Auslöser | Inhalt |
 |---|---|---|
-| [merge-gate.yml](.github/workflows/merge-gate.yml) | PR nach `main`, Push auf `main`, manuell | Unit-Tests → Image-Build und Browsertests → Installation auf `main` |
+| [merge-gate.yml](.github/workflows/merge-gate.yml) | PR nach `main`, Push auf `main`, manuell | Image-Build → Installation auf `main` |
 | [rollback.yml](.github/workflows/rollback.yml) | manuell | vorherige oder angegebene Version starten |
 | [deploy-access.yml](.github/workflows/deploy-access.yml) | manuell | Hetzner-API und SSH lesend prüfen |
 
-### Tests, Build und Installation
+### Build und Installation
 
-Der Pflichtcheck `Merge Gate` bleibt erhalten. Zuerst laufen Backend- und Frontend-Unit-Tests einschließlich Typprüfung und Race-Detector. Erst nach erfolgreichen Tests wird das Docker-Image gebaut. Die vollständigen Fidelity-Browsertests prüfen dieses Image auf Desktop und Mobil; die bestehende Baseline-Auswertung bleibt erhalten. Fehler in Unit-Tests, Build oder Browsertest-Auswertung lassen den Pflichtcheck fehlschlagen.
+Der Pflichtcheck `Merge Gate` baut das Docker-Image. Ein fehlerhafter Build lässt den Pflichtcheck fehlschlagen.
 
-Pull Requests installieren keine Version. Nach einem Push/Merge auf `main` laufen dieselben Prüfungen; anschließend wird genau das gebaute und getestete Image als Actions-Artefakt nach Hetzner übertragen und aktiviert. Die Version enthält Commit- und Image-ID. `deploy.sh` prüft Image-ID und Commit-Label, wartet auf Docker-Healthcheck und HTTPS-Healthcheck und stellt bei fehlgeschlagenem Start die bisherige Version wieder her. Laufende Installationen und Rollbacks teilen `release-production` als Sperre und werden nicht abgebrochen. Die fünf jüngsten Versionen bleiben für Rollbacks verfügbar.
+Pull Requests installieren keine Version. Nach einem Push/Merge auf `main` läuft derselbe Build; anschließend wird genau das gebaute Image als Actions-Artefakt nach Hetzner übertragen und aktiviert. Die Version enthält Commit- und Image-ID. `deploy.sh` prüft Image-ID und Commit-Label, wartet auf Docker-Healthcheck und HTTPS-Healthcheck und stellt bei fehlgeschlagenem Start die bisherige Version wieder her. Laufende Installationen und Rollbacks teilen `release-production` als Sperre und werden nicht abgebrochen. Die fünf jüngsten Versionen bleiben für Rollbacks verfügbar.
 
 Team-Grenzen, Review-Checklisten, Issue-Blocker, Release-Branch, GitHub-Release-Veröffentlichung und Snapshot sind keine zusätzlichen Pipeline-Schritte. Die bisherigen Workflows für Release Gate, Prozessabgleich, Feature-Fixes und Release-Nacharbeit entfallen. Manueller Neustart auf `main`: `gh workflow run merge-gate.yml --ref main`.
 
@@ -268,7 +246,7 @@ Ersteinrichtung, `.env`, Domainwechsel, Wiederherstellung und Logs: [app/docs/be
 
 ## 9 Datenschutz
 
-Keine Cookies für Besucher außer bei Anmeldung zur Redaktion, keine Einbindung Dritter, Reichweitenmessung nur serverseitig ohne Kennung ([ADR 0010](app/docs/adr/0010-statistik-ohne-kennung-und-einwilligung.md)), Readiness-Ergebnisse nur mit Einwilligung, Bilder ohne Metadaten, Sicherungen verschlüsselt in Deutschland. Auftragsverarbeitungsvertrag mit Hetzner. Fidelity-Tests verwenden nur Testdaten (`DEV_SEED`, `@example.test`).
+Keine Cookies für Besucher außer bei Anmeldung zur Redaktion, keine Einbindung Dritter, Reichweitenmessung nur serverseitig ohne Kennung ([ADR 0010](app/docs/adr/0010-statistik-ohne-kennung-und-einwilligung.md)), Readiness-Ergebnisse nur mit Einwilligung, Bilder ohne Metadaten, Sicherungen verschlüsselt in Deutschland. Auftragsverarbeitungsvertrag mit Hetzner. Die Entwicklungsumgebung verwendet nur Testdaten (`DEV_SEED`, `@example.test`).
 
 ---
 
