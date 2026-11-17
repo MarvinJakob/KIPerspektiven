@@ -1,6 +1,6 @@
 ---
 id: REQ-<Issue-Nummer>
-issue: https://github.com/MarvinJakob/AIPerspectives/issues/<Issue-Nummer>
+issue: https://github.com/MarvinJakob/KIPerspektiven/issues/<Issue-Nummer>
 status: entwurf          # Team 1 prüft durch Lesen; Team 2 dokumentiert Laufzeitvalidierung am Issue
 geprueft_am:             # bleibt bei Erstellung leer; keine ungeprüften Verifikationsdaten
 ---

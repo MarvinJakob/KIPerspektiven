@@ -1,6 +1,6 @@
-# AGENTS.md – Arbeitsweise in AI Perspectives
+# AGENTS.md – Arbeitsweise in KI Perspektiven
 
-Repository: [MarvinJakob/AIPerspectives](https://github.com/MarvinJakob/AIPerspectives) · Projekt: **AI Perspectives**, Besitzer `MarvinJakob` · [Architektur](ARCHITECTURE.md)
+Repository: [MarvinJakob/KIPerspektiven](https://github.com/MarvinJakob/KIPerspektiven) · Projekt: **KI Perspektiven**, Besitzer `MarvinJakob` · [Architektur](ARCHITECTURE.md)
 
 Vier Teams arbeiten parallel. Übergaben laufen ausschließlich über Repository, Issues, PRs und Board. Jeder Worker bearbeitet genau eine Aufgabe und endet nach Abschluss oder gesicherter Übergabe. Keine direkten Absprachen und keine Änderungen an fremden Worktrees. Unabhängiges Review ist eine eigene Aufgabe einer anderen Sitzung.
 

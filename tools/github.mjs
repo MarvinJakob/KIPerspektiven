@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 
-export const repository = 'MarvinJakob/AIPerspectives';
+export const repository = 'MarvinJakob/KIPerspektiven';
 export function command(program, args, options = {}) {
   const result = spawnSync(program, args, { encoding: 'utf8', windowsHide: true, ...options });
   if (result.error) throw result.error;

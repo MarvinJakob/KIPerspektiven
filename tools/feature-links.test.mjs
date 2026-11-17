@@ -10,7 +10,7 @@ const issue = (number, body = '', state = 'open', state_reason) => ({ number, ti
 const pr = (number, ticket, merged = false) => ({ number, state: merged ? 'closed' : 'open',
   merged_at: merged ? '2026-11-17' : null, merge_commit_sha: 'b'.repeat(40), base: { ref: 'main' },
   head: { ref: `fix/${ticket}`, sha: 'a'.repeat(40) }, body: 'Implementer-Agents: fix-agent' });
-const board = [{ number: 10, status: 'Merge Gate', repository: { nameWithOwner: 'MarvinJakob/AIPerspectives' } }];
+const board = [{ number: 10, status: 'Merge Gate', repository: { nameWithOwner: 'MarvinJakob/KIPerspektiven' } }];
 
 test('feature relationship is explicit, unique, CRLF-safe, and independent of REQ titles', () => {
   assert.equal(featureParent('Feature-Ticket: #10\r\n\r\nTestbefund'), 10);

@@ -20,7 +20,7 @@
 # Die Sperre ist `git worktree add -b`: Git legt den Branch atomar an, ein zweiter Agent scheitert daran.
 set -euo pipefail
 
-REPO=MarvinJakob/AIPerspectives
+REPO=MarvinJakob/KIPerspektiven
 die() { echo "FEHLER: $*" >&2; exit 1; }
 
 cmd=${1:-}

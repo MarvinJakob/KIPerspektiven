@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 const owner = 'MarvinJakob';
-const repo = `${owner}/AIPerspectives`;
-const title = 'AI Perspectives';
+const repo = `${owner}/KIPerspektiven`;
+const title = 'KI Perspektiven';
 
 function gh(args, input) {
   const result = spawnSync('gh', args, { encoding: 'utf8', input, windowsHide: true });
@@ -32,7 +32,9 @@ export function resolveStatus(requested, options) {
     'In Progress': ['In Progress', 'In progress', 'In Arbeit'],
     'Merge Gate': ['Review', 'In review', 'Merge Gate'],
     Review: ['Review', 'In review', 'Merge Gate'],
-    Ready: ['Ready', 'Todo', 'Neu'],
+    Ready: ['Ready', 'Todo', 'Neu', 'Backlog'],
+    Neu: ['Neu', 'Ready', 'Todo', 'Backlog'],
+    Backlog: ['Backlog', 'Neu', 'Ready', 'Todo'],
   };
   const option = (aliases[requested] ?? [requested]).map((name) => options.find((o) => o.name === name)).find(Boolean);
   if (!option) throw new Error(`Status „${requested}“ fehlt. Vorhanden: ${options.map((o) => o.name).join(', ')}`);
