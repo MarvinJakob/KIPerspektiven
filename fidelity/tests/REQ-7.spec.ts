@@ -310,7 +310,7 @@ test('REQ-7-AC14 Sprachwechsel erhält den Artikel und übersetzt Titel und Bedi
     await expect(main.getByRole('link', { name: copy[lang].fullRelease })).toHaveCount(1);
     await expect(main).not.toContainText(/(?:Übersetzung.*nicht verfügbar|translation.*not (?:yet )?available)/i);
     const text = await main.innerText();
-    expect(text).not.toMatch(lang === 'de' ? /\bIhnen\b|\bIhre(?:n|m|r|s)? (?:Meinung|Ergebnisse|Software)\b|(?:erfahren|entwickeln|teilen|würden) Sie\b/i : /Moderne Softwareentwicklung|Würdest du auch|Zum Kontaktformular|Alle Themen/);
+    expect(text).not.toMatch(lang === 'de' ? /\bIhnen\b|\bIhre(?:n|m|r|s)? (?:Meinung|Ergebnisse|Software)\b|(?:erfahren|entwickeln|teilen|würden) Sie\b/ : /Moderne Softwareentwicklung|Würdest du auch|Zum Kontaktformular|Alle Themen/);
     await showNavigation(page);
     await expect(page.getByRole('navigation', { name: /Hauptnavigation|Main navigation/i }).getByRole('link', { name: lang === 'de' ? 'KI Readiness' : 'AI Readiness', exact: true })).toBeVisible();
   }

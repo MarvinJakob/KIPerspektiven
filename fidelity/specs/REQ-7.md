@@ -2,7 +2,7 @@
 id: REQ-7
 issue: https://github.com/MarvinJakob/AIPerspectives/issues/7
 status: verifiziert
-geprueft_am: 2026-11-16
+geprueft_am: 2026-11-17
 ---
 
 # REQ-7 Themenseite Software Entwicklung auf Deutsch und Englisch
@@ -215,3 +215,11 @@ Die UI-Fehlerberichte wurden mit dem tatsächlich sichtbaren bisherigen Artikel 
 Nach dem Abruf des neueren `origin/main` (`72175f5580fe7ac159ccf4ee47f69ce54d1663c3`) sind Anwendung und Baseline unverändert; hinzugekommen sind Prozess-/Betriebsdokumentation und unabhängige Tests zu #4. Der gezielte Nachlauf für die betroffenen Inhalts-/Navigationskriterien bestätigt die fachlichen Fehlschläge auf Desktop und Mobil. Die Baseline wird von Team 1 nicht erweitert.
 
 Das unabhängige Review fand zwei zuvor von fehlenden Artikelfunktionen verdeckte Testfehler. Korrigiert: AC14 berücksichtigt den gerenderten geöffneten Zustand des mobilen Menüs; AC15 prüft tatsächliche Fragmentziele und den passenden Abschnitt bzw. die passende Hauptüberschrift. Zusätzliche Browser-Gegenproben mit **denselben Testhilfen** gegen den unveränderten main-Server: DE→EN→DE samt Navigationsprüfung bei 1280 und 412 px erfolgreich; in DE/EN insgesamt acht gültige Themen- und Abschnittsziele angenommen sowie zwölf nicht vorhandene oder verwechselte Abschnitts-/Themenseitenziele abgelehnt. Die Prüflinks wurden ausschließlich im lokalen Browser erzeugt, ohne Anwendungsdaten oder Anwendungscode zu ändern.
+
+### Korrektur test-defect #48 (17.11.2026)
+
+Die Sie-Prüfung in AC14 lief mit Flag `i` und traf dadurch auch das kleingeschriebene Possessiv „ihre Ergebnisse“ (bezogen auf KI), das AC3 ausdrücklich fordert; AC3 und AC14 konnten nicht gleichzeitig bestehen. Die Prüfung erkennt jetzt nur die großgeschriebene Sie-Ansprache (`Ihnen`, `Ihre …`, `… Sie`); Kriterium und ID bleiben unverändert.
+
+- Ausdrucksprüfung: Der neue Ausdruck trifft „Ihre Meinung“, „Ihnen“, „würden Sie“, „Teilen Sie Ihre Ergebnisse“, aber nicht „wenn ihre Ergebnisse“, „würden sie“ oder „deine Meinung“.
+- `origin/main` (`1eb34e0`), Port 20048, `DEV_SEED=true`: AC3 und AC14 scheitern auf Desktop und Mobil weiter fachlich an der fehlenden Zwischenüberschrift „Moderne Softwareentwicklung“ / „Modern Software Development“.
+- Umsetzungsstand `fix/7` (`4b1ea00`, PR #46), gleicher Aufbau: mit korrigiertem Test bestehen AC3 und AC14 auf Desktop und Mobil. Gegenprobe mit dem alten Ausdruck (`/i`): AC14 wird auf beiden Projekten rot, ausschließlich an der Sie-Prüfung; danach zurückgesetzt.
