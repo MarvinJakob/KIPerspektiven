@@ -22,7 +22,7 @@ jobs:
     name: Rollback
     runs-on: ubuntu-latest
     environment:
-      name: prd
+      name: production
       url: ${{ vars.DEPLOY_URL }}
     steps:
       - uses: actions/checkout@v5

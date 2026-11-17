@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
-      name: prd
+      name: production
       url: ${{ vars.DEPLOY_URL }}
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
