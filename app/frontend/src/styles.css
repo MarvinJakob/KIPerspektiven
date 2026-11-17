@@ -945,6 +945,95 @@ svg { display: block; }
 }
 
 /* ==========================================================================
+   Themenseite Softwareentwicklung (#7, mock/software_development/styles.css)
+   ========================================================================== */
+.article-hero { margin-top: -24px; background: var(--warm); padding-block: 24px 72px; }
+.article-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; max-width: 760px; margin: 0 auto 40px; font-size: .8125rem; color: var(--text-2); }
+.article-crumbs a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; color: var(--text); text-decoration: none; }
+.article-crumbs a:hover { color: var(--accent); text-decoration: underline; }
+.article-hero-copy { max-width: 760px; margin-inline: auto; }
+.article-hero-copy .eyebrow { font-size: .6875rem; gap: 14px; }
+.article-hero h1 { margin-top: 12px; font-size: clamp(3rem, 5.4vw, 4.75rem); line-height: 1.06; letter-spacing: -.055em; hyphens: auto; overflow-wrap: break-word; }
+.byline { display: flex; align-items: center; gap: 14px; margin-top: 36px; }
+.byline img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; object-position: center 30%; }
+.byline p { font-size: .875rem; line-height: 1.5; }
+.byline strong { display: block; font-weight: 650; }
+.byline-meta { color: var(--text-2); font-size: .8125rem; }
+
+.article-layout { display: grid; grid-template-columns: minmax(0, 760px); justify-content: center; padding-block: 80px 96px; }
+.article-body { min-width: 0; }
+.article-body > section + section { margin-top: 48px; }
+.article-body h2 { font-size: clamp(1.75rem, 2.6vw, 2.25rem); line-height: 1.15; letter-spacing: -.035em; margin-bottom: 22px; }
+.article-body p { font-size: 1.0625rem; line-height: 1.85; hyphens: auto; }
+.article-body p + p { margin-top: 20px; }
+.article-body .article-lead { font-size: 1.1875rem; line-height: 1.75; }
+.article-figure { margin: 48px -120px; }
+.article-figure a { display: block; padding: 28px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); cursor: zoom-in; transition: border-color .2s; }
+.article-figure a:hover { border-color: var(--brand); }
+.article-figure img { display: block; width: 100%; height: auto; }
+
+.related-link { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 20px; margin-block: 28px; padding: 20px 24px; background: var(--soft); border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: var(--radius-small); text-decoration: none; transition: border-color .2s; }
+.related-link:hover { border-color: var(--brand); }
+.related-label { font-size: .625rem; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.related-title { grid-column: 1; font-size: .9375rem; font-weight: 600; line-height: 1.5; }
+.related-link svg { grid-row: 1 / span 2; grid-column: 2; width: 22px; height: 22px; color: var(--accent); }
+
+.quote-heading { position: relative; padding-top: 18px; }
+.quote-heading small { display: block; margin-top: 10px; font-size: .875rem; font-weight: 500; letter-spacing: 0; color: var(--text-2); }
+.quote-mark { position: absolute; top: -34px; left: -6px; font-size: 96px; line-height: 1; font-weight: 700; color: var(--brand); opacity: .35; pointer-events: none; }
+
+.article-body > .opinion { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px 24px; margin-top: 72px; padding: 32px; background: var(--brand); color: var(--on-brand); border-radius: var(--radius); }
+.opinion-icon { width: 36px; height: 36px; }
+.opinion h2 { font-size: clamp(1.5rem, 2.2vw, 1.875rem); margin-bottom: 6px; }
+.article-body .opinion p { font-size: .9375rem; line-height: 1.6; }
+.opinion-button { background: var(--navy); color: #fff; }
+.opinion-button:hover { background: #203d56; transform: translateY(-2px); }
+
+.more-topics { background: var(--soft); padding-block: 80px; }
+.more-head { margin-bottom: 32px; }
+.more-head .eyebrow { font-size: .625rem; }
+.more-head h2 { margin-top: 12px; font-size: clamp(2rem, 3vw, 2.75rem); }
+.more-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.more-card { display: flex; flex-direction: column; gap: 8px; padding: 26px 26px 22px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); text-decoration: none; transition: border-color .2s, transform .2s; }
+.more-card:hover { border-color: var(--brand); transform: translateY(-3px); }
+.more-top { margin-bottom: 18px; color: var(--accent); font-size: .6875rem; }
+.more-card strong { font-size: 1.375rem; font-weight: 650; letter-spacing: -.03em; }
+.more-teaser { color: var(--text-2); font-size: .875rem; }
+.more-link { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; font-size: .75rem; font-weight: 700; }
+.more-link svg { width: 16px; height: 16px; }
+.all-topics { margin-top: 24px; }
+
+@media (max-width: 1100px) {
+  .article-figure { margin-inline: 0; }
+}
+@media (max-width: 850px) {
+  .article-hero { padding-bottom: 56px; }
+  .article-layout { padding-block: 56px 72px; }
+  .article-body > .opinion { grid-template-columns: auto 1fr; }
+  .opinion-button { grid-column: 1 / -1; justify-self: start; }
+  .more-topics { padding-block: 60px; }
+}
+@media (max-width: 650px) {
+  .article-hero { padding-top: 12px; }
+  .article-crumbs { margin-bottom: 20px; }
+  .article-hero h1 { font-size: clamp(1.875rem, 9.4vw, 3.25rem); }
+  .byline { margin-top: 28px; }
+  .article-body p { font-size: 1rem; }
+  .article-body .article-lead { font-size: 1.0625rem; }
+  .related-link { padding: 16px 18px; }
+  .quote-mark { font-size: 72px; top: -22px; }
+  .article-body > .opinion { grid-template-columns: 1fr; padding: 26px 22px; }
+  .opinion-button { width: 100%; }
+  .more-grid { grid-template-columns: 1fr; }
+  .article-figure { margin-block: 36px; }
+  .article-figure a { padding: 12px; border-radius: var(--radius-small); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .related-link, .more-card, .article-figure a { transition: none; }
+  .more-card:hover, .opinion-button:hover { transform: none; }
+}
+
+/* ==========================================================================
    Systemeinstellungen und Fallbacks (stehen bewusst am Ende, DESIGN_CIMT.md, Abschnitte 5 und 7)
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {

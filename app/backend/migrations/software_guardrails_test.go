@@ -24,6 +24,13 @@ func TestSoftwareDevelopmentUpgradeAndRollback(t *testing.T) {
 		"How to develop software with AI, verify results and manage the flood of changes.")
 }
 
+// Ticket #7: Artikel nach Mock, Kurzbeschreibung in Du-Ansprache; Down stellt den Stand von 00015 wieder her.
+func TestSoftwareDevelopmentArticleUpgradeAndRollback(t *testing.T) {
+	testSoftwareMetadataMigration(t, 15, 17,
+		"Wie drei Agententeams mit Fidelity-Tests, Merge Gate und Release Gate Software entwickeln.",
+		"How three teams of agents develop software with Fidelity Tests, a Merge Gate and a Release Gate.")
+}
+
 func testSoftwareMetadataMigration(t *testing.T, from, to int64, summaryDE, summaryEN string) {
 	t.Helper()
 	db, err := store.Open(filepath.Join(t.TempDir(), "migration.db"))

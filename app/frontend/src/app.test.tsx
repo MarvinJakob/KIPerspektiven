@@ -500,7 +500,8 @@ describe('Anforderung 8 und Ticket #112: KI-Readiness-Übersicht mit aufklappbar
 
   it('erscheint nur beim Thema AI Audit', async () => {
     renderApp('/de/themen/softwareentwicklung');
-    await screen.findByRole('heading', { level: 1, name: 'KI in der Softwareentwicklung' });
+    // Der Titel trägt wie im Mock (#7) einen bedingten Trennstrich.
+    await screen.findByRole('heading', { level: 1, name: /^KI in der Software­?entwicklung$/ });
     expect(screen.queryByRole('heading', { name: 'Warum eine Selbsteinschätzung?' })).not.toBeInTheDocument();
   });
 });

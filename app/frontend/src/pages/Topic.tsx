@@ -10,6 +10,10 @@ import { href, useLang } from '../lib/lang';
 import { useHead, usePageFocus } from '../lib/page';
 import { getTopicContent } from '../lib/topicContent';
 import { NotFound } from './NotFound';
+import { SoftwareDevelopment } from './SoftwareDevelopment';
+
+/** Thema mit eigener Artikelseite nach Mock (#7) statt Einführung, Markdown-Inhalt und Beitragsliste. */
+const SOFTWARE_DEVELOPMENT = 'softwareentwicklung';
 
 /** Erlaubt nach „/“ einen Zeilenumbruch, etwa in „Preis-/Leistungsverhältnis“, ohne den Text zu verändern. */
 const breakAfterSlash = (text: string) =>
@@ -31,6 +35,7 @@ export function TopicPage() {
   if (topic.isError) return <LoadError onRetry={() => void topic.refetch()} />;
 
   const tp = topic.data;
+  if (tp.slug === SOFTWARE_DEVELOPMENT) return <SoftwareDevelopment titleRef={h1} />;
   const fallback = tp.lang !== lang;
   const contentLang = fallback ? tp.lang : undefined;
   const content = getTopicContent(tp.slug, lang);

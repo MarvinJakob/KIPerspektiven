@@ -20,8 +20,8 @@ type L = 'de' | 'en';
 
 const topicData: Record<string, Record<L, Omit<Topic, 'lang' | 'postCount' | 'slug'>>> = {
   softwareentwicklung: {
-    de: { title: 'KI in der Softwareentwicklung', label: 'Softwareentwicklung', summary: 'Wie Sie mit KI Software entwickeln, Ergebnisse prüfen und die Flut an Änderungen beherrschen.', intro: 'KI kann Code schreiben, Tests erstellen und Fehler beheben. Entscheidend sind überprüfbare Ergebnisse und ein klarer Entwicklungsprozess. Hier erfahren Sie, wie drei Agententeams zusammenarbeiten, Guardrails die Arbeit begrenzen und Änderungen gezielt geprüft werden.' },
-    en: { title: 'AI in Software Development', label: 'Software Development', summary: 'How to develop software with AI, verify results and manage the flood of changes.', intro: 'AI can write code, create tests and fix bugs. Verifiable results and a clear development process are essential. Learn how three teams of agents work together, how guardrails set boundaries and how changes are reviewed effectively.' },
+    de: { title: 'KI in der Softwareentwicklung', label: 'Softwareentwicklung', summary: 'Wie drei Agententeams mit Fidelity-Tests, Merge Gate und Release Gate Software entwickeln.', intro: 'KI schreibt Code, erstellt Tests und setzt Korrekturen um. Hier erfährst du, wie drei Agententeams mit Fidelity-Tests, Merge Gate und Release Gate gemeinsam Software entwickeln.' },
+    en: { title: 'AI in Software Development', label: 'Software Development', summary: 'How three teams of agents develop software with Fidelity Tests, a Merge Gate and a Release Gate.', intro: 'AI writes code, creates tests and implements fixes. Learn how three teams of agents develop software together with Fidelity Tests, a Merge Gate and a Release Gate.' },
   },
   'ai-audit': {
     de: { title: 'KI Readiness', label: 'AI Audit', summary: 'Kurz Audit', intro: 'Einführung Audit' },
