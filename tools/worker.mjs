@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { api, pages, repository, command, issueLabels } from './github.mjs';
 import { reconcile, followUpTickets, followUpPR, reviewedLabel } from './reconcile.mjs';
+import { featureEvidence } from './feature-links.mjs';
 
 // Anweisung, die der Agent für diese Aufgabe zusätzlich zu AGENTS.md liest.
 // review: Anforderungs-Review durch Team 4 ohne eigenen Branch (AGENTS_REVIEWER.md, Phase 0).
@@ -13,6 +14,7 @@ const reviewStatuses = ['Review', 'In review', 'Merge Gate'];
 const activeStatuses = ['In Progress', 'In progress', 'In Arbeit'];
 
 export function candidates(issues, pulls, board) {
+  issues = [...issues];
   const statuses = new Map(board.filter((i) => i.repository?.nameWithOwner === repository).map((i) => [i.number, i.status]));
   const tickets = followUpTickets(issues);
   const waiting = new Set(tickets.keys());
@@ -49,6 +51,12 @@ export function candidates(issues, pulls, board) {
     }
     const phase = ['Review', 'In review', 'Merge Gate'].includes(status) ? 0
       : ['In Progress', 'In progress', 'In Arbeit'].includes(status) ? 1 : 2;
+    // A feature stays in the gate while its own fixes are processed as separate Team-3 tickets.
+    if (phase === 0 && pr?.head.ref === `fix/${issue.number}`) {
+      // Closed/completed alone is insufficient: every linked bug needs a merged fix.
+      // Incomplete evidence holds only this feature; independent work remains eligible.
+      try { featureEvidence(issue.number, issues, pulls); } catch { return []; }
+    }
     // Neuer Test einer Anforderung erst, wenn ihre Bug- und Testdefekt-Tickets geschlossen sind.
     if (team === 'verify' && phase === 2 && waiting.has(issue.number)) return [];
     // Review (phase 0) und Release-Nacharbeit gehören zur Rolle Reviewer. Baseline-PRs von Team 2
@@ -60,8 +68,8 @@ export function candidates(issues, pulls, board) {
 }
 
 export function snapshot() {
-  const issues = pages(`repos/${repository}/issues?state=open&per_page=100`);
-  const pulls = pages(`repos/${repository}/pulls?state=open&per_page=100`);
+  const issues = pages(`repos/${repository}/issues?state=all&per_page=100`);
+  const pulls = pages(`repos/${repository}/pulls?state=all&per_page=100`);
   const board = JSON.parse(command(process.execPath, ['tools/board.mjs', 'list']));
   const runs = api(`repos/${repository}/actions/workflows/release.yml/runs?branch=main&per_page=5`).workflow_runs;
   const queue = candidates(issues, pulls, board);

@@ -3,6 +3,10 @@ description: Team 2 oder Team 4 dokumentiert fehlerhaftes Verhalten für Team 3.
 title: "[REQ-<n>-AC<m>] <Was funktioniert nicht>"
 labels: [bug]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Neuer Bug eines bereits implementierten Tickets: im Issue-Text eine eigene Zeile `Feature-Ticket: #<Ursprungsticket>` ergänzen (oder `node tools/feature-bug.mjs` verwenden). Das Ursprungsticket bleibt bis zum letzten abgeschlossenen Fix im Merge Gate. Die Anforderung unten bezeichnet weiterhin die REQ-Nummer.
   - type: input
     id: ids
     attributes:

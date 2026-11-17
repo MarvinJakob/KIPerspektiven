@@ -1,11 +1,13 @@
 import { pathToFileURL } from 'node:url';
 import { api, repository } from './github.mjs';
+import { liveFeatureEvidence, checkFeatureEvidence } from './feature-links.mjs';
 
 // Ein Baseline-PR von Team 2 ändert nur fidelity/baseline.txt (Job „Team-Grenzen“), und der Job „Fidelity“
 // weist nach, dass die ergänzten IDs bestehen. Ein zusätzliches Agenten-Review prüft dort nichts Weiteres.
 export function reviewRequired(branch) { return !/^verify\/\d+$/.test(branch); }
 
-export function checkReview(body, head, evidence) {
+export function checkReview(body, head, evidence, featureFixes = []) {
+  checkFeatureEvidence(body, featureFixes);
   const field = (name) => {
     const values = [...body.matchAll(new RegExp(`^${name}:[ \\t]*(.*)$`, 'gm'))];
     if (values.length !== 1) throw new Error(`${name}: genau einmal im PR-Text angeben.`);
@@ -31,6 +33,7 @@ export function checkReview(body, head, evidence) {
     }
     const expected = `Reviewer-Agent: ${reviewer}\nReviewed-Commit: ${head}\nReview-Result: accepted`;
     if (!evidence.body?.replaceAll('\r\n', '\n').includes(expected)) throw new Error('Reviewer-Sitzung und Abnahme stimmen nicht mit dem GitHub-Review überein.');
+    checkFeatureEvidence(evidence.body, featureFixes);
   }
 }
 
@@ -40,14 +43,20 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       console.log('Baseline-PR von Team 2: Team-Grenzen und Fidelity-Job weisen die Änderung nach, kein Agenten-Review nötig.');
       process.exit(0);
     }
-    const body = process.env.PR_BODY ?? '';
-    const reviewId = /^Review-ID: (\d+)\s*$/m.exec(body)?.[1];
     const pr = process.env.PR_NUMBER;
-    if (!/^\d+$/.test(pr ?? '') || !reviewId) throw new Error('PR_NUMBER oder Review-ID fehlt.');
+    if (!/^\d+$/.test(pr ?? '')) throw new Error('PR_NUMBER fehlt.');
+    // Use live data even on a rerun of an older event payload.
+    const current = api(`repos/${repository}/pulls/${pr}`);
+    if (current.draft) throw new Error('PR ist noch ein Entwurf.');
+    if (current.head.sha !== process.env.HEAD_SHA) throw new Error('Gate läuft für einen veralteten Head.');
+    const body = current.body ?? '';
+    const reviewId = /^Review-ID: (\d+)\s*$/m.exec(body)?.[1];
+    if (!reviewId) throw new Error('Review-ID fehlt.');
     const evidence = api(`repos/${repository}/pulls/${pr}/reviews/${reviewId}`);
     const permission = api(`repos/${repository}/collaborators/${encodeURIComponent(evidence.user.login)}/permission`).permission;
     if (!['admin', 'maintain', 'write'].includes(permission)) throw new Error('Review stammt nicht von einem berechtigten Repository-Mitwirkenden.');
-    checkReview(body, process.env.HEAD_SHA ?? '', evidence);
+    const reviewer = /^Reviewer-Agent: (.+)$/m.exec(body)?.[1].trim();
+    checkReview(body, process.env.HEAD_SHA ?? '', evidence, liveFeatureEvidence(current.head.ref, current.head.sha, reviewer));
     console.log('Unabhängiger Reviewer und aktueller Commit dokumentiert; Checkliste vollständig.');
   } catch (error) {
     console.error(`::error::${error.message}`);

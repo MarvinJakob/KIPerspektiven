@@ -167,13 +167,23 @@ jobs:
     needs: [scope, build, tests, security, review, fidelity]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
       - name: Ergebnis
         env:
           RESULTS: ${{ toJSON(needs) }}
           FEATURE_GREP: ${{ needs.scope.outputs.grep }}
+          BRANCH: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
           echo "$RESULTS" | jq -e --arg grep "$FEATURE_GREP" \
             'to_entries | all(.[]; .value.result == "success" or (.key == "fidelity" and .value.result == "skipped" and $grep == ""))' > /dev/null \
             || { echo "::error::Merge Gate nicht bestanden."; exit 1; }
+          # Issue-Zuordnungen können sich während Build/Tests geändert haben.
+          node tools/check-review.mjs
           echo "Merge Gate bestanden."

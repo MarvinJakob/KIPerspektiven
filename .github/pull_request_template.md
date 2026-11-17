@@ -7,6 +7,10 @@ Reviewer-Agent: <andere Agentensitzungs-ID, erst nach tatsächlichem Review eint
 Reviewed-Commit: <vollständiger Head-SHA des unabhängig geprüften Commits>
 Review-ID: <GitHub-Review-ID; setzt tools/review.mjs aus der unabhängigen Sitzung>
 
+<!-- Bei Ursprungstickets mit zugeordneten Feature-Ticket-Bugs setzt tools/review.mjs zusätzlich
+     Reviewed-Feature-Fixes nach tatsächlichem Review aller Fixes. Nicht von Hand vorbefüllen.
+     Offene Bugs sperren das abschließende Feature-Review. Merge mit tools/merge.mjs. -->
+
 <!-- Vorlage für Team 1 (spec/), Team 3 (fix/) und Wartung. Baseline-PRs von Team 2 (verify/) brauchen nur
      „Refs #<Anforderung>“ und einen Satz: siehe AGENTS_TESTER.md.
      Team 1: „Refs #<Anforderung>“ statt „Closes“, Zeile „Fidelity:“ entfernen; keine lokalen Testläufe.

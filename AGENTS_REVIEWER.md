@@ -22,6 +22,8 @@ Nach dem Merge aller Folge-PRs schließen sich die Folgetickets; der Prozessabgl
 
 ## Review vor dem Merge Gate
 
+**Abschließendes Feature-Review:** Ursprungstickets mit offenen `Feature-Ticket`-Bugs einschließlich verschachtelter Folgefehler nicht übernehmen; sie warten in `Merge Gate`. Nach dem letzten abgeschlossenen Fix startet der laufende Orchestrator/Supervisor eine neue unabhängige Review-Aufgabe. Nach bestätigter Übernahme des Ursprungstickets sämtliche zugeordneten abgeschlossenen Fix-PRs als Nachweise lesen und den aktuellen Gesamtstand sowie die Wechselwirkungen prüfen. Der eigene Feature-Branch muss alle Fix-Merge-Commits aus `main` enthalten. Keine eigene Beteiligung am Ursprung oder einem Fix; keine fremden Worktrees ändern. Neue Befunde als verknüpfte Bug-Tickets an Team 3 geben, den Ursprung wieder nach `Merge Gate` setzen und freigeben. `review.mjs` und Merge Gate prüfen den aktuellen Fix-Satz. Nach grünem Gate ausschließlich `node tools/merge.mjs <PR> <geprüfter SHA>` verwenden; es prüft offene Bugs und den Review-Nachweis direkt vor dem Head-gebundenen Merge nochmals. Details: `AGENTS.md`, „Feature mit zugeordneten Bugs“.
+
 1. Freigegebenen PR in Board `Review` / `Merge Gate` auswählen. Issue, Spezifikation, Diff und Implementierer-IDs lesen. War die eigene Sitzung beteiligt, nicht übernehmen. `resume <spec|fix|maint> <n>` im vorhandenen Worktree, Board `Review` setzen und prüfen. Keine Dateien verändern.
 2. Exakten Head-SHA notieren. Korrektheit, Eingaben/Rechte/Geheimnisse, Wartbarkeit, additive Migrationen und angemessene Unit-Tests prüfen. Bei Spezifikations-PRs Vollständigkeit und Testquelltext prüfen: Team 1 behauptet keinen Laufzeitnachweis. Bei Testdefekten darf der Akzeptanzumfang nicht sinken. Wartung muss durch den Issue-Umfang gedeckt sein.
 3. Die technischen Jobs des aktuellen Draft-Laufs prüfen: Scope, Build, Unit, Security, Prozessprüfungen und ausschließlich Feature-Fidelity. Reine Wartung ohne Feature-Bezug lässt Fidelity gezielt aus. Neue rote Nicht-Baseline-Kriterien sind zulässiger Backlog; erforderliche IDs, unvollständige Läufe und Testdefekte dürfen nicht als erfolgreich gelten.
@@ -31,7 +33,7 @@ Nach dem Merge aller Folge-PRs schließen sich die Folgetickets; der Prozessabgl
    node tools/review.mjs <PR> <geprüfter SHA> <Bericht-Datei>
    gh pr ready <PR>
    gh pr checks <PR> --watch
-   gh pr merge <PR> --squash --match-head-commit <geprüfter SHA> --delete-branch
+   node tools/merge.mjs <PR> <geprüfter SHA>
    ```
    Es zählt der Gate-Lauf nach letzter Commit-, Text- und Draft-Änderung. Vor Merge Head erneut prüfen. Muss der Branch aktualisiert werden, nur die freigegebene PR-Aufgabe aktualisieren und jeden neuen Head erneut reviewen. Nie `--admin`.
 6. Nach Merge Issue-Zielstatus setzen und prüfen: Fehler/Features/Testdefekte `Funktioniert`; Anforderung nach Spezifikationsmerge `Spezifiziert`. `finish <team> <n>`, entferntes `in-progress` prüfen. Prozessabgleich übernimmt `specified`, `done` und die Nachprüfung durch Team 2. Der Merge startet das Release Gate automatisch; „gemergt“ ist noch kein Produktionsnachweis.

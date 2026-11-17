@@ -1,0 +1,21 @@
+name: Feature-Fixes abgleichen
+on:
+  issues:
+    types: [opened, edited, closed, reopened, deleted, transferred]
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  actions: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Betroffene Merge Gates neu prüfen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/refresh-feature-gates.mjs

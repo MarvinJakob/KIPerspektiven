@@ -24,3 +24,5 @@ Gilt zusätzlich zu [AGENTS.md](AGENTS.md). Branch `verify/<n>`; einzige dauerha
 7. Ergebnisse sichern, Server beenden, Zielstatus setzen/prüfen (mit offenen Folgetickets `Merge Gate`, sonst `Spezifiziert`; vollständig in Baseline und ohne Folgetickets `Funktioniert`), `finish verify <n>`, entferntes `in-progress` kontrollieren. Ohne neue IDs ist kein PR nötig. Der Prozessabgleich setzt `done` und schließt erfüllte Anforderungen.
 
 Team 2 implementiert und korrigiert keine Funktionen oder Tests. Validierung steht als Evidence am Issue; Team 1 darf deshalb seine Entwurf-Metadaten nicht selbst als verifiziert markieren.
+
+**Neue Bugs eines implementierten Tickets:** Nach Duplikatsuche `node tools/feature-bug.mjs <Ursprungsticket> <Befund-Datei>` verwenden; erste Zeile ist der Titel, danach Befund/Reproduktion und getesteter Commit. Der Bug erhält `Feature-Ticket: #<Ursprungsticket>` und `Bug offen` für Team 3. Das bereits implementierte Ursprungsticket bleibt im Merge Gate. Bei manueller Anlage dieselbe Verknüpfung setzen. Der nächste Feature-Review wird erst nach allen abgeschlossenen Fixes freigegeben; siehe `AGENTS.md`, „Feature mit zugeordneten Bugs“.
