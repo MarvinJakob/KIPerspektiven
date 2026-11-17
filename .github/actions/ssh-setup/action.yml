@@ -5,7 +5,7 @@ description: Deploy-Schlüssel und Host-Schlüssel des Servers ablegen
 
 inputs:
   ssh-key:
-    description: Privater Deploy-Schlüssel (Secret HETZNER_CLOUD_SSH)
+    description: Privater Deploy-Schlüssel (Secret HETZNER_SSH)
     required: true
   known-hosts:
     description: Host-Schlüssel des Servers (Secret DEPLOY_KNOWN_HOSTS)
@@ -19,7 +19,7 @@ runs:
         SSH_KEY: ${{ inputs.ssh-key }}
         KNOWN_HOSTS: ${{ inputs.known-hosts }}
       run: |
-        [[ -n "$SSH_KEY" && -n "$KNOWN_HOSTS" ]] || { echo "::error::HETZNER_CLOUD_SSH oder DEPLOY_KNOWN_HOSTS fehlt (ARCHITECTURE.md, Abschnitt Secrets)."; exit 1; }
+        [[ -n "$SSH_KEY" && -n "$KNOWN_HOSTS" ]] || { echo "::error::HETZNER_SSH oder DEPLOY_KNOWN_HOSTS fehlt (ARCHITECTURE.md, Abschnitt Secrets)."; exit 1; }
         install -m 700 -d ~/.ssh
         printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
         chmod 600 ~/.ssh/deploy

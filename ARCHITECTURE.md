@@ -232,11 +232,11 @@ Unter *Settings → Secrets and variables → Actions*, Umgebung `prd` (Deployme
 | Name | Art | Inhalt |
 |---|---|---|
 | `DEPLOY_HOST` | Secret | SSH-Ziel, z. B. `root@<Server-IP>` |
-| `HETZNER_CLOUD_SSH` | Secret | privater Deploy-Schlüssel |
+| `HETZNER_SSH` | Secret | privater Deploy-Schlüssel |
 | `DEPLOY_KNOWN_HOSTS` | Secret | geprüfte Host-Schlüssel des Servers |
 | `DEPLOY_URL` | Variable | öffentliche Adresse, z. B. `https://marvinjakob.de` |
 
-Eine Registry ist nicht nötig. `HETZNER_CLOUD_API` und `HCLOUD_SERVER_NAME` werden nur noch für den manuellen Zugangstest verwendet; die automatische Installation benötigt keinen API-Token und erzeugt keinen Snapshot. Deployment-Schlüssel bleiben in GitHub Actions.
+Eine Registry ist nicht nötig. `HETZNER_API` und `HCLOUD_SERVER_NAME` werden nur noch für den manuellen Zugangstest verwendet; die automatische Installation benötigt keinen API-Token und erzeugt keinen Snapshot. Deployment-Schlüssel bleiben in GitHub Actions.
 
 ### Worker-Betrieb
 
