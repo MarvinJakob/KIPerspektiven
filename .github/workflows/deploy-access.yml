@@ -6,7 +6,7 @@ permissions:
 jobs:
   access:
     runs-on: ubuntu-latest
-    environment: prd
+    environment: production
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
