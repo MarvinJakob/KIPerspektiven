@@ -1,5 +1,5 @@
 name: Anforderung
-description: Neue fachliche Anforderung. Team 1 leitet daraus Akzeptanzkriterien und Fidelity-Tests ab.
+description: Neue Anforderung mit Ziel, Mehrwert und verbindlichen Akzeptanzkriterien für den Backlog.
 title: "<Kurzer Titel der Anforderung>"
 labels: [requirement, needs-analysis]
 body:
@@ -20,8 +20,10 @@ body:
   - type: textarea
     id: kriterien
     attributes:
-      label: Erste Akzeptanzkriterien (optional)
-      description: Team 1 präzisiert sie in fidelity/specs/REQ-<Nummer>.md.
+      label: Akzeptanzkriterien
+      description: Nummerierte, beobachtbare Bedingungen (Gegeben/Wenn/Dann), einschließlich relevanter Fehler- und Grenzfälle. Daraus entstehen vor der Umsetzung Fidelity-Tests.
+    validations:
+      required: true
   - type: textarea
     id: technik
     attributes:
