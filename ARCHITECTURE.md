@@ -227,7 +227,7 @@ Team-Grenzen, Review-Checklisten, Issue-Blocker, Release-Branch, GitHub-Release-
 
 ### Secrets und Variablen
 
-Unter *Settings → Secrets and variables → Actions*, gegebenenfalls Umgebung `production`:
+Unter *Settings → Secrets and variables → Actions*, Umgebung `prd` (Deployments nur von `main`):
 
 | Name | Art | Inhalt |
 |---|---|---|
