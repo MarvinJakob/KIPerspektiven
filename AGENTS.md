@@ -64,7 +64,7 @@ Der Agent präzisiert unklare Anforderungen vor der Umsetzung anhand vorhandener
 1. Für die fertige Umsetzung einen Pull Request nach `main` erstellen und das Ticket nach **Merge Gate** verschieben. Ticket, Spezifikation und betroffene Akzeptanzkriterien im PR verlinken.
 2. Der Workflow `.github/workflows/merge-gate.yml` führt die konfigurierten Pflichtprüfungen gegen den PR-Stand aus.
 3. Der Agent überwacht die Pflichtprüfungen, wertet Fehler aus, legt Bug-Tickets an und behebt die Ursachen. Nach Änderungen die betroffenen Prüfungen erneut ausführen lassen. Nachweise müssen zum aktuellen PR-Head gehören.
-4. Ausschließlich mit grünem Merge Gate und allen weiteren erforderlichen GitHub-Prüfungen mergen. Keine Admin-Umgehung, keine erfundenen Prüfnachweise und kein Abschwächen der Gates. Technische Regeln gelten auch dann, wenn ältere Workflowtexte noch Teambezeichnungen enthalten.
+4. Der Agent mergt seinen PR selbst und ohne Rückfrage, sobald das Merge Gate für den aktuellen PR-Head grün ist: `gh pr checks <PR> --watch`, dann `gh pr merge <PR> --squash --delete-branch`. Das private Repository hat keinen technischen Branch-Schutz; das grüne Gate vor dem Merge abzuwarten ist daher Pflicht des Agenten. Ausschließlich mit grünem Merge Gate und allen weiteren erforderlichen GitHub-Prüfungen mergen. Keine Admin-Umgehung, keine erfundenen Prüfnachweise und kein Abschwächen der Gates. Technische Regeln gelten auch dann, wenn ältere Workflowtexte noch Teambezeichnungen enthalten.
 5. Im PR Änderungen und Validierung sachlich dokumentieren. Bis zum Produktionsnachweis `Refs #<n>` verwenden; Anforderungen und Bugs nicht durch `Closes` beim Merge vorzeitig abschließen.
 
 ## 5. Findings als Bugs erfassen und beheben
