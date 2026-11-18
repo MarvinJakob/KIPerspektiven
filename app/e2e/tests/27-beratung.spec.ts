@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Topic.tsx app/frontend/src/pages/AuditDimension.tsx app/frontend/src/pages/AuditResult.tsx app/frontend-redaktion/src/pages/ConsultationRequests.tsx
 import type { Request } from '@playwright/test';
 import { AUTH, completeAssessment, expect, expectNoHorizontalScroll, test, uid, type Session } from '../support/fixtures';
 

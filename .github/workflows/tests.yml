@@ -1,0 +1,193 @@
+# Testsuiten für Merge Gate und Release Gate (AGENTS.md, Abschnitt 5 und 7; Anforderung #55).
+# Die Auswahl bestimmt tools/affected-tests.mjs; nicht ausgewählte Suiten werden übersprungen.
+name: Tests
+
+on:
+  workflow_call:
+    inputs:
+      process:
+        description: Prozesswerkzeug-Tests ausführen
+        type: boolean
+        default: false
+      backend:
+        description: "Go-Paketverzeichnisse relativ zu app/backend, 'all' oder leer"
+        type: string
+        default: ''
+      frontends:
+        description: 'JSON-Liste [{dir, tests}] der Frontends mit test:unit; tests ist "all" oder eine Dateiliste'
+        type: string
+        default: '[]'
+      e2e:
+        description: "Playwright-Specs relativ zu app/e2e, 'all' oder leer"
+        type: string
+        default: ''
+      production-image:
+        description: Geprüftes Image als Artefakt für die Installation speichern
+        type: boolean
+        default: false
+    outputs:
+      commit:
+        value: ${{ jobs.fidelity.outputs.commit }}
+      tree:
+        value: ${{ jobs.fidelity.outputs.tree }}
+      version:
+        value: ${{ jobs.fidelity.outputs.version }}
+      image-id:
+        value: ${{ jobs.fidelity.outputs.image-id }}
+
+permissions:
+  contents: read
+
+jobs:
+  process:
+    name: Prozesswerkzeuge
+    if: inputs.process
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Unit-Tests für Prozesswerkzeuge
+        run: node --test "tools/*.test.mjs"
+
+  backend:
+    name: Backend
+    if: inputs.backend != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: app/backend/go.mod
+          cache-dependency-path: app/backend/go.sum
+      - name: Go-Unit-Tests
+        working-directory: app/backend
+        env:
+          SELECTION: ${{ inputs.backend }}
+        run: |
+          if [ "$SELECTION" = all ]; then
+            packages=./...
+          else
+            go list -json ./... > "$RUNNER_TEMP/go-list.json"
+            packages=$(node ../../tools/affected-tests.mjs go-packages "$RUNNER_TEMP/go-list.json" $SELECTION | tr '\n' ' ')
+          fi
+          echo "Go-Pakete: ${packages:-keine}" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ -z "${packages// }" ]; then exit 0; fi
+          CGO_ENABLED=0 go test $packages
+
+  frontend:
+    name: Frontend ${{ matrix.dir }}
+    if: inputs.frontends != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(inputs.frontends) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ${{ matrix.dir }}/package-lock.json
+      - run: npm ci
+      - name: Typprüfung
+        run: npm run typecheck
+      - name: Unit-Tests
+        env:
+          SELECTION: ${{ matrix.tests }}
+        run: |
+          echo "Unit-Tests ${{ matrix.dir }}: $SELECTION" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$SELECTION" = all ]; then npm run test:unit; else npm run test:unit -- $SELECTION; fi
+
+  fidelity:
+    name: Fidelity (Playwright)
+    if: inputs.e2e != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      commit: ${{ steps.identity.outputs.commit }}
+      tree: ${{ steps.identity.outputs.tree }}
+      version: ${{ steps.identity.outputs.version }}
+      image-id: ${{ steps.identity.outputs.image-id }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/e2e/package-lock.json
+      - uses: docker/setup-buildx-action@v3
+      # Der Build führt keine Unit-Tests aus; diese laufen in den Jobs oben (REQ-55-AC1).
+      - name: Image bauen
+        uses: docker/build-push-action@v6
+        with:
+          context: app
+          tags: ki-web:ci
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          outputs: type=docker,dest=${{ runner.temp }}/image.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Image laden und Version bestimmen
+        id: identity
+        run: |
+          docker load -i "$RUNNER_TEMP/image.tar"
+          commit=$(git rev-parse HEAD)
+          echo "tree=$(git rev-parse HEAD^{tree})" >> "$GITHUB_OUTPUT"
+          image=$(docker image inspect -f '{{.Id}}' ki-web:ci)
+          digest=${image#sha256:}
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "version=${commit:0:12}-${digest:0:12}" >> "$GITHUB_OUTPUT"
+          echo "image-id=$image" >> "$GITHUB_OUTPUT"
+      - name: Anwendung mit Testdaten starten
+        run: |
+          docker run -d --name ki-e2e --network host \
+            -e ADDR=127.0.0.1:8080 -e DEV_SEED=true -e SERVE_MEDIA=true \
+            -e PUBLIC_BASE_URL=http://127.0.0.1:8080 -e TRUSTED_PROXIES=127.0.0.1 \
+            ki-web:ci
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8080/api/health && exit 0
+            sleep 1
+          done
+          docker logs ki-e2e
+          exit 1
+      - name: Playwright installieren
+        working-directory: app/e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Akzeptanztests ausführen
+        working-directory: app/e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:8080
+          SELECTION: ${{ inputs.e2e }}
+        run: |
+          echo "Fidelity-Specs: $SELECTION" >> "$GITHUB_STEP_SUMMARY"
+          node ../../tools/e2e-phases.mjs $SELECTION
+      - name: Testbericht sichern
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            app/e2e/playwright-report
+            app/e2e/test-results
+          retention-days: 14
+      - name: Serverprotokoll bei Fehlern
+        if: failure()
+        run: docker logs ki-e2e | tail -200
+      - name: Geprüftes Image für die Installation speichern
+        if: inputs.production-image
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-image
+          path: ${{ runner.temp }}/image.tar
+          retention-days: 7
+          if-no-files-found: error

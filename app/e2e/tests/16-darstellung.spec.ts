@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Home.tsx app/frontend/src/pages/Contact.tsx app/frontend-redaktion/src/pages/Login.tsx
 import type { Page } from '@playwright/test';
 import { expect, expectNoHorizontalScroll, expectVisibleKeyboardFocus, test } from '../support/fixtures';
 

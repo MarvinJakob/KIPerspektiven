@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend-redaktion/src/pages/Posts.tsx app/frontend-redaktion/src/pages/EditPost.tsx
 import { ACCOUNTS, AUTH, expect, expectNoHorizontalScroll, fullText, pngImage, test, uid, type EditorPost } from '../support/fixtures';
 
 // Anforderung #21: Blogbeiträge im geschützten Redaktionssystem verwalten.

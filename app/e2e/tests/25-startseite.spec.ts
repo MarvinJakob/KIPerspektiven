@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Home.tsx
 import { expect, expectNoHorizontalScroll, test } from '../support/fixtures';
 
 // Anforderung #25: Home Page als Einstieg in Themen und Angebote nutzen.

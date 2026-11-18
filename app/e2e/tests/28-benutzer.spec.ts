@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend-redaktion/src/pages/Users.tsx
 import { ACCOUNTS, AUTH, expect, test, uid, type Session } from '../support/fixtures';
 
 // Anforderung #28: Redaktionsbenutzer als Administrator verwalten.

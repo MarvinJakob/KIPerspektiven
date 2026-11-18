@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Topic.tsx
 import { expect, test } from '../support/fixtures';
 
 // Anforderung #38: Unter dem Fazit der Themenseite „Vibe Coding“ stehen keine Linkkarten mehr.

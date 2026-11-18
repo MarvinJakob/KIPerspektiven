@@ -1,0 +1,131 @@
+# Release Gate nach dem Merge (AGENTS.md, Abschnitt 7; Anforderung #55).
+# Prüft den Stand auf main mit der vollständigen Suite und installiert erst danach genau das geprüfte Image auf Hetzner.
+name: Release Gate
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Produktion und Rollback teilen dieselbe Sperre. Installationen nie abbrechen.
+concurrency:
+  group: release-production
+  cancel-in-progress: false
+
+jobs:
+  handover:
+    name: Ticketübergabe
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: PR, Commit und Lauf in referenzierten Tickets vermerken
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/release-handover.mjs
+
+  plan:
+    name: Testauswahl
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      process: ${{ steps.plan.outputs.process }}
+      backend: ${{ steps.plan.outputs.backend }}
+      frontends: ${{ steps.plan.outputs.frontends }}
+      e2e: ${{ steps.plan.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Vollständige Suite bestimmen
+        id: plan
+        run: node tools/affected-tests.mjs plan --all
+
+  tests:
+    name: Tests
+    needs: plan
+    uses: ./.github/workflows/tests.yml
+    with:
+      process: ${{ needs.plan.outputs.process == 'true' }}
+      backend: ${{ needs.plan.outputs.backend }}
+      frontends: ${{ needs.plan.outputs.frontends }}
+      e2e: ${{ needs.plan.outputs.e2e }}
+      production-image: true
+
+  deploy:
+    name: Neue Version installieren
+    needs: [plan, tests]
+    permissions:
+      contents: read
+      issues: read
+      actions: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: ${{ vars.DEPLOY_URL }}
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.tests.outputs.commit }}
+      - name: Überholte Installation verhindern
+        env:
+          COMMIT: ${{ needs.tests.outputs.commit }}
+        run: |
+          git fetch origin main
+          test "$COMMIT" = "$(git rev-parse origin/main)"
+      - uses: actions/download-artifact@v5
+        with:
+          name: production-image
+          path: ${{ runner.temp }}
+      - uses: ./.github/actions/ssh-setup
+        with:
+          ssh-key: ${{ secrets.HETZNER_SSH }}
+          known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      - name: Bisherige Version merken
+        id: previous
+        run: |
+          previous=$(bash app/deploy/deploy.sh version)
+          [[ -z "$previous" || "$previous" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+          echo "version=$previous" >> "$GITHUB_OUTPUT"
+      - name: Offene Release-Blocker für das geprüfte Image prüfen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TREE: ${{ needs.tests.outputs.tree }}
+        run: node tools/release-blockers.mjs
+      - name: Geprüftes Image installieren und Healthcheck ausführen
+        id: install
+        env:
+          COMMIT: ${{ needs.tests.outputs.commit }}
+          VERSION: ${{ needs.tests.outputs.version }}
+          IMAGE_ID: ${{ needs.tests.outputs.image-id }}
+        run: bash app/deploy/deploy.sh deploy "$COMMIT" "$RUNNER_TEMP/image.tar" "$IMAGE_ID" "$VERSION"
+      - name: Bei Installationsfehler bisherige Version wiederherstellen
+        if: failure() && steps.install.outcome == 'failure' && steps.previous.outputs.version != ''
+        env:
+          PREVIOUS: ${{ steps.previous.outputs.version }}
+        run: bash app/deploy/deploy.sh switch "$PREVIOUS"
+      - name: Alte Versionen aufräumen
+        run: bash app/deploy/deploy.sh prune
+      - name: SSH-Schlüssel entfernen
+        if: always()
+        run: rm -f ~/.ssh/deploy
+      - name: Installierte Version dokumentieren
+        env:
+          COMMIT: ${{ needs.tests.outputs.commit }}
+          VERSION: ${{ needs.tests.outputs.version }}
+        run: |
+          {
+            echo "## Release Gate"
+            echo "- Geprüfter Commit: $COMMIT"
+            echo "- Tests: vollständige Suite erfolgreich (Prozesswerkzeuge, Backend, Frontend-Unit-Tests, alle Playwright-Projekte)"
+            echo "- Release-Blocker-Prüfung: bestanden"
+            echo "- Installierte Version: $VERSION (Commit $COMMIT), Healthcheck erfolgreich"
+          } >> "$GITHUB_STEP_SUMMARY"

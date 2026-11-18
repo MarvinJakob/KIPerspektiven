@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Blog.tsx app/frontend/src/pages/Post.tsx app/frontend/src/pages/Topic.tsx app/frontend-redaktion/src/pages/Posts.tsx app/frontend-redaktion/src/pages/EditPost.tsx
 import { expect, expectNoHorizontalScroll, fullText, pngImage, test, uid } from '../support/fixtures';
 
 // Anforderung #20: Veröffentlichte Blogbeiträge aufrufen und lesen.

@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Profile.tsx app/frontend/src/pages/Legal.tsx
 import { expect, expectNoHorizontalScroll, expectVisibleKeyboardFocus, test } from '../support/fixtures';
 
 // Anforderung #17: Öffentliches Profil von Marvin Jakob anzeigen. Quelle: content/topics/persona/Persona.md.

@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Topic.tsx
 import { expect, expectNoHorizontalScroll, expectVisibleKeyboardFocus, test } from '../support/fixtures';
 
 // Anforderung #18: Themenseite Vibe Coding. Quelle: content/topics/Vibe Coding v1_de.md.

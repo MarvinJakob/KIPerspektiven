@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Home.tsx
 import type { Page } from '@playwright/test';
 import { expect, test } from '../support/fixtures';
 

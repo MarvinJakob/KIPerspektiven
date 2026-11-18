@@ -81,12 +81,15 @@ cd /opt/ki-web && docker compose exec -it backend /server user create --email AD
 
 ## Automatisches Deployment
 
-Der Workflow [Merge Gate](../../.github/workflows/merge-gate.yml) führt bei Pull Requests nach `main` und nach Push/Merge auf `main` dieselben Prüfungen aus:
+Die Prüfung ist zweistufig:
 
-1. Docker-Image bauen.
-2. Nur auf `main`: das geprüfte Image übertragen und als neue Version installieren. Docker-Healthcheck und HTTPS-Healthcheck müssen erfolgreich sein.
+- Der Workflow [Merge Gate](../../.github/workflows/merge-gate.yml) prüft Pull Requests nach `main` mit den betroffenen Tests. Er installiert keine Version.
+- Der Workflow [Release Gate](../../.github/workflows/release-gate.yml) läuft nach jedem Push/Merge auf `main`:
+  1. Er führt die vollständige Testsuite aus und baut dabei das Docker-Image. Die Suite umfasst Prozesswerkzeuge, Backend, Frontend-Unit-Tests und alle Playwright-Projekte.
+  2. Er prüft offene Release-Blocker für den Git-Tree.
+  3. Er überträgt genau das getestete Image und installiert es als neue Version. Docker-Healthcheck und HTTPS-Healthcheck müssen erfolgreich sein.
 
-Bei fehlgeschlagener Installation wird die zuvor gemerkte Version wiederhergestellt; der Lauf bleibt rot. Ohne Vorgängerversion gibt es bei einer Erstinstallation keinen Rollback. Der Pflichtcheck `Merge Gate` schlägt bei fehlerhaftem Build fehl. Pull Requests installieren keine Version. Laufende Installationen und der manuelle Workflow [Rollback](../../.github/workflows/rollback.yml) teilen dieselbe Sperre und werden nicht abgebrochen.
+Schlägt ein Test oder die Blockerprüfung fehl, wird nichts installiert. Bei fehlgeschlagener Installation wird die zuvor gemerkte Version wiederhergestellt; der Lauf bleibt rot. Ohne Vorgängerversion gibt es bei einer Erstinstallation keinen Rollback. Laufende Installationen und der manuelle Workflow [Rollback](../../.github/workflows/rollback.yml) teilen dieselbe Sperre und werden nicht abgebrochen.
 
 Die Installation benötigt die Secrets `DEPLOY_HOST`, `HETZNER_SSH`, `DEPLOY_KNOWN_HOSTS` sowie optional die Variable `DEPLOY_URL` für den Link zur Produktion. Eine Registry ist nicht nötig: Das gebaute Image wird als Actions-Artefakt übertragen und auf Hetzner geladen. Es wird dort nicht erneut gebaut. Die automatische Pipeline erstellt keine Snapshots, Release-Branches, Tags oder GitHub-Releases.
 
@@ -97,7 +100,7 @@ Manueller Zugangstest ohne Deployment: `gh workflow run deploy-access.yml`. Dies
 Für einen erneuten Versuch eines bereits nach `main` gemergten Standes:
 
 ```bash
-gh workflow run merge-gate.yml --ref main
+gh workflow run release-gate.yml --ref main
 ```
 
 Der Workflow verwendet [deploy/deploy.sh](../deploy/deploy.sh):

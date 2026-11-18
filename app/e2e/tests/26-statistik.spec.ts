@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/App.tsx app/frontend-redaktion/src/pages/Statistics.tsx
 import { randomBytes } from 'node:crypto';
 import type { APIRequestContext } from '@playwright/test';
 import { AUTH, expect, randomIp, test, type Session } from '../support/fixtures';

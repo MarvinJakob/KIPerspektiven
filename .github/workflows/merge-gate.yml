@@ -1,103 +1,86 @@
+# Pflichtcheck für Pull Requests nach main (AGENTS.md, Abschnitt 5; Anforderung #55).
+# Führt nur die vom PR betroffenen Tests aus. Installiert nichts; das übernimmt das Release Gate nach dem Merge.
 name: Merge Gate
 
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: read
 
-# Produktion und Rollback teilen dieselbe Sperre. Installationen nie abbrechen.
 concurrency:
-  group: ${{ github.ref == 'refs/heads/main' && 'release-production' || format('merge-gate-{0}', github.ref) }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: merge-gate-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
-    # Der bestehende Pflichtcheck heißt weiterhin „Merge Gate“.
-    name: Merge Gate
+  plan:
+    name: Testauswahl
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 5
     outputs:
-      commit: ${{ steps.identity.outputs.commit }}
-      tree: ${{ steps.identity.outputs.tree }}
-      version: ${{ steps.identity.outputs.version }}
-      image-id: ${{ steps.identity.outputs.image-id }}
+      any: ${{ steps.plan.outputs.any }}
+      process: ${{ steps.plan.outputs.process }}
+      backend: ${{ steps.plan.outputs.backend }}
+      frontends: ${{ steps.plan.outputs.frontends }}
+      e2e: ${{ steps.plan.outputs.e2e }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
         with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: app/e2e/package-lock.json
-      - name: Unit-Tests für Prozesswerkzeuge
-        run: node --test "tools/*.test.mjs"
-      - uses: docker/setup-buildx-action@v3
-      - name: Image bauen
-        uses: docker/build-push-action@v6
-        with:
-          context: app
-          tags: ki-web:ci
-          labels: org.opencontainers.image.revision=${{ github.sha }}
-          outputs: type=docker,dest=${{ runner.temp }}/image.tar
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - name: Image laden und Version bestimmen
-        id: identity
-        run: |
-          docker load -i "$RUNNER_TEMP/image.tar"
-          commit=$(git rev-parse HEAD)
-          echo "tree=$(git rev-parse HEAD^{tree})" >> "$GITHUB_OUTPUT"
-          image=$(docker image inspect -f '{{.Id}}' ki-web:ci)
-          digest=${image#sha256:}
-          echo "commit=$commit" >> "$GITHUB_OUTPUT"
-          echo "version=${commit:0:12}-${digest:0:12}" >> "$GITHUB_OUTPUT"
-          echo "image-id=$image" >> "$GITHUB_OUTPUT"
-      # Akzeptanztests der Anforderungen (AGENTS.md, Abschnitt 5) gegen genau dieses Image mit Testdaten.
-      - name: Anwendung mit Testdaten starten
-        run: |
-          docker run -d --name ki-e2e --network host \
-            -e ADDR=127.0.0.1:8080 -e DEV_SEED=true -e SERVE_MEDIA=true \
-            -e PUBLIC_BASE_URL=http://127.0.0.1:8080 -e TRUSTED_PROXIES=127.0.0.1 \
-            ki-web:ci
-          for i in $(seq 1 30); do
-            curl -fsS http://127.0.0.1:8080/api/health && exit 0
-            sleep 1
-          done
-          docker logs ki-e2e
-          exit 1
-      - name: Playwright installieren
-        working-directory: app/e2e
-        run: |
-          npm ci
-          npx playwright install --with-deps chromium
-      - name: Akzeptanztests ausführen
-        working-directory: app/e2e
+          fetch-depth: 0
+      - name: Betroffene Tests bestimmen
+        id: plan
         env:
-          E2E_BASE_URL: http://127.0.0.1:8080
-        run: npx playwright test
-      - name: Testbericht sichern
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: |
-            app/e2e/playwright-report
-            app/e2e/test-results
-          retention-days: 14
-      - name: Serverprotokoll bei Fehlern
-        if: failure()
-        run: docker logs ki-e2e | tail -200
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: node tools/affected-tests.mjs plan --base "$BASE" --head HEAD
+
+  tests:
+    name: Tests
+    needs: plan
+    if: needs.plan.outputs.any == 'true'
+    uses: ./.github/workflows/tests.yml
+    with:
+      process: ${{ needs.plan.outputs.process == 'true' }}
+      backend: ${{ needs.plan.outputs.backend }}
+      frontends: ${{ needs.plan.outputs.frontends }}
+      e2e: ${{ needs.plan.outputs.e2e }}
+
+  gate:
+    # Name des Pflichtchecks im Branch-Schutz; kein anderer Job darf so heißen.
+    name: Merge Gate
+    needs: [plan, tests]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Testauswahl und Testergebnisse auswerten
+        env:
+          PLAN: ${{ needs.plan.result }}
+          TESTS: ${{ needs.tests.result }}
+          ANY: ${{ needs.plan.outputs.any }}
+        run: |
+          echo "Testauswahl: $PLAN · Tests: $TESTS"
+          if [ "$PLAN" != success ]; then
+            echo '::error::Testauswahl fehlgeschlagen oder Zuordnung ungeklärt (siehe Job Testauswahl).'
+            exit 1
+          fi
+          if [ "$ANY" = true ]; then
+            [ "$TESTS" = success ] || { echo "::error::Ausgewählte Tests nicht erfolgreich: $TESTS"; exit 1; }
+          else
+            echo 'Nachvollziehbar testfreie Änderung: keine Tests ausgewählt (Begründung im Job Testauswahl).' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/checkout@v5
       - name: Geprüften Dateiinhalt dokumentieren
-        run: git show -s --format='%H %T' HEAD > "$RUNNER_TEMP/gepruefter-stand.txt"
+        id: tree
+        run: |
+          git show -s --format='%H %T' HEAD > "$RUNNER_TEMP/gepruefter-stand.txt"
+          echo "tree=$(git rev-parse HEAD^{tree})" >> "$GITHUB_OUTPUT"
+      # Nachweis für Release-Blocker (tools/release-blockers.mjs): gilt für denselben Git-Tree.
       - name: Nachweis zum geprüften Stand sichern
         id: evidence
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ steps.identity.outputs.tree }}-${{ github.run_attempt }}
+          name: release-${{ steps.tree.outputs.tree }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/gepruefter-stand.txt
           if-no-files-found: error
       - name: Nachweislink für Bug-Tickets ausgeben
@@ -105,79 +88,3 @@ jobs:
           EVIDENCE_URL: ${{ steps.evidence.outputs.artifact-url }}
         run: |
           echo "Release-Nachweis: $EVIDENCE_URL" >> "$GITHUB_STEP_SUMMARY"
-      - name: Geprüftes Image für die Installation speichern
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: production-image
-          path: ${{ runner.temp }}/image.tar
-          retention-days: 7
-          if-no-files-found: error
-
-  deploy:
-    name: Neue Version installieren
-    needs: build
-    permissions:
-      contents: read
-      issues: read
-      actions: read
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment:
-      name: production
-      url: ${{ vars.DEPLOY_URL }}
-    env:
-      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.build.outputs.commit }}
-      - name: Überholte Installation verhindern
-        env:
-          COMMIT: ${{ needs.build.outputs.commit }}
-        run: |
-          git fetch origin main
-          test "$COMMIT" = "$(git rev-parse origin/main)"
-      - uses: actions/download-artifact@v5
-        with:
-          name: production-image
-          path: ${{ runner.temp }}
-      - uses: ./.github/actions/ssh-setup
-        with:
-          ssh-key: ${{ secrets.HETZNER_SSH }}
-          known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-      - name: Bisherige Version merken
-        id: previous
-        run: |
-          previous=$(bash app/deploy/deploy.sh version)
-          [[ -z "$previous" || "$previous" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
-          echo "version=$previous" >> "$GITHUB_OUTPUT"
-      - name: Offene Release-Blocker für das geprüfte Image prüfen
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TREE: ${{ needs.build.outputs.tree }}
-        run: node tools/release-blockers.mjs
-      - name: Geprüftes Image installieren und Healthcheck ausführen
-        id: install
-        env:
-          COMMIT: ${{ needs.build.outputs.commit }}
-          VERSION: ${{ needs.build.outputs.version }}
-          IMAGE_ID: ${{ needs.build.outputs.image-id }}
-        run: bash app/deploy/deploy.sh deploy "$COMMIT" "$RUNNER_TEMP/image.tar" "$IMAGE_ID" "$VERSION"
-      - name: Bei Installationsfehler bisherige Version wiederherstellen
-        if: failure() && steps.install.outcome == 'failure' && steps.previous.outputs.version != ''
-        env:
-          PREVIOUS: ${{ steps.previous.outputs.version }}
-        run: bash app/deploy/deploy.sh switch "$PREVIOUS"
-      - name: Alte Versionen aufräumen
-        run: bash app/deploy/deploy.sh prune
-      - name: SSH-Schlüssel entfernen
-        if: always()
-        run: rm -f ~/.ssh/deploy
-      - name: Installierte Version dokumentieren
-        env:
-          COMMIT: ${{ needs.build.outputs.commit }}
-          VERSION: ${{ needs.build.outputs.version }}
-        run: |
-          echo "Installierte Version: $VERSION (Commit $COMMIT)" >> "$GITHUB_STEP_SUMMARY"

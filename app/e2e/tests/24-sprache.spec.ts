@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/App.tsx
 import type { Page } from '@playwright/test';
 import { expect, expectVisibleKeyboardFocus, test } from '../support/fixtures';
 
