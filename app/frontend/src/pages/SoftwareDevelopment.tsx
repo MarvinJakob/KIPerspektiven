@@ -5,9 +5,16 @@ import processDE from '../assets/topics/development-process_de.png';
 import processEN from '../assets/topics/development-process_en.png';
 import releaseDE from '../assets/topics/releasegate_de.png';
 import releaseEN from '../assets/topics/releasegate_en.png';
+import { ArticleByline } from '../components/ArticleByline';
 import { Diagram } from '../components/Diagram';
 import { Icon } from '../components/Icon';
-import { CONTACT_PATH, softwareDevelopment, VIBE_CODING_PATH } from '../i18n/softwareDevelopment';
+import {
+  CONTACT_PATH,
+  softwareDevelopment,
+  softwareDevelopmentMeta,
+  softwareDevelopmentReadingText,
+  VIBE_CODING_PATH,
+} from '../i18n/softwareDevelopment';
 import { href, useLang, type Lang } from '../lib/lang';
 
 /** Sprungziel der Startseite für den Brotkrumenverweis „Themen“ (Home.tsx). */
@@ -45,17 +52,7 @@ export function SoftwareDevelopment({ titleRef }: { titleRef: Ref<HTMLHeadingEle
             <h1 id="sd-title" tabIndex={-1} ref={titleRef}>
               {c.title}
             </h1>
-            <div className="byline">
-              <img src={portrait} alt="" width={44} height={44} />
-              <p>
-                <strong>{c.author}</strong>
-                <span className="byline-meta">
-                  <span>{c.updated}</span>
-                  <span aria-hidden="true"> · </span>
-                  <span>{c.readingTime}</span>
-                </span>
-              </p>
-            </div>
+            <ArticleByline {...softwareDevelopmentMeta} portrait={portrait} text={softwareDevelopmentReadingText(c)} />
           </div>
         </div>
       </section>

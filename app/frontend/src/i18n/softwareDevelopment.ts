@@ -15,15 +15,15 @@ interface Figure {
  * KIPerspektiven#4 (REQ-4-AC5), deshalb stehen hier die verbleibenden Themen Vibe Coding und KI Readiness.
  */
 
+/** Autor und redaktioneller Stand laut Textvorlage (#56); gilt für beide Sprachfassungen. */
+export const softwareDevelopmentMeta = { author: 'Marvin Jakob', updated: '2026-11-16' } as const;
+
 export interface SoftwareDevelopmentContent {
   breadcrumbLabel: string;
   topics: string;
   current: string;
   eyebrow: string;
   title: string;
-  author: string;
-  updated: string;
-  readingTime: string;
   modernTitle: string;
   modern: [string, string];
   relatedLabel: string;
@@ -54,9 +54,6 @@ export const softwareDevelopment: Record<Lang, SoftwareDevelopmentContent> = {
     current: 'Softwareentwicklung',
     eyebrow: 'Softwareentwicklung',
     title: 'KI in der Software­entwicklung',
-    author: 'Marvin Jakob',
-    updated: 'Stand: 16. November 2026',
-    readingTime: 'ca. 4 Min. Lesezeit',
     modernTitle: 'Moderne Softwareentwicklung',
     modern: [
       'KI lässt sich besonders wirkungsvoll einsetzen, wenn ihre Ergebnisse gut überprüfbar sind. In der Mathematik können etwa Beweise oder Gegenbeispiele eine Lösung bestätigen oder widerlegen. In der Softwareentwicklung helfen ausführbare Tests, festzustellen, ob eine Implementierung die erwarteten Ergebnisse liefert. Inzwischen ist KI sogar so gut in der Softwareentwicklung geworden, dass wir mit der Beurteilung der Ergebnisse gar nicht mehr hinterherkommen.',
@@ -87,9 +84,6 @@ export const softwareDevelopment: Record<Lang, SoftwareDevelopmentContent> = {
     current: 'Software Development',
     eyebrow: 'Software Development',
     title: 'AI in Software Development',
-    author: 'Marvin Jakob',
-    updated: 'Updated: 16 November 2026',
-    readingTime: 'approx. 4 min read',
     modernTitle: 'Modern Software Development',
     modern: [
       'AI can be used most effectively when its results are easy to verify. In mathematics, for example, proofs or counterexamples can confirm or refute a solution. In software development, executable tests help to determine whether an implementation delivers the expected results. AI has now become so good at software development that our evaluation of the results can no longer keep up.',
@@ -115,3 +109,11 @@ export const softwareDevelopment: Record<Lang, SoftwareDevelopmentContent> = {
     contact: 'Go to the contact form',
   },
 };
+
+/** Sichtbarer Artikeltext für die Lesezeit (#56): Titel, Überschriften, Absätze, Weiterlesen-Verweis und Meinungsaufruf. */
+export function softwareDevelopmentReadingText(c: SoftwareDevelopmentContent): string[] {
+  return [
+    c.title, c.modernTitle, ...c.modern, c.relatedLabel, c.relatedTitle, c.wayTitle, c.wayAuthor, c.way,
+    c.teams, c.release, c.opinionTitle, c.opinionText,
+  ];
+}
