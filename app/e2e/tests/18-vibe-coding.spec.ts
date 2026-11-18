@@ -30,7 +30,8 @@ test('REQ-18-AC2: Sprunglinks der Übersicht erreichen und fokussieren die Absch
   }
 });
 
-test('REQ-18-AC3: Harness-Grafik ist geladen, sprachpassend beschrieben und öffnet das Original', async ({ page, request }) => {
+// Seit #41 öffnet die Grafik keine Einzelansicht mehr (REQ-41-AC1/AC4); geprüft wird die ausgelieferte Bilddatei.
+test('REQ-18-AC3: Harness-Grafik ist geladen und sprachpassend beschrieben', async ({ page, request }) => {
   const alts: string[] = [];
   for (const lang of ['de', 'en'] as const) {
     await page.goto(`/${lang}/themen/vibe-coding`);
@@ -38,10 +39,7 @@ test('REQ-18-AC3: Harness-Grafik ist geladen, sprachpassend beschrieben und öff
     await img.scrollIntoViewIfNeeded();
     await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
     alts.push((await img.getAttribute('alt')) ?? '');
-    const link = img.locator('xpath=ancestor::a[1]');
-    await expect(link).toHaveAttribute('target', '_blank');
-    expect(await link.getAttribute('href')).toBe(await img.getAttribute('src'));
-    const res = await request.get((await link.getAttribute('href'))!);
+    const res = await request.get((await img.getAttribute('src'))!);
     expect(res.status()).toBe(200);
     expect(res.headers()['content-type']).toMatch(/^image\//);
   }
