@@ -57,7 +57,7 @@ export function Home() {
       <section className="home-section" id="themen" aria-labelledby={TOPICS_ID}>
         <div className="container">
           <p className="eyebrow">{c.topicsEyebrow}</p>
-          <h2 className="home-section-title" id={TOPICS_ID} tabIndex={-1}>
+          <h2 className="home-section-title" id={TOPICS_ID} tabIndex={-1} data-toc-label={c.topicsTitle.join(' ')}>
             {c.topicsTitle[0]}
             <br />
             {c.topicsTitle[1]}
@@ -172,14 +172,14 @@ function ReadinessCheck() {
 
       {done ? (
         <div className="check-done">
-          <h2 className="check-question" id={CHECK_ID} tabIndex={-1} ref={titleRef}>
+          <h2 className="check-question" id={CHECK_ID} tabIndex={-1} ref={titleRef} data-toc-label={t.label}>
             {t.result(yes, total)}
           </h2>
           <p className="check-summary">{open === 0 ? t.resultAllYes : t.resultOpen(open)}</p>
         </div>
       ) : (
         <div className="check-ask">
-          <h2 className="check-question" id={CHECK_ID} tabIndex={-1} ref={titleRef}>
+          <h2 className="check-question" id={CHECK_ID} tabIndex={-1} ref={titleRef} data-toc-label={t.label}>
             {t.items[index].question}
           </h2>
           <p className="check-hint">{t.hint}</p>

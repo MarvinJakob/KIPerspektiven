@@ -17,6 +17,7 @@ export const de = {
   },
   langName: { de: 'Deutsch', en: 'Englisch' },
   crumbs: 'Pfadnavigation',
+  toc: { label: 'Inhaltsverzeichnis', current: 'aktueller Abschnitt' },
   sourceRef: 'Quelle {{n}}',
   loading: 'Wird geladen …',
   error: {

@@ -1093,3 +1093,39 @@ svg { display: block; }
 /* Autorenzeile redaktioneller Beiträge (Ticket #64) */
 .post-author { margin-top: 20px; }
 .post-author strong { font-weight: 650; }
+
+/* ==========================================================================
+   Mobiles Inhaltsverzeichnis (Ticket #98): schmale Leiste am rechten Rand, eine Marke je Abschnitt.
+   Die Komponente rendert nur bis 650 px; Hauptinhalt und Fußzeile erhalten dann rechts Platz für die Leiste.
+   ========================================================================== */
+body:has(.toc) #main, body:has(.toc) .site-footer { padding-right: 16px; }
+.toc-toggle {
+  position: fixed; right: 0; top: 50%; z-index: 40; transform: translateY(-50%);
+  display: grid; place-items: center; width: 28px; min-height: 48px; max-height: 50vh; padding: 12px 0 12px 4px; overflow: hidden;
+  border: 1px solid var(--border); border-right: 0; border-radius: var(--radius-small) 0 0 var(--radius-small);
+  background: var(--surface); box-shadow: var(--shadow); cursor: pointer;
+}
+.toc-toggle[aria-expanded="true"] { border-color: var(--accent); }
+.toc-rail { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; width: 16px; }
+.toc-rail span { display: block; width: 8px; height: 2px; border-radius: var(--pill); background: var(--text-2); transition: width var(--dur-fast) var(--ease-out); }
+.toc-rail span.is-active { width: 16px; height: 4px; background: var(--accent); }
+.toc-panel {
+  position: fixed; right: 36px; top: 50%; z-index: 45; transform: translateY(-50%);
+  width: min(320px, calc(100vw - 52px)); max-height: min(70vh, calc(100dvh - var(--header-h) - 24px)); overflow-y: auto; overscroll-behavior: contain;
+  padding: 12px 8px; border: 1px solid var(--border); border-radius: var(--radius-small); background: var(--surface); box-shadow: var(--shadow-raised);
+}
+.toc-panel[hidden] { display: none; }
+.toc-title { padding: 0 12px 6px; font-size: .75rem; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.toc-panel ol { margin: 0; padding: 0; list-style: none; }
+.toc-panel a {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px 8px 26px; border-radius: var(--radius-small);
+  font-size: 1rem; line-height: 1.35; color: var(--text); text-decoration: none; overflow-wrap: anywhere;
+}
+.toc-panel a:hover { background: var(--fill); }
+.toc-panel a[aria-current="location"] { padding-left: 12px; font-weight: 700; color: var(--accent); }
+.toc-marker { flex: none; width: 4px; align-self: stretch; min-height: 1.2em; border-radius: var(--pill); background: currentColor; }
+@media (forced-colors: active) {
+  .toc-rail span { background: GrayText; }
+  .toc-rail span.is-active, .toc-marker { background: CanvasText; }
+}
+@media print { .toc { display: none !important; } }

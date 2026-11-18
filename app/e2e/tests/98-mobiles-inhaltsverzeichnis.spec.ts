@@ -21,7 +21,8 @@ const HOME = {
 
 const toc = (page: Page, lang: 'de' | 'en') => page.getByRole('navigation', { name: LABEL[lang] });
 const toggle = (page: Page) => page.locator('.toc-toggle');
-const entries = (page: Page, lang: 'de' | 'en') => toc(page, lang).getByRole('link');
+// Einträge auch bei geschlossener Liste (dann für Rollenabfragen verborgen).
+const entries = (page: Page, lang: 'de' | 'en') => toc(page, lang).locator('a');
 const current = (page: Page, lang: 'de' | 'en') => toc(page, lang).locator('a[aria-current="location"]');
 
 /** Sichtbare H2 im Hauptinhalt in Seitenreihenfolge (ohne reine Screenreader-Überschriften). */

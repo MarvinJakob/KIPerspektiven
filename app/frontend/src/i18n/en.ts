@@ -19,6 +19,7 @@ export const en: Messages = {
   },
   langName: { de: 'German', en: 'English' },
   crumbs: 'Breadcrumb',
+  toc: { label: 'Contents', current: 'current section' },
   sourceRef: 'Source {{n}}',
   loading: 'Loading …',
   error: {
