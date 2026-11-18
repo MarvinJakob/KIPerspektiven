@@ -977,9 +977,16 @@ svg { display: block; }
 .byline strong { display: block; font-weight: 650; }
 .byline-meta { color: var(--text-2); font-size: .8125rem; }
 
-.article-layout { display: grid; grid-template-columns: minmax(0, 760px); justify-content: center; padding-block: 80px 96px; }
+/* #57: Der Artikel nutzt den Inhaltsrahmen (.container) wie „Vibe Coding“: Titelspalte und Lesespalte im Raster 5fr/7fr
+   mit 88 px Abstand (VibeCoding.css, .vc-split). Abschnitte ohne Titel und die Grafiken (#41) stehen in der Lesespalte. */
+.article-layout { padding-block: 80px 96px; }
 .article-body { min-width: 0; }
-.article-body > section + section { margin-top: 48px; }
+.article-body > section + section { margin-top: 64px; }
+.article-split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 88px; align-items: start; }
+.article-split-head { position: sticky; top: 120px; min-width: 0; }
+.article-split-body { grid-column: 2; min-width: 0; max-width: 760px; }
+.article-split-body > .article-figure:first-child { margin-top: 0; }
+.article-body .opinion p { max-width: 760px; }
 .article-body h2 { font-size: clamp(1.75rem, 2.6vw, 2.25rem); line-height: 1.15; letter-spacing: -.035em; margin-bottom: 22px; }
 .article-body p { font-size: 1.0625rem; line-height: 1.85; hyphens: auto; }
 .article-body p + p { margin-top: 20px; }
@@ -1004,10 +1011,15 @@ svg { display: block; }
 .opinion-button { background: var(--navy); color: #fff; }
 .opinion-button:hover { background: #203d56; transform: translateY(-2px); }
 
-
+@media (max-width: 1180px) { .article-split { gap: 56px; } }
+@media print { .article-split { grid-template-columns: 1fr; gap: 16px; } .article-split-head { position: static; } .article-split-body { grid-column: auto; } }
 @media (max-width: 850px) {
   .article-hero { padding-bottom: 56px; }
   .article-layout { padding-block: 56px 72px; }
+  .article-body > section + section { margin-top: 48px; }
+  .article-split { grid-template-columns: 1fr; gap: 0; }
+  .article-split-head { position: static; }
+  .article-split-body { grid-column: auto; max-width: none; }
   .article-body > .opinion { grid-template-columns: auto 1fr; }
   .opinion-button { grid-column: 1 / -1; justify-self: start; }
 }
