@@ -2,14 +2,12 @@
 
 *Stand: 16. November 2026.*
 
-KI verstehen.
-Sinnvoll einsetzen.
+# Neue Perspektiven
 
-Praxiswissen für den professionellen Einsatz von KI.
-Mit klarem Blick auf Nutzen, Grenzen und Verantwortung.
+1. Softwareentwicklung
+2. Vibe coding
 
+# KI Readiness
 
-# KI verstehen
-
-
+> Selbsteinschätzung starten ->
 
