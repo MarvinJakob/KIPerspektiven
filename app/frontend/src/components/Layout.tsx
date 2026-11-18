@@ -4,6 +4,7 @@ import { i18n } from '../i18n';
 import { DEFAULT_LANG, LangContext, href, isLang, useLang, type Lang } from '../lib/lang';
 import { BrandMark, Header } from './Header';
 import { CookieSettings } from './CookieSettings';
+import { MobileToc } from './MobileToc';
 import { footerNotes, footerPages, footerTopics, footerYearLine } from './footer';
 import { NotFound } from '../pages/NotFound';
 
@@ -37,6 +38,8 @@ export function Shell({ lang, children }: { lang: Lang; children: React.ReactNod
         {value.t('skip')}
       </a>
       <Header />
+      {/* Vor dem Inhalt: per Tastatur nach der Kopfzeile erreichbar, der Sprunglink führt daran vorbei. */}
+      <MobileToc />
       <main id="main" tabIndex={-1}>
         {children}
       </main>
