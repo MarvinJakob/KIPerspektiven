@@ -252,9 +252,21 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: cursor
+          in: query
+          required: false
+          description: |
+            Fortsetzung der Blogübersicht (Ticket #75): `nextCursor` der vorigen Antwort. Die Liste
+            setzt direkt hinter deren letztem Eintrag fort; später vorn einsortierte Beiträge verschieben
+            die Fortsetzung nicht. Ungültige Werte ergeben `400`. Bei `featured=true` ohne Wirkung.
+          schema:
+            type: string
+            maxLength: 200
       responses:
         '200':
-          description: Beiträge
+          description: |
+            Beiträge. Ohne `featured` höchstens 20 je Abruf (Ticket #75), neueste zuerst und bei
+            gleichem Veröffentlichungsdatum nach Beitrags-ID absteigend.
           content:
             application/json:
               schema:
@@ -1519,6 +1531,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PostSummary'
+        nextCursor:
+          type: string
+          description: |
+            Nur wenn weitere Beiträge folgen (Ticket #75): Wert für `cursor` beim nächsten Abruf.
+            Fehlt nach der letzten Portion, auch wenn diese genau voll ist.
     Post:
       allOf:
         - $ref: '#/components/schemas/PostSummary'

@@ -1384,6 +1384,65 @@ func (q *Queries) ListPublishedPostsByTopic(ctx context.Context, topicID int64) 
 	return items, nil
 }
 
+const listPublishedPostsPage = `-- name: ListPublishedPostsPage :many
+SELECT id, slug, status, published_at, featured, cover_media_id, updated_at, scheduled_at, author_id
+FROM posts
+WHERE status = 'published'
+  AND (?1 = 0
+       OR published_at < ?2
+       OR (published_at = ?2 AND id < ?3))
+ORDER BY published_at DESC, id DESC
+LIMIT ?4
+`
+
+type ListPublishedPostsPageParams struct {
+	HasAfter         interface{}
+	AfterPublishedAt sql.NullString
+	AfterID          int64
+	RowLimit         int64
+}
+
+// Portion der Blog-Uebersicht (Ticket #75): Keyset hinter (after_published_at, after_id) in derselben
+// Sortierung wie ListPublishedPosts. Ohne Fortsetzung (has_after = 0) beginnt die Liste vorn.
+// Kommentare vor Abfragen mit sqlc.arg ohne Umlaute: sqlc verschiebt sonst die Ersetzungspositionen.
+func (q *Queries) ListPublishedPostsPage(ctx context.Context, arg ListPublishedPostsPageParams) ([]Post, error) {
+	rows, err := q.db.QueryContext(ctx, listPublishedPostsPage,
+		arg.HasAfter,
+		arg.AfterPublishedAt,
+		arg.AfterID,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Post{}
+	for rows.Next() {
+		var i Post
+		if err := rows.Scan(
+			&i.ID,
+			&i.Slug,
+			&i.Status,
+			&i.PublishedAt,
+			&i.Featured,
+			&i.CoverMediaID,
+			&i.UpdatedAt,
+			&i.ScheduledAt,
+			&i.AuthorID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listReadinessRatings = `-- name: ListReadinessRatings :many
 SELECT result_id, dimension, level FROM readiness_result_ratings
 WHERE result_id IN (/*SLICE:result_ids*/?)
