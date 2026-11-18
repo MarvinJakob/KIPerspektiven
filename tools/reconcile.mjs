@@ -6,8 +6,7 @@ import { api, pages, repository, issueLabels, command } from './github.mjs';
 export function dependencies(body = '') {
   return [...body.matchAll(/^Test-Defect-Dependency: #([1-9]\d*)\s*$/gm)].map((m) => Number(m[1]));
 }
-// Offene Folgetickets je Anforderung (feature, bug, test-defect; Titel nennt REQ-<n>). Team 2 testet eine
-// Anforderung erst wieder, wenn keines mehr offen ist (AGENTS_TESTER.md); bis dahin wartet sie in Merge Gate.
+// Offene Folgetickets nach zugehöriger Anforderung gruppieren.
 export function followUpTickets(issues) {
   const result = new Map();
   for (const issue of issues) {
@@ -24,7 +23,7 @@ export function followUps(issues) { return new Set(followUpTickets(issues).keys(
 export function followUpPR(ticket, pulls) {
   return pulls.find((p) => p.state === 'open' && p.head?.ref === `fix/${ticket.number}`);
 }
-// Merker nach abgeschlossenem Anforderungs-Review (AGENTS_REVIEWER.md). Er gilt nur, solange Folgetickets
+// Merker nach abgeschlossenem Anforderungs-Review. Er gilt nur, solange Folgetickets
 // offen sind und jedes einen offenen PR hat; sonst entfernt ihn der Prozessabgleich.
 export const reviewedLabel = 'requirement-reviewed';
 export function planIssue(issue, { specs, baseline, issues, pulls }) {
@@ -37,7 +36,6 @@ export function planIssue(issue, { specs, baseline, issues, pulls }) {
   if (labels.has('requirement') && ids?.length && mergedSpec && !activePR) {
     if (!labels.has('specified')) add.push('specified');
     if (labels.has('needs-analysis')) remove.push('needs-analysis');
-    // A completed specification is handed to Team 2; local cleanup remains with its owner.
     if (labels.has('needs-analysis') && labels.has('in-progress')) remove.push('in-progress');
     // Mit offenen Folgetickets wartet die Anforderung in Merge Gate auf deren PRs und das Anforderungs-Review.
     if (!labels.has('in-progress') || labels.has('needs-analysis')) {

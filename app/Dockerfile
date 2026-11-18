@@ -9,7 +9,7 @@ RUN npm ci
 COPY api /src/api
 COPY frontend ./
 # Vite schreibt nach ../backend/internal/web/dist/public
-RUN npm run build
+RUN npm run test:unit --if-present && npm run build
 
 FROM node:24-alpine AS redaktion
 WORKDIR /src/frontend-redaktion
@@ -18,7 +18,7 @@ RUN npm ci
 COPY api /src/api
 COPY frontend-redaktion ./
 # Vite schreibt nach ../backend/internal/web/dist/redaktion
-RUN npm run build
+RUN npm run test:unit --if-present && npm run build
 
 FROM golang:1.27-alpine AS backend
 WORKDIR /src/backend

@@ -1,5 +1,5 @@
 name: Feature (Implementierung)
-description: Team 2 oder Team 4 dokumentiert eine spezifizierte, noch fehlende Funktion für Team 3.
+description: Spezifizierte Funktion mit Kriterien und Nachweisen bis zur Produktion umsetzen.
 title: "[REQ-<n>-AC<m>] <Welche Funktion fehlt>"
 labels: [feature]
 body:
