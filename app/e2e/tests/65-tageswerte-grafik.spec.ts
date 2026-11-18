@@ -46,7 +46,9 @@ async function dayPoint(page: Page, period: string, date: string) {
   const chrono = [...DATA[period]].reverse();
   const i = chrono.findIndex((d) => d.date === date);
   expect(i, `Testdaten enthalten ${date}`).toBeGreaterThanOrEqual(0);
-  const box = (await section(page).locator('figure svg').boundingBox())!;
+  const svg = section(page).locator('figure svg');
+  await svg.scrollIntoViewIfNeeded();
+  const box = (await svg.boundingBox())!;
   return { x: box.x + 62 + (box.width - 74) * i / (chrono.length - 1), y: box.y + 120 };
 }
 

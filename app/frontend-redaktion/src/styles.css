@@ -350,7 +350,6 @@ fieldset.field { margin: 0; padding: 0; border: 0; }
 .stat dd { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .stat-value { font-family: var(--font-display); font-size: 2.25rem; font-weight: 760; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .stat-context { color: var(--text-2); font-size: .9375rem; }
-.table .num-col { text-align: right; font-variant-numeric: tabular-nums; }
 .views-chart { margin-inline: 0; padding: 16px 0; }
 .views-chart svg { width: 100%; height: 260px; font: 12px var(--font-text); fill: var(--text-2); }
 .chart-axis-title { font-weight: 650; }
@@ -438,12 +437,21 @@ fieldset.field { margin: 0; padding: 0; border: 0; }
 :root[data-theme="dark"] .chart-unique-line { stroke: #ed9bda; }
 :root[data-theme="dark"] .chart-unique-point { fill: #ed9bda; }
 :root[data-theme="dark"] .chart-legend .legend-unique { border-color: #ed9bda; }
-.views-table { table-layout: fixed; }
-.views-table th, .views-table td { overflow-wrap: anywhere; }
-@media (max-width: 450px) {
-  .views-table th, .views-table td { padding: 12px 8px; }
-}
+/* Tageswerte direkt in der Grafik (#65): Auswahl per Zeiger, Antippen oder Pfeiltasten. */
+.chart-plot { position: relative; touch-action: pan-y; cursor: crosshair; border-radius: var(--radius-m); }
+.chart-plot:focus { outline: none; }
+.chart-plot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chart-cursor { stroke: var(--text-2); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart-selection circle { stroke: var(--surface); stroke-width: 2; }
+.chart-tooltip { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-s); background: var(--surface); box-shadow: var(--shadow-card); font-size: .8125rem; white-space: nowrap; }
+.chart-tooltip strong { display: block; margin-bottom: 4px; }
+.chart-tooltip dl { display: grid; grid-template-columns: auto auto; gap: 2px 12px; margin: 0; }
+.chart-tooltip dl div { display: contents; }
+.chart-tooltip dt { color: var(--text-2); }
+.chart-tooltip dd { margin: 0; text-align: right; font-weight: 650; font-variant-numeric: tabular-nums; }
 @media (forced-colors: active) {
+  .chart-tooltip { border-color: CanvasText; }
+  .chart-cursor { stroke: CanvasText; }
   .chart-unique-line { stroke: CanvasText; }
   .chart-unique-point { fill: CanvasText; }
   .chart-legend i, .chart-legend .legend-unique { border-color: CanvasText; }
