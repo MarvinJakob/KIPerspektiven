@@ -1,4 +1,4 @@
-// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Legal.tsx app/frontend/src/content/legal/datenschutz.de.md app/frontend/src/content/legal/datenschutz.en.md
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Legal.tsx app/frontend/src/content/legal/datenschutz.de.md app/frontend/src/content/legal/datenschutz.en.md app/frontend/src/content/legal/datenschutz.freigabe.json
 import type { Page } from '@playwright/test';
 import { completeAssessment, expect, expectNoHorizontalScroll, test } from '../support/fixtures';
 
@@ -64,12 +64,13 @@ for (const lang of LANGS) {
   });
 
   test(`REQ-74-AC5: Hinweise zu Ergebnisspeicherung und Beratung in der Auswertung führen zur ${lang}-Fassung`, async ({ page }) => {
+    // Die Auswertung liegt nur im Arbeitsspeicher; deshalb per Verlauf zurück statt neu laden.
     await completeAssessment(page, lang);
-    const result = page.url();
     for (const hint of ['.share-hint', 'section.consult']) {
-      await page.goto(result);
       await page.locator(hint).getByRole('link', { name: SOLL[lang].privacyLink }).first().click();
       await expectPrivacyPage(page, lang);
+      await page.goBack();
+      await expect(page).toHaveURL(/\/themen\/ai-audit\/auswertung$/);
     }
   });
 }
@@ -78,8 +79,10 @@ test('REQ-74-AC1: beide Fassungen zeigen dieselbe verantwortliche Stelle', async
   const controller = async (lang: Lang) => {
     await page.goto(`/${lang}/datenschutz`);
     const heading = page.locator('.prose--legal h2', { hasText: SOLL[lang].controller });
-    const text = await heading.locator('xpath=following-sibling::*[1]').innerText();
-    return text.replace(/Deutschland|Germany/, '<Land>');
+    // Absatz 1 ist die Einleitung, Absatz 2 die Anschrift, Absatz 3 Telefon und E-Mail.
+    const address = await heading.locator('xpath=following-sibling::p[2]').innerText();
+    const contact = await heading.locator('xpath=following-sibling::p[3]').innerText();
+    return [address.replace(/Deutschland|Germany/, '<Land>'), contact.replace(/Telefon|Phone/, '<Tel>').replace(/E-Mail|Email/, '<Mail>')].join('\n');
   };
   const de = await controller('de');
   expect(de).toContain('Marvin Jakob');
