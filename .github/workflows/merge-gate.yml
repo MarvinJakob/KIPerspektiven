@@ -86,4 +86,5 @@ jobs:
       - name: Nachweislink für Bug-Tickets ausgeben
         env:
           EVIDENCE_URL: ${{ steps.evidence.outputs.artifact-url }}
-        run: echo "Release-Nachweis: $EVIDENCE_URL" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "Release-Nachweis: $EVIDENCE_URL" >> "$GITHUB_STEP_SUMMARY"
