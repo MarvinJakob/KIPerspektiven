@@ -19,10 +19,6 @@ interface Figure {
 export const softwareDevelopmentMeta = { author: 'Marvin Jakob', updated: '2026-11-16' } as const;
 
 export interface SoftwareDevelopmentContent {
-  breadcrumbLabel: string;
-  topics: string;
-  current: string;
-  eyebrow: string;
   title: string;
   modernTitle: string;
   modern: [string, string];
@@ -49,10 +45,6 @@ export interface SoftwareDevelopmentContent {
  */
 export const softwareDevelopment: Record<Lang, SoftwareDevelopmentContent> = {
   de: {
-    breadcrumbLabel: 'Brotkrümelnavigation',
-    topics: 'Themen',
-    current: 'Softwareentwicklung',
-    eyebrow: 'Softwareentwicklung',
     title: 'KI in der Software­entwicklung',
     modernTitle: 'Moderne Softwareentwicklung',
     modern: [
@@ -79,10 +71,6 @@ export const softwareDevelopment: Record<Lang, SoftwareDevelopmentContent> = {
     contact: 'Zum Kontaktformular',
   },
   en: {
-    breadcrumbLabel: 'Breadcrumb',
-    topics: 'Topics',
-    current: 'Software Development',
-    eyebrow: 'Software Development',
     title: 'AI in Software Development',
     modernTitle: 'Modern Software Development',
     modern: [

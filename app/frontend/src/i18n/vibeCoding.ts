@@ -10,7 +10,7 @@ export const vibeCoding: Record<Lang, {
   subtitle: string; intro: string[]; story: string; abundance: string; transition: string;
   perspectives: { id: string; name: string; heading: string; body: string; example: string; closing: string }[];
   conclusion: string[]; conclusionTitle: string; conclusionLabel: string;
-  home: string; topics: string; breadcrumb: string; introLabel: string;
+  introLabel: string;
   harnessDiagram: { alt: string };
   example: string; storyLabel: string; formLabel: string;
 }> = {
@@ -71,9 +71,6 @@ export const vibeCoding: Record<Lang, {
     ],
     "conclusionTitle": "KI hat das Tempo erhöht. Jetzt den Anspruch anheben.",
     "conclusionLabel": "Fazit",
-    "home": "Start",
-    "topics": "Themen",
-    "breadcrumb": "Brotkrumen",
     "introLabel": "Einleitung",
     "harnessDiagram": {
       "alt": "Harness-Grafik: Prompt und Dateien gehen in den Agenten. Der Harness ist mit Skill und Tool verbunden und steuert den Bereich aus Context und Model. Dateien landen im Context, Input-Token gehen in das Model, das Output-Token erzeugt. Am Ende steht das Ergebnis."
@@ -139,9 +136,6 @@ export const vibeCoding: Record<Lang, {
     ],
     "conclusionTitle": "AI has increased the pace. Now raise the ambition.",
     "conclusionLabel": "Conclusion",
-    "home": "Home",
-    "topics": "Topics",
-    "breadcrumb": "Breadcrumbs",
     "introLabel": "Introduction",
     "harnessDiagram": {
       "alt": "Harness diagram: the prompt and files go into the agent. The harness connects to a skill and a tool and drives the area made up of context and model. Files end up in the context, input tokens go into the model, which produces output tokens. The end product is the result."

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import Markdown from 'react-markdown';
 import { Link } from 'react-router';
-import { useAudit, useTopics } from '../api/client';
+import { useAudit } from '../api/client';
 import { AssessmentSteps } from '../components/AssessmentSteps';
 import { ConsultationOffer } from '../components/ConsultationOffer';
 import { Icon } from '../components/Icon';
@@ -9,8 +9,8 @@ import { ReadinessRadar } from '../components/ReadinessRadar';
 import { ShareConsent } from '../components/ShareConsent';
 import { LoadError, Loading, TranslationNotice } from '../components/Status';
 import { useAssessment } from '../lib/assessment';
-import { AUDIT_TOPIC, auditPath, progress } from '../lib/audit';
-import { href, useLang } from '../lib/lang';
+import { auditPath, progress } from '../lib/audit';
+import { useLang } from '../lib/lang';
 import { useHead, usePageFocus } from '../lib/page';
 
 /**
@@ -24,7 +24,6 @@ export function AuditResultPage() {
   const { lang, t } = useLang();
   const h1 = usePageFocus<HTMLHeadingElement>();
   const overview = useAudit(lang);
-  const { data: topics } = useTopics(lang);
   const { ratings, saveResult } = useAssessment();
   useHead(t('assess.resultTitle'), t('assess.resultMeta'));
 
@@ -40,22 +39,11 @@ export function AuditResultPage() {
 
   const o = overview.data;
   const contentLang = o.lang !== lang ? o.lang : undefined;
-  const topicTitle = topics?.find((tp) => tp.slug === AUDIT_TOPIC)?.title ?? t('audit.eyebrow');
   const p = progress(o.dimensions.map((d) => d.slug), ratings);
   const levelName = (n: number) => o.levels.find((l) => l.level === n)?.name ?? String(n);
 
   return (
     <div className="container">
-      <nav className="crumbs" aria-label={t('crumbs')}>
-        <Link to={href(lang)}>{t('nav.home')}</Link>
-        <span aria-hidden="true">/</span>
-        <span>{t('nav.topics')}</span>
-        <span aria-hidden="true">/</span>
-        <Link to={auditPath(lang)}>{topicTitle}</Link>
-        <span aria-hidden="true">/</span>
-        <span aria-current="page">{t('assess.resultCrumb')}</span>
-      </nav>
-
       <div className="assess-layout">
         <AssessmentSteps dimensions={o.dimensions} levels={o.levels} ratings={ratings} />
 

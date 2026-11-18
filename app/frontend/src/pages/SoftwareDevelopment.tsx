@@ -6,6 +6,7 @@ import processEN from '../assets/topics/development-process_en.png';
 import releaseDE from '../assets/topics/releasegate_de.png';
 import releaseEN from '../assets/topics/releasegate_en.png';
 import { ArticleByline } from '../components/ArticleByline';
+import { ArticleHeader } from '../components/ArticleHeader';
 import { Diagram } from '../components/Diagram';
 import { Icon } from '../components/Icon';
 import {
@@ -17,9 +18,6 @@ import {
 } from '../i18n/softwareDevelopment';
 import { href, useLang, type Lang } from '../lib/lang';
 
-/** Sprungziel der Startseite für den Brotkrumenverweis „Themen“ (Home.tsx). */
-const TOPICS_ID = 'themen';
-
 /** Unveränderte Originalgrafiken (res/) als Vite-Assets mit Dateihash, je Sprache. */
 export const softwareDevelopmentImages: Record<Lang, { process: string; release: string }> = {
   de: { process: processDE, release: releaseDE },
@@ -27,8 +25,9 @@ export const softwareDevelopmentImages: Record<Lang, { process: string; release:
 };
 
 /**
- * Themenseite Softwareentwicklung nach mock/software_development (#7): Hero mit Breadcrumb, Autor, Stand und
- * Lesezeit → Artikel mit beiden Grafiken → Meinungsaufruf. Ohne Verweise auf weitere Themen am Beitragsende (#37).
+ * Themenseite Softwareentwicklung nach mock/software_development (#7): gemeinsamer Artikelkopf mit Autor, Stand und
+ * Lesezeit (#61, ohne Brotkrumen) → Artikel mit beiden Grafiken → Meinungsaufruf. Ohne Verweise auf weitere Themen
+ * am Beitragsende (#37).
  * #57: Auf dem Desktop nutzen die Abschnitte den Inhaltsrahmen von „Vibe Coding“ mit Titelspalte links und Lesespalte
  * rechts; die Grafiken bleiben in der Lesespalte (#41). Schmale Ansichten zeigen alles einspaltig in Dokumentreihenfolge.
  */
@@ -36,28 +35,15 @@ export function SoftwareDevelopment({ titleRef }: { titleRef: Ref<HTMLHeadingEle
   const { lang } = useLang();
   const c = softwareDevelopment[lang];
   const images = softwareDevelopmentImages[lang];
-  const topicsHref = `${href(lang)}#${TOPICS_ID}`;
 
   return (
     <div className="sd-page" lang={lang}>
-      <section className="article-hero" aria-labelledby="sd-title">
-        <div className="container">
-          <nav className="article-crumbs" aria-label={c.breadcrumbLabel}>
-            <Link to={topicsHref}>{c.topics}</Link>
-            <span aria-hidden="true">/</span>
-            <span aria-current="page">{c.current}</span>
-          </nav>
-          <div className="article-hero-copy">
-            <p className="eyebrow">
-              <span className="topic-number">01</span> {c.eyebrow}
-            </p>
-            <h1 id="sd-title" tabIndex={-1} ref={titleRef}>
-              {c.title}
-            </h1>
-            <ArticleByline {...softwareDevelopmentMeta} portrait={portrait} text={softwareDevelopmentReadingText(c)} />
-          </div>
-        </div>
-      </section>
+      <ArticleHeader
+        title={c.title}
+        titleId="sd-title"
+        titleRef={titleRef}
+        byline={<ArticleByline {...softwareDevelopmentMeta} portrait={portrait} text={softwareDevelopmentReadingText(c)} />}
+      />
 
       <div className="container article-layout">
         <article className="article-body">

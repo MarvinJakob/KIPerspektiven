@@ -9,7 +9,7 @@ test('REQ-18-AC1: Artikel erscheint vollständig auf Deutsch und Englisch', asyn
     await page.goto(`/${lang}/themen/vibe-coding`);
     await expect(page.locator('html')).toHaveAttribute('lang', lang);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Vibe Coding');
-    await expect(page.locator('.vc-subtitle')).toContainText(lang === 'de' ? 'Willkommen beim Vibe Coding' : 'Welcome to Vibe Coding');
+    await expect(page.locator('main .article-subtitle')).toContainText(lang === 'de' ? 'Willkommen beim Vibe Coding' : 'Welcome to Vibe Coding');
     for (const id of ids) {
       await expect(page.locator(`#vc-${id}`)).toContainText(PERSPECTIVES[ids.indexOf(id)]);
       await expect(page.locator(`#vc-${id}-title`)).not.toBeEmpty();
@@ -51,7 +51,7 @@ test('REQ-18-AC4: interne Links und Sprachwechsel öffnen vorhandene Ziele', asy
   await page.goto('/de/themen/vibe-coding');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Vibe Coding');
   const targets = await page.locator('main a[href^="/de"]').evaluateAll((as) => [...new Set(as.map((a) => a.getAttribute('href')!))]);
-  expect(targets.length).toBeGreaterThan(0);
+  // Die einzigen internen Links waren die Brotkrumen; sie entfallen mit #61 (REQ-61-AC2). Vorhandene Links werden weiter geprüft.
   for (const href of targets) {
     await page.goto(href);
     await expect(page.getByRole('heading', { name: 'Seite nicht gefunden' }), href).toHaveCount(0);
@@ -60,7 +60,7 @@ test('REQ-18-AC4: interne Links und Sprachwechsel öffnen vorhandene Ziele', asy
   await page.goto('/de/themen/vibe-coding');
   await page.getByRole('button', { name: 'English' }).click();
   await expect(page).toHaveURL(/\/en\/themen\/vibe-coding$/);
-  await expect(page.locator('.vc-subtitle')).toContainText('Welcome to Vibe Coding');
+  await expect(page.locator('main .article-subtitle')).toContainText('Welcome to Vibe Coding');
 });
 
 for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 }]) {
