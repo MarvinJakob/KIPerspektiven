@@ -14,12 +14,6 @@ interface Figure {
  * Verweis unter „Mehr Themen“. Der Mock nennt Data Analytics und Modelle und Kosten; beide entfallen mit
  * KIPerspektiven#4 (REQ-4-AC5), deshalb stehen hier die verbleibenden Themen Vibe Coding und KI Readiness.
  */
-interface MoreTopic {
-  slug: 'vibe-coding' | 'ai-audit';
-  number: string;
-  title: string;
-  teaser: string;
-}
 
 export interface SoftwareDevelopmentContent {
   breadcrumbLabel: string;
@@ -46,11 +40,6 @@ export interface SoftwareDevelopmentContent {
   opinionTitle: string;
   opinionText: string;
   contact: string;
-  moreEyebrow: string;
-  moreTitle: string;
-  moreLink: string;
-  more: MoreTopic[];
-  allTopics: string;
 }
 
 /**
@@ -91,14 +80,6 @@ export const softwareDevelopment: Record<Lang, SoftwareDevelopmentContent> = {
     opinionTitle: 'Würdest du auch so entwickeln?',
     opinionText: 'Teile mir gerne deine Meinung dazu mit.',
     contact: 'Zum Kontaktformular',
-    moreEyebrow: 'Weitere Perspektiven',
-    moreTitle: 'Mehr Themen.',
-    moreLink: 'Zum Thema',
-    more: [
-      { slug: 'vibe-coding', number: '02', title: 'Vibe Coding', teaser: 'Verantwortung für schnellen Code übernehmen' },
-      { slug: 'ai-audit', number: '03', title: 'KI Readiness', teaser: 'Wie bereit sind wir für den professionellen Einsatz von KI?' },
-    ],
-    allTopics: 'Alle Themen',
   },
   en: {
     breadcrumbLabel: 'Breadcrumb',
@@ -132,13 +113,5 @@ export const softwareDevelopment: Record<Lang, SoftwareDevelopmentContent> = {
     opinionTitle: 'Would you develop like this too?',
     opinionText: 'Feel free to share your opinion with me.',
     contact: 'Go to the contact form',
-    moreEyebrow: 'More perspectives',
-    moreTitle: 'More topics.',
-    moreLink: 'Go to topic',
-    more: [
-      { slug: 'vibe-coding', number: '02', title: 'Vibe Coding', teaser: 'Taking responsibility for fast code' },
-      { slug: 'ai-audit', number: '03', title: 'AI Readiness', teaser: 'How ready are we to use AI professionally?' },
-    ],
-    allTopics: 'All topics',
   },
 };
