@@ -14,12 +14,8 @@ const LANG_NAMES: Record<string, string> = { de: 'Deutsch', en: 'Englisch' };
 // Tage und Uhrzeiten in deutscher Zeit, wie die Tageszähler des Backends (service.StatsZone).
 const ZONE = 'Europe/Berlin';
 const numberFormat = new Intl.NumberFormat('de-DE');
-const dayFormat = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
 const dateFormat = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: ZONE });
 const timeFormat = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: ZONE });
-
-/** Kalendertag JJJJ-MM-TT, z. B. „Fr., 14.11.2026“. Der Tag steht schon fest, deshalb ohne Zeitzonenumrechnung. */
-const formatDay = (day: string) => dayFormat.format(new Date(`${day}T00:00:00Z`));
 
 /**
  * Statistik der Redaktion (Ticket #130): Seitenaufrufe je Tag und gespeicherte Ergebnisse der
@@ -116,7 +112,8 @@ function PageViews({ period, periodText }: { period: Period; periodText: string 
             <Stat label="Bereinigte Anzahl" value={data.uniqueTotal} context={periodText} />
           </div>
           <p className="stats-hint">
-            Bereinigt zählt jede IP-Adresse im gewählten Zeitraum einmal, in der Tabelle je Kalendertag einmal.
+            Bereinigt zählt jede IP-Adresse im gewählten Zeitraum einmal, in der Grafik je Kalendertag einmal.
+            Die genauen Tageswerte zeigt die Grafik für den gewählten Tag.
             Die bereinigte Gesamtsumme ist keine Summe der Tageswerte. Mehrere Personen können dieselbe IP nutzen,
             eine Person kann verschiedene IPs nutzen.
           </p>
@@ -130,34 +127,7 @@ function PageViews({ period, periodText }: { period: Period; periodText: string 
           {data.total === 0 ? (
             <p className="empty-state card">Im gewählten Zeitraum wurden noch keine Seitenaufrufe gezählt.</p>
           ) : (
-            <>
-              <PageViewsChart days={data.days} showUnique={showUnique} onShowUnique={setShowUnique} />
-              <div className="table-wrap">
-                <table className="table views-table">
-                  <caption className="visually-hidden">Seitenaufrufe je Tag, neueste zuerst</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">Tag</th>
-                      <th scope="col" className="num-col">
-                        Absolute Anzahl
-                      </th>
-                      <th scope="col" className="num-col">Bereinigte Anzahl</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.days.map((d) => (
-                      <tr key={d.date}>
-                        <td>
-                          <time dateTime={d.date}>{formatDay(d.date)}</time>
-                        </td>
-                        <td className="num-col">{numberFormat.format(d.views)}</td>
-                        <td className="num-col">{d.uniqueViews === null ? 'Nicht verfügbar' : numberFormat.format(d.uniqueViews)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
+            <PageViewsChart days={data.days} showUnique={showUnique} onShowUnique={setShowUnique} />
           )}
         </>
       )}
