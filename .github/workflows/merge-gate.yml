@@ -47,6 +47,46 @@ jobs:
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
           echo "version=${commit:0:12}-${digest:0:12}" >> "$GITHUB_OUTPUT"
           echo "image-id=$image" >> "$GITHUB_OUTPUT"
+      # Akzeptanztests der Anforderungen (AGENTS.md, Abschnitt 5) gegen genau dieses Image mit Testdaten.
+      - name: Anwendung mit Testdaten starten
+        run: |
+          docker run -d --name ki-e2e --network host \
+            -e ADDR=127.0.0.1:8080 -e DEV_SEED=true -e SERVE_MEDIA=true \
+            -e PUBLIC_BASE_URL=http://127.0.0.1:8080 -e TRUSTED_PROXIES=127.0.0.1 \
+            ki-web:ci
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8080/api/health && exit 0
+            sleep 1
+          done
+          docker logs ki-e2e
+          exit 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/e2e/package-lock.json
+      - name: Playwright installieren
+        working-directory: app/e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Akzeptanztests ausführen
+        working-directory: app/e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:8080
+        run: npx playwright test
+      - name: Testbericht sichern
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            app/e2e/playwright-report
+            app/e2e/test-results
+          retention-days: 14
+      - name: Serverprotokoll bei Fehlern
+        if: failure()
+        run: docker logs ki-e2e | tail -200
       - name: Geprüftes Image für die Installation speichern
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4

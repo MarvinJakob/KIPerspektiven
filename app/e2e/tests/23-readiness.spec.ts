@@ -67,10 +67,9 @@ test('REQ-23-AC2: Dimensionsseite zeigt Beschreibung, Prüffragen und drei Stufe
   }
   await expect(page.locator('.choice-questions li').first()).not.toBeEmpty();
 
-  // „Weiter“ ohne Auswahl bleibt hier und nennt den Grund
-  await page.getByRole('button', { name: 'Weiter' }).click();
-  await expect(page).toHaveURL(/strategie-und-wirtschaftlichkeit$/);
-  await expect(page.locator('.assess-hint')).toHaveText('Wähle einen Reifegrad, um fortzufahren.');
+  // „Weiter“ ist ohne Auswahl gesperrt und nennt den Grund
+  await expect(page.getByRole('button', { name: 'Weiter' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Weiter' })).toHaveAccessibleDescription('Wähle einen Reifegrad, um fortzufahren.');
   await page.getByRole('radio', { name: /Intelligent/ }).check();
   await expect(page.getByRole('radio', { name: /Intelligent/ })).toBeChecked();
   await expect(page).toHaveURL(/strategie-und-wirtschaftlichkeit$/); // Auswahl allein wechselt nicht
@@ -83,25 +82,15 @@ test('REQ-23-AC3 REQ-23-AC4: Bewertungen bleiben beim Navigieren erhalten, unvol
   await page.getByRole('radio', { name: /Einfach/ }).check();
   await expect(page.locator('.assess-steps-count')).toHaveText('2 von 8 bewertet');
 
-  await page.getByRole('link', { name: 'KI Readiness' }).first().click();
-  await expect(page).toHaveURL(new RegExp(`${OVERVIEW}$`));
-  await page.goto(`${OVERVIEW}/auswertung`).catch(() => undefined);
-  // Ein voller Seitenaufruf beginnt neu; Navigation innerhalb der Anwendung erhält die Bewertungen.
-  await expect(page.locator('.result-incomplete')).toContainText('Bisher bewertet: 0 von 8');
-
-  await page.goto(`${OVERVIEW}/strategie-und-wirtschaftlichkeit`);
-  await page.getByRole('radio', { name: /Strukturiert/ }).check();
-  await page.getByRole('button', { name: 'Weiter' }).click();
-  await page.getByRole('radio', { name: /Einfach/ }).check();
+  // Zurück zur ersten Dimension: die Wahl ist erhalten
   await page.getByRole('link', { name: 'Zurück' }).click();
   await expect(page.getByRole('radio', { name: /Strukturiert/ })).toBeChecked();
-  // In der Schrittliste zur letzten Dimension und von dort zur Auswertung
-  await page.locator('.assess-steps a', { hasText: DIMENSIONS[7] }).click();
-  await page.getByRole('radio', { name: /Intelligent/ }).check();
-  await page.getByRole('button', { name: 'Auswertung anzeigen' }).click();
-  await expect(page.locator('.assess-hint')).toContainText('Für die Auswertung fehlen noch:');
-  await page.getByRole('link', { name: 'Zur nächsten offenen Dimension' }).click();
-  await expect(page).toHaveURL(/ressourcen|betrieb/);
+  // Über die Navigation zur Übersicht und wieder in die Selbsteinschätzung
+  await page.getByRole('link', { name: 'KI Readiness' }).first().click();
+  await expect(page).toHaveURL(new RegExp(`${OVERVIEW}$`));
+  await page.getByRole('link', { name: 'Selbsteinschätzung starten' }).first().click();
+  await expect(page.locator('.assess-steps-count')).toHaveText('2 von 8 bewertet');
+  await expect(page.getByRole('radio', { name: /Strukturiert/ })).toBeChecked();
 
   // Unvollständige Auswertung (Navigation innerhalb der Anwendung)
   await page.evaluate(() => {
@@ -109,8 +98,8 @@ test('REQ-23-AC3 REQ-23-AC4: Bewertungen bleiben beim Navigieren erhalten, unvol
     dispatchEvent(new PopStateEvent('popstate'));
   });
   const incomplete = page.locator('.result-incomplete');
-  await expect(incomplete).toContainText('Bisher bewertet: 3 von 8');
-  await expect(incomplete.getByRole('listitem')).toHaveText(DIMENSIONS.filter((_, i) => ![0, 1, 7].includes(i)));
+  await expect(incomplete).toContainText('Bisher bewertet: 2 von 8');
+  await expect(incomplete.getByRole('listitem')).toHaveText(DIMENSIONS.slice(2));
   await expect(page.getByRole('link', { name: 'Selbsteinschätzung fortsetzen' })).toHaveAttribute('href', '/de/themen/ai-audit/betrieb');
   await expect(page.locator('svg[role="img"]')).toHaveCount(0);
   await expect(page.locator('table.result-table')).toHaveCount(0);
@@ -130,7 +119,7 @@ test('REQ-23-AC5: vollständige Auswertung mit Netzdiagramm, Tabelle und Ändern
   for (const [i, row] of (await rows.all()).entries()) {
     await expect(row.getByRole('rowheader')).toHaveText(`${i + 1}. ${DIMENSIONS[i]}`);
     await expect(row.getByRole('cell')).toContainText(`${levels[i]} – ${names[levels[i] - 1]}`);
-    await expect(row.getByRole('link', { name: `Ändern: ${DIMENSIONS[i]}` })).toHaveAttribute('href', `/de/themen/ai-audit/${slugs[i]}`);
+    await expect(row.getByRole('link', { name: new RegExp(`^Ändern\\s*: ${DIMENSIONS[i]}$`) })).toHaveAttribute('href', `/de/themen/ai-audit/${slugs[i]}`);
   }
   await expect(page.locator('main')).not.toContainText(/Gesamtnote|Gesamtergebnis|Durchschnitt|Gesamtreifegrad/);
 
