@@ -25,7 +25,7 @@ Geprüfter Stand: `main` @ `bb33462`.
 | Ergebnisse der Selbsteinschätzung | Opt-in, nicht vorausgewählt; Reifegrade, Sprache, Zeitpunkt, SHA-256 der Fensterkennung; Löschen beim Entfernen des Hakens (ADR 0010). | Ergänzt um Widerruf und Aufbewahrung | Keine Aufbewahrungsdauer festgelegt; die Erklärung nennt „solange für die Bedarfsauswertung benötigt“. |
 | Browserspeicherung | `ki-perspektiven.lang`, `.theme`, `.consent` (180 Tage), `ki_session` (`lib/consent.ts`, `lib/lang.ts`, `lib/theme.ts`, `auth/auth.go`). | Tabelle unverändert | Übereinstimmend mit den Cookie-Einstellungen. |
 | Anwendungsprotokoll | Methode, Pfad, Status, Dauer; keine IP (`http/server.go`); Docker rotiert 5 × 10 MB ([Betrieb](betrieb.md#logs)). | Neu beschrieben | Übereinstimmend. |
-| Zugriffsprotokoll Caddy | `ip_mask` nur auf `request>remote_ip`, `roll_keep_for 168h` (`deploy/Caddyfile`). | „gekürzt, nach sieben Tagen gelöscht“ | **Abweichung vermutet:** ungekürzte `client_ip` und größenbasierte Rotation. [Bug #80](https://github.com/MarvinJakob/KIPerspektiven/issues/80); Produktionsprüfung ausstehend. Blockiert die Veröffentlichung dieser Aussage. |
+| Zugriffsprotokoll Caddy | `remote_ip` und `client_ip` auf /24 bzw. /48 gekürzt, `X-Forwarded-For`/`X-Real-Ip`/`Forwarded` nicht protokolliert, tägliche Rotation, fünf Tage Aufbewahrung, `caddy:2.11.9-alpine` (`deploy/Caddyfile`, `compose.yaml`). | „gekürzt, nach sieben Tagen gelöscht“ | Übereinstimmend seit [Bug #80](https://github.com/MarvinJakob/KIPerspektiven/issues/80) (ausgeliefert mit `fd8871f`, Produktionsprüfung und Bereinigung der Altbestände am 18. November 2026). |
 | Hosting | Hetzner Cloud, Server `KI-Perspektiven-PRD` ([Betrieb](betrieb.md)); früherer Servername `…-nbg1-1` (Nürnberg). | Hetzner als Auftragsverarbeiter, Rechenzentrum in Deutschland | Auftragsverarbeitungsvertrag und Standort bei der Freigabe bestätigen. |
 | Sicherungen | Automatische Sicherung noch nicht eingerichtet; manuelle Kopien unter `/root/sicherung`. | „für Sicherungen gilt deren Rotation“ | Manuelle Kopien bei Löschungen mit bedenken. |
 
@@ -33,10 +33,9 @@ Geprüfter Stand: `main` @ `bb33462`.
 
 1. **Löschung von Kontaktnachrichten:** Kriterium „sobald das Anliegen abschließend bearbeitet ist“ und den
    tatsächlichen Ablauf ohne Löschfunktion bestätigen; gegebenenfalls eigenes Ticket für eine Löschfunktion.
-2. **Bug #80** (Zugriffsprotokoll) beheben oder die Aussage an den bestätigten Betrieb anpassen.
-3. **Hetzner:** Auftragsverarbeitungsvertrag abgeschlossen, Standort Deutschland.
-4. **Redaktionskonten:** Haben außer dem Betreiber weitere Personen Zugriff? Die Erklärung sagt „nur wir“.
-5. **Freigabe** beider Fassungen nach datenschutzrechtlicher Prüfung durch die verantwortliche Stelle.
+2. **Hetzner:** Auftragsverarbeitungsvertrag abgeschlossen, Standort Deutschland.
+3. **Redaktionskonten:** Haben außer dem Betreiber weitere Personen Zugriff? Die Erklärung sagt „nur wir“.
+4. **Freigabe** beider Fassungen nach datenschutzrechtlicher Prüfung durch die verantwortliche Stelle.
 
 ## Freigabe
 
