@@ -1,8 +1,13 @@
 import type { Lang } from '../lib/lang';
 
+/** Autor und redaktioneller Stand laut Textvorlage (#56); gilt für beide Sprachfassungen. */
+export const vibeCodingMeta = { author: 'Marvin Jakob', updated: '2026-11-16' } as const;
+/** Zitat der Einleitung, in beiden Sprachfassungen im englischen Original. */
+export const VIBE_CODING_QUOTE = 'Humans should review ideas, not code.';
+
 /** #29: German copy follows the approved mock; English translates the complete article. */
 export const vibeCoding: Record<Lang, {
-  subtitle: string; updated: string; intro: string[]; story: string; abundance: string; transition: string;
+  subtitle: string; intro: string[]; story: string; abundance: string; transition: string;
   perspectives: { id: string; name: string; heading: string; body: string; example: string; closing: string }[];
   conclusion: string[]; conclusionTitle: string; conclusionLabel: string;
   home: string; topics: string; breadcrumb: string; introLabel: string;
@@ -11,7 +16,6 @@ export const vibeCoding: Record<Lang, {
 }> = {
   "de": {
     "subtitle": "Willkommen beim Vibe Coding: Dem einfachsten Weg, SLOP zu erzeugen.",
-    "updated": "Stand: 16. November 2026",
     "intro": [
       "Du beschreibst, was du möchtest und die KI schreibt den Code. Das macht Spaß. Genial. Du siehst zu, wie ganze Welten vor deinen Augen entstehen, die ungefähr so aussehen wie in deiner Vorstellung. Falls nicht, folgt die nächste hoch durchdachte und präzise Anforderung: „Mach, dass es irgendwie moderner aussieht.“ Und schon hast du die nächsten Token verbrannt und dazu beigetragen, etwas maximal Mittelmäßiges auf den großen Haufen sinnloser Dinge zu generieren.",
       "Zwischen Idee und vorzeigbarem Ergebnis liegt so plötzlich kaum noch Zeit. Ein Prototyp darf improvisiert sein. Für Unternehmen ist genau das sehr verführerisch. Er hat abgerundete Ecken, einen Dark Mode und eine Startseite, die „Deine Produktivität. Neu gedacht.“ verspricht. Was dann passiert, erfahren wir, sobald es jemand produktiv nehmen möchte. Denn eine Anwendung kann beeindruckend aussehen und trotzdem bei der ersten ernst gemeinten Benutzung auseinanderfallen."
@@ -80,7 +84,6 @@ export const vibeCoding: Record<Lang, {
   },
   "en": {
     "subtitle": "Welcome to Vibe Coding: The easiest way to generate SLOP.",
-    "updated": "Updated: 16 November 2026",
     "intro": [
       "You describe what you want and AI writes the code. It is fun. Brilliant. You watch entire worlds emerge before your eyes, looking roughly like what you imagined. If they do not, you follow up with another deeply considered, precise requirement: “Make it look a bit more modern somehow.” And just like that, you have burned through another batch of tokens and helped add something utterly mediocre to the great pile of pointless things.",
       "Suddenly, almost no time separates an idea from something you can show. A prototype is allowed to be improvised. For businesses, that is extremely tempting. It has rounded corners, a dark mode and a home page promising “Your productivity. Reimagined.” We discover what happens next when somebody wants to put it into production. An application can look impressive and still fall apart the first time someone seriously tries to use it."
@@ -148,3 +151,12 @@ export const vibeCoding: Record<Lang, {
     "formLabel": "In our form"
   }
 };
+
+/** Sichtbarer Artikeltext für die Lesezeit (#56): Titel bis Fazit, ohne Brotkrumen, Alternativtexte und Metazeile. */
+export function vibeCodingReadingText(c: (typeof vibeCoding)[Lang]): string[] {
+  return [
+    'Vibe Coding', c.subtitle, ...c.intro, c.storyLabel, c.story, c.abundance, VIBE_CODING_QUOTE, c.transition,
+    ...c.perspectives.flatMap((p) => [p.name, p.heading, p.body, p.example, p.closing]),
+    c.conclusionLabel, c.conclusionTitle, ...c.conclusion,
+  ];
+}

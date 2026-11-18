@@ -1,8 +1,10 @@
 import type { Ref } from 'react';
 import { Link } from 'react-router';
+import portrait from '../assets/marvin-jakob.jpg';
 import harness from '../assets/topics/harness.png';
+import { ArticleByline } from '../components/ArticleByline';
 import { Diagram } from '../components/Diagram';
-import { vibeCoding } from '../i18n/vibeCoding';
+import { VIBE_CODING_QUOTE, vibeCoding, vibeCodingMeta, vibeCodingReadingText } from '../i18n/vibeCoding';
 import { jumpTo } from '../lib/jump';
 import { href, useLang } from '../lib/lang';
 import './VibeCoding.css';
@@ -32,7 +34,7 @@ export function VibeCoding({ titleRef }: { titleRef: Ref<HTMLHeadingElement> }) 
           <div className="vc-hero-copy">
             <h1 ref={titleRef} tabIndex={-1}>Vibe Coding</h1>
             <p className="vc-subtitle">{c.subtitle}</p>
-            <p className="vc-meta"><time dateTime="2026-11-16">{c.updated}</time></p>
+            <ArticleByline {...vibeCodingMeta} portrait={portrait} text={vibeCodingReadingText(c)} />
           </div>
         </div>
       </header>
@@ -41,7 +43,7 @@ export function VibeCoding({ titleRef }: { titleRef: Ref<HTMLHeadingElement> }) 
           {c.intro.map((p) => <p key={p}>{p}</p>)}
           <Example id="vc-story" label={c.storyLabel} text={c.story} />
           <p>{c.abundance}</p>
-          <blockquote className="vc-quote"><p>Humans should review ideas, not code.</p></blockquote>
+          <blockquote className="vc-quote"><p>{VIBE_CODING_QUOTE}</p></blockquote>
           <p>{c.transition}</p>
           <ol className="vc-index">
             {c.perspectives.map((p, i) => (
