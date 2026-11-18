@@ -8,7 +8,8 @@ x-logging: &logging
 
 services:
   caddy:
-    image: caddy:2-alpine
+    # Feste Version: Zeitbasierte Rotation des Zugriffsprotokolls (roll_interval) gibt es erst ab 2.11 (#80).
+    image: caddy:2.11.9-alpine
     ports: ["80:80", "443:443"]
     environment:
       DOMAIN: ${DOMAIN}

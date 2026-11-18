@@ -29,9 +29,14 @@
 		reverse_proxy backend:8080
 	}
 
+	# Zugriffsprotokoll laut Datenschutzerklärung (#74, #80): IP-Adressen nur gekürzt (IPv4 /24, IPv6 /48),
+	# weitergeleitete IP-Angaben aus Kopfzeilen gar nicht, Einträge höchstens sieben Tage. Tägliche Rotation
+	# plus fünf Tage Aufbewahrung: Eine Datei umfasst bis zu einen Tag, die Bereinigung läuft bei der
+	# nächsten Rotation, also bis zu einen Tag später. Änderungen an output wirken erst nach Neustart von Caddy.
 	log {
 		output file /data/logs/access.log {
-			roll_keep_for 168h
+			roll_interval 24h
+			roll_keep_for 120h
 		}
 		format filter {
 			wrap json
@@ -40,6 +45,13 @@
 					ipv4 24
 					ipv6 48
 				}
+				request>client_ip ip_mask {
+					ipv4 24
+					ipv6 48
+				}
+				request>headers>X-Forwarded-For delete
+				request>headers>X-Real-Ip delete
+				request>headers>Forwarded delete
 			}
 		}
 	}
