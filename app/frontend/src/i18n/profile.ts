@@ -10,7 +10,6 @@ interface ProfileOffer {
 interface ProfileContent {
   title: string;
   description: string;
-  home: string;
   label: string;
   linkedinLabel: string;
   linkedinUrl: string;
@@ -45,7 +44,6 @@ export const profile: Record<Lang, ProfileContent> = {
   de: {
     title: 'Marvin Jakob – Profil',
     description: 'Marvin Jakob, Creative IT Specialist: Technologie verstehen. KI in der Praxis nutzen. Beratung zu KI-Einsatz, Datenstrategie und Agentic AI.',
-    home: 'Startseite',
     label: 'Die Person hinter der Perspektive',
     linkedinLabel: 'LinkedIn (öffnet in neuem Tab)',
     linkedinUrl: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=de-DE',
@@ -99,7 +97,6 @@ export const profile: Record<Lang, ProfileContent> = {
   en: {
     title: 'Marvin Jakob – Profile',
     description: 'Marvin Jakob, Creative IT Specialist: understand technology. Use AI in practice. Consulting on AI adoption, data strategy and agentic AI.',
-    home: 'Home',
     label: 'The person behind the perspective',
     linkedinLabel: 'LinkedIn (opens in new tab)',
     linkedinUrl: 'https://www.linkedin.com/in/marvin-jakob-b5b27726b/?locale=en-US',

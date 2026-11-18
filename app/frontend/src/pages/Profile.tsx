@@ -1,8 +1,7 @@
-import { Link } from 'react-router';
 import portrait from '../assets/marvin-jakob.jpg';
 import { Icon } from '../components/Icon';
 import { PROFILE_MAIL, profile } from '../i18n/profile';
-import { href, useLang } from '../lib/lang';
+import { useLang } from '../lib/lang';
 import { useHead, usePageFocus } from '../lib/page';
 
 /**
@@ -10,17 +9,13 @@ import { useHead, usePageFocus } from '../lib/page';
  * Vorstellung mit Porträt, Beschreibung, Fakten, Kontakt und Beratungsangebote.
  */
 export function Profile() {
-  const { lang, t } = useLang();
+  const { lang } = useLang();
   const content = profile[lang];
   const h1 = usePageFocus<HTMLHeadingElement>();
   useHead(content.title, content.description);
 
   return (
     <article className="container profile">
-      <nav className="crumbs profile-crumbs" aria-label={t('crumbs')}>
-        <Link to={href(lang)}>{content.home}</Link>
-        <span aria-hidden="true">/</span><span aria-current="page">Marvin Jakob</span>
-      </nav>
       <header className="profile-hero">
         <div>
           <p className="eyebrow">{content.label}</p>
