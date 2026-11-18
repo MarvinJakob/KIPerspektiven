@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const port = process.argv[2] ?? '8090';
+const linkedinPort = process.argv[3] ?? '8091';
 const exe = resolve(import.meta.dirname, '..', '..', '.build', process.platform === 'win32' ? 'server.exe' : 'server');
 if (!existsSync(exe)) {
   console.error(`Binary fehlt: ${exe}. Zuerst die Anwendung bauen (app/Makefile, Ziel build).`);
@@ -24,6 +25,11 @@ const child = spawn(exe, [], {
     PUBLIC_BASE_URL: `http://127.0.0.1:${port}`,
     // Die Tests senden ihre Client-IP per X-Forwarded-For (support/fixtures.ts).
     TRUSTED_PROXIES: '127.0.0.1',
+    // LinkedIn-Testdouble scripts/linkedin-stub.mjs (Ticket #85)
+    LINKEDIN_CLIENT_ID: 'e2e-linkedin-client',
+    LINKEDIN_CLIENT_SECRET: 'e2e-linkedin-secret',
+    LINKEDIN_AUTH_URL: `http://127.0.0.1:${linkedinPort}`,
+    LINKEDIN_API_URL: `http://127.0.0.1:${linkedinPort}`,
   },
 });
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => child.kill());
