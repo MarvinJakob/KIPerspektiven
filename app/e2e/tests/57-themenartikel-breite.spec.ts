@@ -10,7 +10,6 @@ const LANGS = ['de', 'en'] as const;
 const VC = (lang: string) => `/${lang}/themen/vibe-coding`;
 const SD = (lang: string) => `/${lang}/themen/softwareentwicklung`;
 const DESKTOP = [1280, 1440] as const;
-const MAX_TEXT = 760;
 
 type Box = { left: number; right: number; top: number; bottom: number; width: number };
 const box = (l: Locator): Promise<Box> =>
@@ -85,25 +84,12 @@ for (const width of DESKTOP) {
       }
     });
 
-    test(`REQ-57-AC2: Titel und Lesespalte nebeneinander, Fließtext höchstens ${MAX_TEXT} px, Grafiken vollständig (${width} px, DE/EN)`, async ({ page }) => {
+    // Titelspalte und 760-px-Lesespalte aus REQ-57-AC2 sind für „Softwareentwicklung“ durch #66 ersetzt
+    // (66-softwareentwicklung-lesefluss.spec.ts). Weiter gilt: Grafiken vollständig, unverzerrt, im Rahmen.
+    test(`REQ-57-AC2: Grafiken vollständig und unverzerrt im Rahmen (${width} px, DE/EN)`, async ({ page }) => {
       for (const lang of LANGS) {
         await page.goto(SD(lang));
         await expect(page.locator('#sd-title')).toBeVisible();
-        for (const id of ['moderne-softwareentwicklung', 'der-weg']) {
-          const heading = await box(page.locator(`#${id}`));
-          const section = page.locator(`section[aria-labelledby="${id}"]`);
-          const text = await box(section.locator('p').first());
-          const label = `${id} (${lang}): Titel ${px(heading)}, Text ${px(text)}`;
-          // Nebeneinander: Der Text steht rechts neben dem Titel und beginnt, bevor der Titel endet.
-          expect(heading.right, label).toBeLessThanOrEqual(text.left);
-          expect(text.top, label).toBeLessThan(heading.bottom);
-          // Der Titel nutzt den linken Teil des Rahmens statt über der Lesespalte zu stehen.
-          expect(text.left - (await box(section)).left, label).toBeGreaterThan(200);
-        }
-        for (const p of await page.locator('main article p').all()) {
-          const b = await box(p);
-          expect(b.width, `Fließtextzeile „${(await p.innerText()).slice(0, 40)}…“ (${lang})`).toBeLessThanOrEqual(MAX_TEXT + 0.5);
-        }
         await imagesLoaded(page);
         const figures = page.locator('main figure:has(img)');
         await expect(figures).toHaveCount(2);
