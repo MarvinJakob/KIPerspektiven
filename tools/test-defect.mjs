@@ -14,11 +14,10 @@ try {
     ?? pages(`repos/${repository}/issues?state=open&labels=test-defect&per_page=100`).find((i) => i.body?.split(/\r?\n/).includes(marker));
   const defect = existing ?? api(`repos/${repository}/issues`, { method: 'POST', body: {
     title: `Testkorrektur für #${parentNumber}: ${parent.title}`.slice(0, 250),
-    body: `${marker}\n\nBlockiert die Umsetzung von #${parentNumber}. Dieses Testdefekt-Ticket bleibt für einen anderen Worker von Team 3 frei.\n\n${body}`,
-    labels: ['test-defect'],
+    body: `${marker}\n\nBlockiert die Umsetzung von #${parentNumber}. Der Bearbeiter des Ursprungstickets übernimmt die Korrektur und prüft beide Tickets.\n\n${body}`,
+    labels: ['test-defect', 'bug'], assignees: parent.assignees.map(user => user.login),
   } });
   if (!dependencies(parent.body).includes(defect.number)) api(`repos/${repository}/issues/${parentNumber}`, { method: 'PATCH',
     body: { body: `${parent.body ?? ''}\n\nTest-Defect-Dependency: #${defect.number}\n` } });
-  api(`repos/${repository}/issues/${parentNumber}/labels`, { method: 'POST', body: { labels: ['waiting-for-test'] } });
-  console.log(`Testdefekt #${defect.number}; #${parentNumber} wartet. Eigenen Zwischenstand committen, pushen und task.sh pause ausführen.`);
+  console.log(`Testdefekt #${defect.number}; #${parentNumber} und Testkorrektur zusammen bis zum Produktionsnachweis bearbeiten.`);
 } catch (error) { console.error(error.message); process.exitCode = 1; }
