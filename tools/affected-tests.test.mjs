@@ -221,7 +221,8 @@ test('REQ-55-AC1 Fidelity: Footer-Änderung im Repository wählt Footer-Tests un
   const plan = JSON.parse(result.stdout);
   assert.ok(plan.e2e.includes('tests/54-footer.spec.ts'));
   assert.ok(plan.e2e.includes('tests/25-startseite.spec.ts'));
-  for (const spec of ['06-passwort-maskieren', '21-redaktion-beitraege', '27-beratung', '28-benutzer']) {
+  // 27-beratung durchläuft die öffentliche Selbsteinschätzung (completeAssessment) und ist deshalb betroffen.
+  for (const spec of ['06-passwort-maskieren', '21-redaktion-beitraege', '28-benutzer']) {
     assert.ok(!plan.e2e.includes(`tests/${spec}.spec.ts`), `${spec} ist unbetroffen`);
   }
   assert.ok(plan.frontends['app/frontend'].includes('src/components/footer.test.ts'));

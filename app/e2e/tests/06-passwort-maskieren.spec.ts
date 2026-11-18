@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend-redaktion/src/pages/Users.tsx app/frontend-redaktion/src/components/PasswordInput.tsx
 import type { Locator, Page } from '@playwright/test';
 import { AUTH, expect, expectNoHorizontalScroll, expectVisibleKeyboardFocus, test, uid } from '../support/fixtures';
 

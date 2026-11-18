@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Topic.tsx app/frontend/src/pages/AuditDimension.tsx app/frontend/src/pages/AuditResult.tsx
 import type { Page } from '@playwright/test';
 import { completeAssessment, expect, expectNoHorizontalScroll, test } from '../support/fixtures';
 

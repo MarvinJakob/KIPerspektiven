@@ -75,6 +75,7 @@ test('REQ-55-AC6: Dokumentation verweist auf beide Gates und den neuen Wiederhol
     assert.match(text, /release-gate\.yml/, path);
     assert.doesNotMatch(text, /gh workflow run merge-gate\.yml/, path);
   }
-  assert.match(read('AGENTS.md'), /\*\*Merge Gate → Release Gate → Funktioniert\*\*/);
+  assert.match(read('AGENTS.md'), /\*\*Backlog → Spezifiziert → In Arbeit → Merge Gate → Release Gate → Funktioniert\*\*/);
+  assert.match(read('AGENTS.md'), /^\| \*\*Release Gate\*\* \|/m);
   assert.match(read('app/docs/betrieb.md'), /gh workflow run release-gate\.yml --ref main/);
 });

@@ -1,3 +1,4 @@
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Topic.tsx
 import { expect, expectNoHorizontalScroll, test } from '../support/fixtures';
 import type { Locator, Page } from '@playwright/test';
 

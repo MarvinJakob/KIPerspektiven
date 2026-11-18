@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 # Baut beide Frontends und das Backend zu einem Image (ARCHITECTURE.md, Abschnitt 9).
 # Renovate hält die Basis-Images aktuell; in Produktion per Digest festlegen.
+# Unit-Tests laufen nicht im Build, sondern als eigene Jobs in .github/workflows/tests.yml (Anforderung #55).
 
 FROM node:24-alpine AS frontend
 WORKDIR /src/frontend
@@ -9,7 +10,7 @@ RUN npm ci
 COPY api /src/api
 COPY frontend ./
 # Vite schreibt nach ../backend/internal/web/dist/public
-RUN npm run test:unit --if-present && npm run build
+RUN npm run build
 
 FROM node:24-alpine AS redaktion
 WORKDIR /src/frontend-redaktion
@@ -18,7 +19,7 @@ RUN npm ci
 COPY api /src/api
 COPY frontend-redaktion ./
 # Vite schreibt nach ../backend/internal/web/dist/redaktion
-RUN npm run test:unit --if-present && npm run build
+RUN npm run build
 
 FROM golang:1.27-alpine AS backend
 WORKDIR /src/backend
@@ -27,8 +28,6 @@ RUN go mod download
 COPY backend ./
 COPY --from=frontend /src/backend/internal/web/dist/public ./internal/web/dist/public
 COPY --from=redaktion /src/backend/internal/web/dist/redaktion ./internal/web/dist/redaktion
-# Unit-Tests sind Pflichtprüfung (AGENTS.md, Abschnitt 5): ein Fehlschlag bricht den Image-Build und damit das Merge Gate ab.
-RUN CGO_ENABLED=0 go test ./...
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/server ./cmd/server \
  && mkdir -p /out/data/db /out/data/media
 
