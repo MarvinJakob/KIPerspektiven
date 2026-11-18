@@ -992,26 +992,12 @@ svg { display: block; }
 .opinion-button { background: var(--navy); color: #fff; }
 .opinion-button:hover { background: #203d56; transform: translateY(-2px); }
 
-.more-topics { background: var(--soft); padding-block: 80px; }
-.more-head { margin-bottom: 32px; }
-.more-head .eyebrow { font-size: .625rem; }
-.more-head h2 { margin-top: 12px; font-size: clamp(2rem, 3vw, 2.75rem); }
-.more-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.more-card { display: flex; flex-direction: column; gap: 8px; padding: 26px 26px 22px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); text-decoration: none; transition: border-color .2s, transform .2s; }
-.more-card:hover { border-color: var(--brand); transform: translateY(-3px); }
-.more-top { margin-bottom: 18px; color: var(--accent); font-size: .6875rem; }
-.more-card strong { font-size: 1.375rem; font-weight: 650; letter-spacing: -.03em; }
-.more-teaser { color: var(--text-2); font-size: .875rem; }
-.more-link { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; font-size: .75rem; font-weight: 700; }
-.more-link svg { width: 16px; height: 16px; }
-.all-topics { margin-top: 24px; }
 
 @media (max-width: 850px) {
   .article-hero { padding-bottom: 56px; }
   .article-layout { padding-block: 56px 72px; }
   .article-body > .opinion { grid-template-columns: auto 1fr; }
   .opinion-button { grid-column: 1 / -1; justify-self: start; }
-  .more-topics { padding-block: 60px; }
 }
 @media (max-width: 650px) {
   .article-hero { padding-top: 12px; }
@@ -1024,12 +1010,11 @@ svg { display: block; }
   .quote-mark { font-size: 72px; top: -22px; }
   .article-body > .opinion { grid-template-columns: 1fr; padding: 26px 22px; }
   .opinion-button { width: 100%; }
-  .more-grid { grid-template-columns: 1fr; }
   .article-figure { margin-block: 36px; padding: 12px; border-radius: var(--radius-small); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .related-link, .more-card { transition: none; }
-  .more-card:hover, .opinion-button:hover { transform: none; }
+  .related-link { transition: none; }
+  .opinion-button:hover { transform: none; }
 }
 
 /* ==========================================================================

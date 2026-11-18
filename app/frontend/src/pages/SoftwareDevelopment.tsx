@@ -10,7 +10,7 @@ import { Icon } from '../components/Icon';
 import { CONTACT_PATH, softwareDevelopment, VIBE_CODING_PATH } from '../i18n/softwareDevelopment';
 import { href, useLang, type Lang } from '../lib/lang';
 
-/** Sprungziel der Startseite für „Themen“ und „Alle Themen“ (Home.tsx). */
+/** Sprungziel der Startseite für den Brotkrumenverweis „Themen“ (Home.tsx). */
 const TOPICS_ID = 'themen';
 
 /** Unveränderte Originalgrafiken (res/) als Vite-Assets mit Dateihash, je Sprache. */
@@ -21,7 +21,7 @@ export const softwareDevelopmentImages: Record<Lang, { process: string; release:
 
 /**
  * Themenseite Softwareentwicklung nach mock/software_development (#7): Hero mit Breadcrumb, Autor, Stand und
- * Lesezeit → Artikel mit beiden Grafiken → Meinungsaufruf → weitere Themen.
+ * Lesezeit → Artikel mit beiden Grafiken → Meinungsaufruf. Ohne Verweise auf weitere Themen am Beitragsende (#37).
  */
 export function SoftwareDevelopment({ titleRef }: { titleRef: Ref<HTMLHeadingElement> }) {
   const { lang } = useLang();
@@ -109,32 +109,6 @@ export function SoftwareDevelopment({ titleRef }: { titleRef: Ref<HTMLHeadingEle
         </article>
       </div>
 
-      <section className="more-topics" aria-labelledby="more-title">
-        <div className="container">
-          <div className="more-head">
-            <p className="eyebrow">{c.moreEyebrow}</p>
-            <h2 id="more-title">{c.moreTitle}</h2>
-          </div>
-          <div className="more-grid">
-            {c.more.map((topic) => (
-              <Link key={topic.slug} className="more-card" to={href(lang, `/themen/${topic.slug}`)}>
-                <span className="more-top">
-                  <span>{topic.number}</span>
-                </span>
-                <strong>{topic.title}</strong>
-                <span className="more-teaser">{topic.teaser}</span>
-                <span className="more-link">
-                  {c.moreLink} <Icon name="arrowRight" />
-                </span>
-              </Link>
-            ))}
-          </div>
-          <Link className="text-link all-topics" to={topicsHref}>
-            <Icon name="chevLeft" />
-            {c.allTopics}
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }
