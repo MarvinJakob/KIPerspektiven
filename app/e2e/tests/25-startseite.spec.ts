@@ -1,5 +1,5 @@
 // Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Home.tsx
-import { expect, expectNoHorizontalScroll, test } from '../support/fixtures';
+import { expect, test } from '../support/fixtures';
 
 // Anforderung #25: Home Page als Einstieg in Themen und Angebote nutzen.
 // Seit #34 folgt die Startseite dem Home-Mock (Hero, zwei Themenzeilen, Kurzcheck; „Über mich“ seit #47 entfernt). Themenindex,
@@ -18,13 +18,6 @@ test('REQ-25-AC4: entfernte Themen werden nicht angeboten', async ({ page, reque
   }
 });
 
-for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 }]) {
-  test(`REQ-25-AC6: ohne horizontalen Bildlauf, fokussierbare Verweise, keine Illustrationen oder Porträts (${viewport.width} px)`, async ({ page }) => {
-    await page.setViewportSize(viewport);
-    await page.goto('/de');
-    await expect(page.locator('#hero-title')).toBeVisible();
-    await expectNoHorizontalScroll(page);
-    await expect(page.locator('main img, main picture, main svg:not([aria-hidden="true"]), main [role="img"]')).toHaveCount(0);
-    for (const link of await page.locator('main a[href]').all()) expect(await link.getAttribute('tabindex')).not.toBe('-1');
-  });
-}
+// REQ-25-AC6 (kein horizontaler Bildlauf, keine Illustrationen, fokussierbare Verweise) prüft seit #94
+// 34-startseite-kurzcheck.spec.ts: REQ-34-AC6 bei 1440, 768, 390 und 320 px ohne horizontales Scrollen sowie ohne Bilder
+// und mit fokussierbaren Verweisen im Hauptinhalt.

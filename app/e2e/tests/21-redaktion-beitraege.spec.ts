@@ -238,23 +238,9 @@ test('REQ-21-AC4: vollständiger Beitrag wird öffentlich, unvollständiger mit 
   expect((await request.get(`/api/posts/${incomplete.slug}?lang=de`)).status()).toBe(404);
 });
 
-test('REQ-21-AC5: geplanter Beitrag bleibt bis zum Termin unsichtbar und erscheint dann automatisch', async ({ editor, posts, request }) => {
-  test.slow(); // Der Hintergrundjob prüft alle 15 s (Ticket #23: höchstens eine Minute Abweichung).
-  const post = await posts.create({ texts: [fullText('de', uid())] });
-  expect((await editor.send('PUT', `/api/admin/posts/${post.id}/schedule`, { publishAt: new Date(Date.now() - 60_000).toISOString() })).status()).toBe(422);
-
-  const due = Date.now() + 2_000;
-  const res = await editor.send('PUT', `/api/admin/posts/${post.id}/schedule`, { publishAt: new Date(due).toISOString() });
-  expect(res.status(), await res.text()).toBe(200);
-  expect((await request.get(`/api/posts/${post.slug}?lang=de`)).status()).toBe(404);
-
-  await expect
-    .poll(async () => (await request.get(`/api/posts/${post.slug}?lang=de`)).status(), { timeout: 60_000, intervals: [1_000] })
-    .toBe(200);
-  const published = (await (await editor.get(`/api/admin/posts/${post.id}`)).json()) as EditorPost;
-  expect(published.status).toBe('published');
-  expect(Date.parse(published.publishedAt!)).toBeGreaterThanOrEqual(due - 1_000);
-});
+// REQ-21-AC5 (geplante Veröffentlichung) prüfen seit #94 die Go-Tests in app/backend/internal/service/editorial_test.go
+// (Termin in der Vergangenheit, Veröffentlichung zum Termin) und der Fidelity-Test REQ-84-AC2 AC3 AC4 in 84-minuten.spec.ts
+// (automatische Veröffentlichung im regulären Betrieb über die öffentliche Schnittstelle).
 
 test('REQ-21-AC6: Zurücknehmen entfernt den Beitrag öffentlich, er bleibt bearbeitbar und behält sein erstes Datum', async ({ editor, posts, request }) => {
   const tag = uid();

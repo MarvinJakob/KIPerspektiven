@@ -19,32 +19,6 @@ const VIEWPORTS = [
 const check = (page: Page) => page.locator('#ki-readiness');
 
 for (const lang of ['de', 'en'] as const) {
-  for (const vp of VIEWPORTS) {
-    test(`REQ-47-AC1: /${lang} ${vp.name} zeigt nach der KI-Selbsteinschätzung keinen Profilteaser und keine Trennlinie`, async ({ page }) => {
-      await page.setViewportSize({ width: vp.width, height: vp.height });
-      await page.goto(`/${lang}`);
-      await expect(check(page).getByRole('link', { name: LANGS[lang].start })).toBeVisible();
-
-      const main = page.locator('main');
-      await expect(page.locator('#ueber-mich'), 'Profilabschnitt').toHaveCount(0);
-      await expect(main.getByText(LANGS[lang].eyebrow, { exact: true }), 'Abschnittsname').toHaveCount(0);
-      await expect(main.getByText('Marvin Jakob'), 'Name').toHaveCount(0);
-      await expect(main.getByText('Creative IT Specialist'), 'Kurzbeschreibung').toHaveCount(0);
-      await expect(main.getByRole('link', { name: LANGS[lang].link }), 'Profillink').toHaveCount(0);
-      await expect(main.locator(`a[href="/${lang}/profil"]`), 'Profillink im Inhalt').toHaveCount(0);
-
-      // Nach dem Kurzcheck folgt im Hauptinhalt kein weiteres Element, also auch kein leerer Abschnitt und keine Linie.
-      const after = await check(page).evaluate((section) => {
-        const main = section.closest('main')!;
-        const all = [...main.querySelectorAll('*')];
-        return all
-          .filter((el) => section.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !section.contains(el))
-          .map((el) => `${el.tagName.toLowerCase()}#${el.id}.${el.className}`);
-      });
-      expect(after, 'Elemente nach der KI-Selbsteinschätzung').toEqual([]);
-    });
-  }
-
   test(`REQ-47-AC2: /${lang} Profil in der Hauptnavigation öffnet die Profilseite per Zeiger und per Tastatur`, async ({ page }) => {
     const nav = page.getByRole('navigation', { name: LANGS[lang].nav });
     const profileLink = nav.getByRole('link', { name: LANGS[lang].profile, exact: true });
@@ -78,9 +52,30 @@ for (const lang of ['de', 'en'] as const) {
   });
 
   for (const vp of VIEWPORTS) {
-    test(`REQ-47-AC3: /${lang} ${vp.name} am Ende folgt auf die vollständige KI-Selbsteinschätzung direkt der Footer`, async ({ page }) => {
+    // REQ-47-AC1 und REQ-47-AC3 prüfen dieselbe Seite je Sprache und Breite; seit #94 in einem Test mit einem Seitenaufruf.
+    test(`REQ-47-AC1 REQ-47-AC3: /${lang} ${vp.name} ohne Profilteaser und Trennlinie, auf die vollständige KI-Selbsteinschätzung folgt direkt der Footer`, async ({ page }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto(`/${lang}`);
+      await expect(check(page).getByRole('link', { name: LANGS[lang].start })).toBeVisible();
+
+      const main = page.locator('main');
+      await expect(page.locator('#ueber-mich'), 'Profilabschnitt').toHaveCount(0);
+      await expect(main.getByText(LANGS[lang].eyebrow, { exact: true }), 'Abschnittsname').toHaveCount(0);
+      await expect(main.getByText('Marvin Jakob'), 'Name').toHaveCount(0);
+      await expect(main.getByText('Creative IT Specialist'), 'Kurzbeschreibung').toHaveCount(0);
+      await expect(main.getByRole('link', { name: LANGS[lang].link }), 'Profillink').toHaveCount(0);
+      await expect(main.locator(`a[href="/${lang}/profil"]`), 'Profillink im Inhalt').toHaveCount(0);
+
+      // Nach dem Kurzcheck folgt im Hauptinhalt kein weiteres Element, also auch kein leerer Abschnitt und keine Linie.
+      const after = await check(page).evaluate((section) => {
+        const main = section.closest('main')!;
+        const all = [...main.querySelectorAll('*')];
+        return all
+          .filter((el) => section.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !section.contains(el))
+          .map((el) => `${el.tagName.toLowerCase()}#${el.id}.${el.className}`);
+      });
+      expect(after, 'Elemente nach der KI-Selbsteinschätzung').toEqual([]);
+
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
 
       const card = check(page).locator('.check');

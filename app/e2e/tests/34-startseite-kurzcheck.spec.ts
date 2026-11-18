@@ -207,7 +207,7 @@ test('REQ-34-AC5: „Selbsteinschätzung starten“ bei Frage 1, während des Ch
   await expect(page.locator('main [data-placeholder]')).toHaveCount(0);
 });
 
-test('REQ-34-AC6: typografische Hierarchie, Systemschrift, cimt-Orange, deckende Kurzcheck-Fläche und keine Bilder in Hell und Dunkel', async ({ page }) => {
+test('REQ-34-AC6 REQ-25-AC6: typografische Hierarchie, Systemschrift, cimt-Orange, deckende Kurzcheck-Fläche und keine Bilder in Hell und Dunkel', async ({ page }) => {
   await page.goto('/de');
   for (const theme of ['light', 'dark'] as const) {
     if (theme === 'dark') {
@@ -241,6 +241,8 @@ test('REQ-34-AC6: typografische Hierarchie, Systemschrift, cimt-Orange, deckende
     expect(s.surfaceBg, `${theme}: Kurzcheck-Fläche ist abgesetzt`).not.toBe(s.bodyBg);
   }
   await expect(page.locator('main img, main picture, main canvas, main video, main svg:not([aria-hidden="true"]), main [role="img"]')).toHaveCount(0);
+  // REQ-25-AC6 (seit #94 hier): Verweise im Hauptinhalt bleiben per Tastatur erreichbar.
+  for (const link of await page.locator('main a[href]').all()) expect(await link.getAttribute('tabindex'), await link.getAttribute('href') ?? '').not.toBe('-1');
 });
 
 for (const width of [1440, 768, 390, 320]) {

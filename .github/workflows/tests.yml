@@ -134,7 +134,18 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: app/e2e/package-lock.json
+      # Läuft parallel zum Image-Build und wird vor den Tests abgewartet (#94). Chromium braucht nur die Headless Shell;
+      # die Laufzeitbibliotheken bringt das Runner-Image mit. Die zusätzlichen Schriftpakete von --with-deps luden per apt
+      # bis zu 110 s und werden von keinem Test benötigt.
+      - name: Playwright im Hintergrund vorbereiten
+        working-directory: app/e2e
+        run: |
+          nohup bash -c 'npm ci && npx playwright install --only-shell chromium; echo $? > "$RUNNER_TEMP/playwright.status"' \
+            > "$RUNNER_TEMP/playwright.log" 2>&1 &
       - uses: docker/setup-buildx-action@v3
+        with:
+          # Kurzlebiger Runner: Den Builder nicht im Post-Schritt abbauen (#94).
+          cleanup: false
       # Der Build führt keine Unit-Tests aus; diese laufen in den Jobs oben (REQ-55-AC1).
       - name: Image bauen
         uses: docker/build-push-action@v6
@@ -170,11 +181,15 @@ jobs:
           done
           docker logs ki-e2e
           exit 1
-      - name: Playwright installieren
-        working-directory: app/e2e
+      - name: Playwright-Vorbereitung abwarten
         run: |
-          npm ci
-          npx playwright install --with-deps chromium
+          for i in $(seq 1 300); do
+            [ -s "$RUNNER_TEMP/playwright.status" ] && break
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/playwright.log"
+          status=$(cat "$RUNNER_TEMP/playwright.status" 2>/dev/null || echo 'keine Rückmeldung nach 300 s')
+          [ "$status" = 0 ] || { echo "::error::Playwright-Vorbereitung fehlgeschlagen: $status"; exit 1; }
       - name: Akzeptanztests ausführen
         working-directory: app/e2e
         env:
