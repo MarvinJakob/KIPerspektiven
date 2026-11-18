@@ -747,6 +747,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/contact-messages/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Nachricht der Kontaktseite löschen
+         * @description Ticket #90. Löscht eine Nachricht sofort, etwa auf Wunsch der absendenden Person. Erlaubt für die Rollen
+         *     `marketing` und `admin`, die die Nachrichten lesen. Unabhängig davon löscht die Anwendung jede Nachricht
+         *     automatisch spätestens sechs Monate nach Eingang.
+         */
+        delete: operations["adminDeleteContactMessage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/consultation-requests": {
         parameters: {
             query?: never;
@@ -2613,6 +2637,29 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    adminDeleteContactMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Gelöscht */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminListConsultationRequests: {

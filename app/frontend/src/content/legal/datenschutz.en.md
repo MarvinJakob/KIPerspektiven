@@ -18,7 +18,7 @@ You can reach us at these contact details for all questions and requests regardi
 - Our server counts how often public pages are requested, as a daily total and additionally deduplicated per IP address using a protected derivation (see "Statistics").
 - We only store the result of the AI readiness self-assessment if you agree beforehand, and then anonymously.
 - If you write to us using the contact form, we store your details in order to reply (see "Contact form").
-- If you request a free consultation on the results page, we store your email address until the appointment has been arranged (see "Consultation requests").
+- If you request a free consultation on the results page, we store your email address until the appointment has been arranged, for no longer than six months (see "Consultation requests").
 - Your language and appearance choice and your cookie choice are stored only in your browser. They never leave your device.
 
 ## Hosting and server logs
@@ -67,7 +67,7 @@ On the results page of the AI readiness self-assessment you can choose to reques
 | --- | --- |
 | your email address, the language of the page (for our reply), the time of the request | your self-assessment result, name, IP address, browser or any other details |
 
-The request is kept in the database on our server and is visible only to signed-in editorial accounts. It is not passed on to third parties. If you send another request with the same address, we update the existing entry. Once the appointment has been arranged, we delete the request. On request, we delete it earlier at any time.
+The request is kept in the database on our server and is visible only to signed-in editorial accounts. It is not passed on to third parties. If you send another request with the same address, we update the existing entry. Once the appointment has been arranged, we delete the request, and in any case no later than six months after your most recent request. On request, we delete it earlier at any time.
 
 To prevent large numbers of other people's addresses from being entered, the server accepts at most five requests per hour per IP address. For this it keeps the IP address in memory for at most one hour; it is not stored and not linked to the request.
 

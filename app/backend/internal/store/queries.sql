@@ -285,6 +285,14 @@ SELECT id, email, lang, requested_at FROM consultation_requests ORDER BY request
 -- name: DeleteConsultationRequest :execrows
 DELETE FROM consultation_requests WHERE id = ?;
 
+-- Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
+-- name: ListConsultationRequestsBefore :many
+SELECT id, requested_at FROM consultation_requests WHERE requested_at <= ? ORDER BY id;
+
+-- Loescht nur, wenn die Anfrage seit der Auswahl nicht erneut gesendet wurde (neuer Fristbeginn).
+-- name: DeleteConsultationRequestIfUnchanged :execrows
+DELETE FROM consultation_requests WHERE id = ? AND requested_at = ?;
+
 -- ---------------------------------------------------------------------------
 -- Nachrichten der Kontaktseite (Anforderung #4)
 -- ---------------------------------------------------------------------------
@@ -319,6 +327,13 @@ DELETE FROM articles WHERE id = ?;
 
 -- name: ListContactMessages :many
 SELECT id, name, company, email, message, lang, received_at FROM contact_messages ORDER BY received_at DESC, id DESC;
+
+-- name: DeleteContactMessage :execrows
+DELETE FROM contact_messages WHERE id = ?;
+
+-- Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
+-- name: ListContactMessagesBefore :many
+SELECT id, received_at FROM contact_messages WHERE received_at <= ? ORDER BY id;
 
 -- ---------------------------------------------------------------------------
 -- Rollen, Profil und Autoren (Ticket #64)

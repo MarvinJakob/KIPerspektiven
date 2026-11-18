@@ -18,7 +18,7 @@ Für alle Fragen und Anliegen zum Datenschutz erreichst du uns über diese Konta
 - Unser Server zählt, wie oft öffentliche Seiten abgerufen werden, als Summe je Tag und zusätzlich bereinigt je IP-Adresse mit einer geschützten Ableitung (siehe „Statistik“).
 - Das Ergebnis der KI-Readiness-Selbsteinschätzung speichern wir nur, wenn du vorher zustimmst, und dann anonym.
 - Schreibst du uns über das Kontaktformular, speichern wir deine Angaben, um dir zu antworten (siehe „Kontaktformular“).
-- Fragst du auf der Auswertung ein kostenloses Beratungsgespräch an, speichern wir deine E-Mail-Adresse, bis der Termin abgestimmt ist (siehe „Anfrage für ein Beratungsgespräch“).
+- Fragst du auf der Auswertung ein kostenloses Beratungsgespräch an, speichern wir deine E-Mail-Adresse, bis der Termin abgestimmt ist, höchstens sechs Monate (siehe „Anfrage für ein Beratungsgespräch“).
 - Sprach- und Darstellungswahl sowie deine Cookie-Auswahl speichern wir nur in deinem Browser. Sie verlassen dein Gerät nicht.
 
 ## Hosting und Server-Protokolle
@@ -67,7 +67,7 @@ Auf der Auswertung der KI-Readiness-Selbsteinschätzung kannst du freiwillig ein
 | --- | --- |
 | deine E-Mail-Adresse, die Sprache der Seite (für die Antwort), der Zeitpunkt der Anfrage | dein Ergebnis der Selbsteinschätzung, Name, IP-Adresse, Browser oder weitere Angaben |
 
-Die Anfrage liegt in der Datenbank auf unserem Server und ist nur für angemeldete Konten der Redaktion sichtbar. Sie wird nicht an Dritte weitergegeben. Fragst du mit derselben Adresse erneut an, aktualisieren wir den bestehenden Eintrag. Sobald der Termin abgestimmt ist, löschen wir die Anfrage. Auf Wunsch löschen wir sie jederzeit vorher.
+Die Anfrage liegt in der Datenbank auf unserem Server und ist nur für angemeldete Konten der Redaktion sichtbar. Sie wird nicht an Dritte weitergegeben. Fragst du mit derselben Adresse erneut an, aktualisieren wir den bestehenden Eintrag. Sobald der Termin abgestimmt ist, löschen wir die Anfrage, spätestens aber sechs Monate nach deiner letzten Anfrage. Auf Wunsch löschen wir sie jederzeit vorher.
 
 Zum Schutz vor massenhaft eingetragenen fremden Adressen nimmt der Server je IP-Adresse höchstens fünf Anfragen pro Stunde an. Dafür hält er die IP-Adresse höchstens eine Stunde im Arbeitsspeicher; sie wird nicht gespeichert und nicht mit der Anfrage verknüpft.
 

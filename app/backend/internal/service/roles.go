@@ -82,6 +82,9 @@ func (rs Roles) CanViewInsights() bool { return rs.Has(RoleAdmin) || rs.Has(Role
 // CanDeleteConsultations: Beratungsanfragen löschen (nur Admin).
 func (rs Roles) CanDeleteConsultations() bool { return rs.Has(RoleAdmin) }
 
+// CanDeleteContactMessages: einzelne Nachrichten der Kontaktseite löschen (Admin, Marketing; Ticket #90).
+func (rs Roles) CanDeleteContactMessages() bool { return rs.CanViewInsights() }
+
 // CanManageUsers: Benutzerverwaltung (nur Admin).
 func (rs Roles) CanManageUsers() bool { return rs.Has(RoleAdmin) }
 

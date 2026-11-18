@@ -28,6 +28,9 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (int64, error)
 	DeleteArticle(ctx context.Context, id int64) (int64, error)
 	DeleteConsultationRequest(ctx context.Context, id int64) (int64, error)
+	// Loescht nur, wenn die Anfrage seit der Auswahl nicht erneut gesendet wurde (neuer Fristbeginn).
+	DeleteConsultationRequestIfUnchanged(ctx context.Context, arg DeleteConsultationRequestIfUnchangedParams) (int64, error)
+	DeleteContactMessage(ctx context.Context, id int64) (int64, error)
 	DeleteExpiredSessions(ctx context.Context, expiresAt string) (int64, error)
 	DeleteMedia(ctx context.Context, id int64) error
 	DeleteMediaTranslations(ctx context.Context, mediaID int64) error
@@ -75,7 +78,11 @@ type Querier interface {
 	ListAllUserRoles(ctx context.Context) ([]UserRole, error)
 	ListArticleSummaries(ctx context.Context, arg ListArticleSummariesParams) ([]ListArticleSummariesRow, error)
 	ListConsultationRequests(ctx context.Context) ([]ConsultationRequest, error)
+	// Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
+	ListConsultationRequestsBefore(ctx context.Context, requestedAt string) ([]ListConsultationRequestsBeforeRow, error)
 	ListContactMessages(ctx context.Context) ([]ContactMessage, error)
+	// Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
+	ListContactMessagesBefore(ctx context.Context, receivedAt string) ([]ListContactMessagesBeforeRow, error)
 	ListDuePosts(ctx context.Context, scheduledAt sql.NullString) ([]ListDuePostsRow, error)
 	ListMedia(ctx context.Context, mediaIds []int64) ([]ListMediaRow, error)
 	ListMediaTranslations(ctx context.Context, mediaIds []int64) ([]MediaTranslation, error)
