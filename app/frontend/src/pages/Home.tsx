@@ -1,128 +1,105 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { Rich } from '../components/Rich';
-import { home, type HomeTopic } from '../i18n/home';
+import { Icon } from '../components/Icon';
+import { home, type CheckAnswer } from '../i18n/home';
+import { profile } from '../i18n/profile';
 import { auditPath } from '../lib/audit';
-import { jumpTo } from '../lib/jump';
+import { jumpTo, prefersReducedMotion } from '../lib/jump';
 import { href, useLang } from '../lib/lang';
 import { useHead, usePageFocus } from '../lib/page';
 
-/** Sprungziel von „Themen entdecken“: die Überschrift über den drei Themenabschnitten. */
-const TOPICS_ID = 'themen';
+/** Sprungziele der Hero-Einstiege: Überschrift der Themenliste und aktuelle Überschrift des Kurzchecks. */
+const TOPICS_ID = 'themen-title';
+const CHECK_ID = 'kurzcheck-title';
+/** Dauer der Überblendung zwischen zwei Leitfragen (mock/home/script.js). */
+const SWITCH_MS = 300;
+
+const number = (i: number) => String(i + 1).padStart(2, '0');
 
 /**
- * Startseite nach content/Landingpage_v03.md und dem Mock mock/landing_v03/ (Ticket #101): zentrierter Hero mit
- * nummeriertem Themenindex, drei ausführliche Themenabschnitte, KI-Reifegrad-Banner und Profil-Teaser.
- * Seit Ticket #118 ohne Grafiken und deren Beschriftungen.
+ * Startseite nach dem Home-Mock mock/home/ (Ticket #34): typografischer Hero, zwei nummerierte Themenzeilen,
+ * KI-Readiness-Kurzcheck (Variante 7) und ein kompakter Abschnitt „Über mich“. Ohne Bilder und Illustrationen.
  * Sprunglinks nutzen jumpTo: Sie scrollen zur Überschrift und setzen dort den Fokus, ohne die URL zu ändern.
  */
 export function Home() {
   const { lang } = useLang();
   const c = home[lang];
+  const p = profile[lang];
   const h1 = usePageFocus<HTMLHeadingElement>();
   useHead(c.title, c.description);
 
   return (
     <div className="home">
       <section className="home-hero" aria-labelledby="hero-title">
-        <div className="container home-hero-inner">
-          <p className="home-hook">{c.hook}</p>
+        <div className="container">
+          <p className="eyebrow">{c.hook}</p>
           <h1 className="home-title" id="hero-title" tabIndex={-1} ref={h1}>
             {c.display1}
             <br />
             <span>{c.display2}</span>
           </h1>
-          <p className="home-lead">
-            {c.lead[0]}
-            <br className="wide-break" /> {c.lead[1]}
-          </p>
-          <div className="hero-actions home-actions">
-            <a className="btn btn-primary press" href={`#${TOPICS_ID}`} onClick={(e) => jumpTo(e, TOPICS_ID)}>
-              {c.ctaTopics}
-            </a>
-            <Link className="text-link" to={href(lang, '/blog')}>
-              {c.ctaNews}
-            </Link>
-            <Link className="text-link" to={href(lang, '/ki-verstehen')}>
-              {c.ctaUnderstand}
-            </Link>
-            <Link className="text-link" to={auditPath(lang)}>
-              {c.ctaAudit}
-            </Link>
-            <Link className="text-link" to={href(lang, '/profil')}>
-              {c.ctaAbout}
-            </Link>
+          <div className="home-hero-foot">
+            <p className="home-lead">{c.lead}</p>
+            <div className="hero-actions">
+              <a className="btn btn-primary press" href={`#${TOPICS_ID}`} onClick={(e) => jumpTo(e, TOPICS_ID)}>
+                {c.ctaTopics}
+                <Icon name="arrowRight" />
+              </a>
+              <a className="btn btn-secondary press" href={`#${CHECK_ID}`} onClick={(e) => jumpTo(e, CHECK_ID)}>
+                {c.ctaCheck}
+              </a>
+            </div>
           </div>
         </div>
-        <nav className="container topic-index" aria-label={c.indexLabel}>
-          {c.topics.map((tp, i) => (
-            <a key={tp.slug} href={`#${tp.slug}`} onClick={(e) => jumpTo(e, tp.slug)}>
-              <span className="index-number">{number(i)}</span>
-              <span>
-                {tp.title}
-                <small>{tp.teaser}</small>
-              </span>
-            </a>
-          ))}
-        </nav>
       </section>
 
-      <div className="container topics-intro">
-        <div>
+      <section className="home-section" id="themen" aria-labelledby={TOPICS_ID}>
+        <div className="container">
           <p className="eyebrow">{c.topicsEyebrow}</p>
-          <h2 id={TOPICS_ID} tabIndex={-1}>
+          <h2 className="home-section-title" id={TOPICS_ID} tabIndex={-1}>
             {c.topicsTitle[0]}
             <br />
             {c.topicsTitle[1]}
           </h2>
-        </div>
-        <p>
-          {c.topicsText[0]}
-          <br /> {c.topicsText[1]}
-        </p>
-      </div>
-
-      {c.topics.map((topic, index) => <TopicSection key={topic.slug} topic={topic} index={index} />)}
-
-      <section className="container audit-banner" aria-labelledby="audit-title">
-        <div>
-          <p className="eyebrow">{c.auditEyebrow}</p>
-          <h2 id="audit-title">
-            {c.auditTitle[0]}
-            <br />
-            <span>{c.auditTitle[1]}</span>
-          </h2>
-          <p>{c.auditText}</p>
-          <Link className="btn btn-primary press" to={auditPath(lang)}>
-            {c.auditCta}
-          </Link>
-        </div>
-        <div className="audit-steps">
-          <ol aria-label={c.auditStepsLabel}>
-            {c.auditSteps.map((step, i) => (
-              <li key={step}>
-                <span>{number(i)}</span>
-                <strong>{step}</strong>
+          <ol className="home-topics" id="themen-liste">
+            {c.topics.map((topic, i) => (
+              <li key={topic.slug}>
+                <span className="topic-number">{number(i)}</span>
+                <div className="home-topic-copy">
+                  <p className="home-topic-kicker">{topic.title}</p>
+                  <h3>
+                    <Link className="home-topic-link" to={href(lang, `/themen/${topic.slug}`)}>
+                      {topic.question}
+                    </Link>
+                  </h3>
+                  <p>{topic.text}</p>
+                </div>
+                <span className="home-topic-go" aria-hidden="true">
+                  <Icon name="arrowRight" />
+                </span>
               </li>
             ))}
           </ol>
-          <p>
-            {c.auditStepsText[0]}
-            <br /> {c.auditStepsText[1]}
-          </p>
         </div>
       </section>
 
-      <section className="home-profile" aria-labelledby="profile-title">
-        <div className="container home-profile-inner">
+      <section className="home-section home-check-section" id="ki-readiness" aria-label={c.check.label}>
+        <div className="container">
+          <ReadinessCheck />
+        </div>
+      </section>
+
+      <section className="home-section home-about" id="ueber-mich" aria-labelledby="about-title">
+        <div className="container home-about-inner">
+          <p className="eyebrow">{c.aboutEyebrow}</p>
           <div>
-            <p className="eyebrow">{c.profileEyebrow}</p>
-            <h2 id="profile-title">{c.profileName}</h2>
+            <h2 id="about-title">{c.aboutName}</h2>
             <p>
-              {c.profileText[0]}
-              <br /> {c.profileText[1]}
+              {p.role}. {p.headline} {p.headlineAccent}
             </p>
             <Link className="text-link" to={href(lang, '/profil')}>
-              {c.ctaAbout}
+              {c.aboutLink}
+              <Icon name="arrowRight" />
             </Link>
           </div>
         </div>
@@ -131,43 +108,133 @@ export function Home() {
   );
 }
 
-const number = (i: number) => String(i + 1).padStart(2, '0');
-
 /**
- * Alle Absätze der Vorlage sind ohne Aufklappen in einer Lesespalte sichtbar.
+ * Kurzcheck mit den acht Leitfragen (mock/home/script.js, Variante 7). Ja, Nein oder Überspringen führt genau einen
+ * Schritt weiter; nur Ja zählt. Die Antworten bleiben im Arbeitsspeicher der Seite und werden weder gespeichert
+ * noch übertragen. Nach jeder Antwort liegt der Fokus auf der nächsten Leitfrage bzw. dem Ergebnis.
  */
-function TopicSection({ topic, index }: { topic: HomeTopic; index: number }) {
+function ReadinessCheck() {
   const { lang } = useLang();
-  const titleId = topic.slug;
+  const t = home[lang].check;
+  const total = t.items.length;
+  const [answers, setAnswers] = useState<CheckAnswer[]>([]);
+  const [index, setIndex] = useState(0);
+  const [switching, setSwitching] = useState(false);
+  const [feedback, setFeedback] = useState<{ answer: CheckAnswer; step: number } | null>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const focusTitle = useRef(false);
+  const timer = useRef<number>(undefined);
+  const done = index >= total;
+
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  useEffect(() => {
+    if (!focusTitle.current) return;
+    focusTitle.current = false;
+    titleRef.current?.focus({ preventScroll: false });
+  }, [index]);
+
+  const answer = (value: CheckAnswer) => {
+    // Während der Überblendung keine Antwort annehmen, sonst gälte sie für die noch unsichtbare Frage.
+    if (switching || done) return;
+    setAnswers((a) => [...a.slice(0, index), value]);
+    setFeedback({ answer: value, step: index });
+    focusTitle.current = true;
+    const next = index + 1;
+    if (next >= total || prefersReducedMotion()) {
+      setIndex(next);
+      return;
+    }
+    setSwitching(true);
+    timer.current = window.setTimeout(() => {
+      setSwitching(false);
+      setIndex(next);
+    }, SWITCH_MS);
+  };
+
+  const restart = () => {
+    window.clearTimeout(timer.current);
+    setAnswers([]);
+    setFeedback(null);
+    setSwitching(false);
+    focusTitle.current = true;
+    setIndex(0);
+  };
+
+  const yes = answers.filter((a) => a === 'yes').length;
+  const open = total - yes;
+  const message = done
+    ? t.resultNote
+    : feedback
+      ? t.feedback[feedback.answer][feedback.step % t.feedback[feedback.answer].length]
+      : t.intro;
+
   return (
-    <section className={`editorial-section${index % 2 ? ' section-soft' : ''}`} aria-labelledby={titleId}>
-      <div className="container editorial-inner">
-        <div className="editorial-copy">
-          <p className="eyebrow topic-eyebrow">
-            <span className="topic-number">{number(index)}</span> {topic.title}
-          </p>
-          <h2 id={titleId} tabIndex={-1}>
-            {topic.question}
+    <div className={`check${switching ? ' is-switching' : ''}`}>
+      <div className="check-top">
+        <p className="eyebrow">{t.eyebrow}</p>
+        <p className="check-meta">
+          <span>{done ? t.resultDimension : t.items[index].dimension}</span>
+          <span className="check-count">{done ? t.resultCount : t.count(index + 1, total)}</span>
+        </p>
+      </div>
+
+      {done ? (
+        <div className="check-done">
+          <h2 className="check-question" id={CHECK_ID} tabIndex={-1} ref={titleRef}>
+            {t.result(yes, total)}
           </h2>
-          <div className="editorial-text">
-            {topic.paragraphs.map((p, i) => (
-              <p key={i}>
-                <Rich text={p} />
-              </p>
-            ))}
+          <p className="check-summary">{open === 0 ? t.resultAllYes : t.resultOpen(open)}</p>
+        </div>
+      ) : (
+        <div className="check-ask">
+          <h2 className="check-question" id={CHECK_ID} tabIndex={-1} ref={titleRef}>
+            {t.items[index].question}
+          </h2>
+          <p className="check-hint">{t.hint}</p>
+          <div className="check-answers" role="group" aria-label={t.answersLabel}>
+            <button className="btn check-answer press" type="button" onClick={() => answer('yes')}>
+              {t.answers.yes}
+            </button>
+            <button className="btn check-answer press" type="button" onClick={() => answer('no')}>
+              {t.answers.no}
+            </button>
+            <button className="check-skip" type="button" onClick={() => answer('skip')}>
+              {t.answers.skip}
+            </button>
           </div>
-          <p className="article-link">
-            <Link className="text-link" to={href(lang, `/themen/${topic.slug}`)}>
-              {topic.articleLink}
-            </Link>
-            {topic.slug === 'softwareentwicklung' && (
-              <><br /><Link className="text-link" to={href(lang, '/themen/vibe-coding')}>
-                {lang === 'de' ? 'Zum Artikel: Vibe Coding' : 'Read the article: Vibe Coding'}
-              </Link></>
-            )}
-          </p>
+        </div>
+      )}
+
+      <ol className="check-progress" aria-label={t.progressLabel}>
+        {t.items.map((item, i) => {
+          const state = answers[i];
+          const current = !done && !state && i === index;
+          return (
+            <li key={item.dimension} className={state ? `is-${state}` : current ? 'is-current' : undefined}>
+              <span className="sr-only">
+                {item.dimension}: {t.progressState[state ?? 'open']}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className="check-foot">
+        <p className="check-feedback" aria-live="polite">
+          {message}
+        </p>
+        <div className="hero-actions">
+          {done && (
+            <button className="btn btn-secondary press" type="button" onClick={restart}>
+              {t.restart}
+            </button>
+          )}
+          <Link className="btn btn-primary press" to={auditPath(lang)}>
+            {t.start}
+            <Icon name="arrowRight" />
+          </Link>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

@@ -1,30 +1,29 @@
 import type { Lang } from '../lib/lang';
 
-/**
- * Fließtext mit Auszeichnung: Texte stehen unverändert, `{ code }` wird zu <code>, `{ em }` zu <em>.
- * `{ em }` entspricht der Hervorhebung `*…*` der Textvorlage.
- */
+/** Fließtext mit Auszeichnung: Texte stehen unverändert, `{ code }` wird zu <code>, `{ em }` zu <em>. */
 export type RichText = (string | { code: string } | { em: string })[];
 
 /** Pfad der ausführlichen Einordnung zu KI-Einsatzfeldern (Seite AiUses). */
 export const AI_USES_PATH = '/ki-einsatzfelder';
 
-/**
- * Themen der Startseite; der Slug ist zugleich Sprungziel und Pfad der Themenseite. Data Analytics und
- * Modelle und Kosten werden seit KIPerspektiven#4 (REQ-4) nicht mehr angeboten.
- */
-export type HomeTopicSlug = 'softwareentwicklung';
+/** Themen der Startseite; der Slug ist zugleich Pfad der Themenseite (`/themen/<slug>`). */
+export type HomeTopicSlug = 'softwareentwicklung' | 'vibe-coding';
 
-/** Ein ausführlicher Themenabschnitt: Leitfrage, alle Absätze der Vorlage und Artikel-Verweis. */
+/** Eine nummerierte Themenzeile: Thema, Leitfrage (Linktext) und ein erklärender Satz. */
 export interface HomeTopic {
   slug: HomeTopicSlug;
   title: string;
-  /** Kurzzeile im Themenindex unter dem Hero. */
-  teaser: string;
   question: string;
-  paragraphs: RichText[];
-  articleLink: string;
+  text: string;
 }
+
+/** Eine Leitfrage des Kurzchecks: Dimension der KI Readiness und Frage. */
+export interface CheckItem {
+  dimension: string;
+  question: string;
+}
+
+export type CheckAnswer = 'yes' | 'no' | 'skip';
 
 interface HomeContent {
   /** Seitentitel und Beschreibung; serverseitig gleichlautend in backend/internal/web/meta.go. */
@@ -33,34 +32,44 @@ interface HomeContent {
   hook: string;
   display1: string;
   display2: string;
-  lead: [string, string];
+  lead: string;
   ctaTopics: string;
-  ctaNews: string;
-  ctaUnderstand: string;
-  ctaAudit: string;
-  ctaAbout: string;
-  indexLabel: string;
+  ctaCheck: string;
   topicsEyebrow: string;
   topicsTitle: [string, string];
-  topicsText: [string, string];
   topics: HomeTopic[];
-  auditEyebrow: string;
-  auditTitle: [string, string];
-  auditText: string;
-  auditCta: string;
-  auditStepsLabel: string;
-  auditSteps: [string, string, string];
-  auditStepsText: [string, string];
-  profileEyebrow: string;
-  profileName: string;
-  profileText: [string, string];
+  check: {
+    eyebrow: string;
+    label: string;
+    count: (n: number, total: number) => string;
+    hint: string;
+    answersLabel: string;
+    answers: Record<CheckAnswer, string>;
+    progressLabel: string;
+    progressState: Record<CheckAnswer | 'open', string>;
+    intro: string;
+    feedback: Record<CheckAnswer, string[]>;
+    resultCount: string;
+    resultDimension: string;
+    result: (yes: number, total: number) => string;
+    resultAllYes: string;
+    resultOpen: (open: number) => string;
+    resultNote: string;
+    restart: string;
+    start: string;
+    items: CheckItem[];
+  };
+  aboutEyebrow: string;
+  aboutName: string;
+  aboutLink: string;
 }
 
 /**
- * Texte der Startseite (Ticket #101). Hero, Leitfragen, Absätze, Hervorhebungen und Artikel-Linktexte stammen
- * wortgleich aus content/Landingpage_v03.md, Stand 10. November 2026; app.test.tsx prüft die Übereinstimmung.
- * Zeichensetzung und Schreibweise der Vorlage bleiben bewusst unverändert. Zwischenüberschriften, Kurzzeilen
- * im Themenindex, KI-Reifegrad-Banner und Profil-Teaser folgen dem Mock mock/landing_v03/.
+ * Texte der Startseite nach content/topics/home v1_de.md (Stand 16.11.2026) und dem Home-Mock mock/home/ (Ticket #34).
+ * Deutsch steht wortgleich wie im Mock. Die Leitfragen entsprechen den Kurzfassungen (`summary`) der Dimensionen
+ * in backend/internal/audit/content.json. Englisch übernimmt vorhandene Fassungen (Hero, Leitfrage
+ * Softwareentwicklung) und übersetzt die übrigen Mock-Texte. Die fachliche Einordnung im Abschnitt „Über mich“
+ * kommt aus dem Profil (i18n/profile.ts).
  */
 export const home: Record<Lang, HomeContent> = {
   de: {
@@ -69,49 +78,63 @@ export const home: Record<Lang, HomeContent> = {
     hook: 'KI kann viel. Entscheidend ist, wie wir sie einsetzen.',
     display1: 'KI verstehen.',
     display2: 'Sinnvoll einsetzen.',
-    lead: ['Praxiswissen für den professionellen Einsatz von KI.', 'Mit klarem Blick auf Nutzen, Grenzen und Verantwortung.'],
+    lead: 'Praxiswissen für den professionellen Einsatz von KI. Mit klarem Blick auf Nutzen, Grenzen und Verantwortung.',
     ctaTopics: 'Themen entdecken',
-    ctaNews: 'News',
-    ctaUnderstand: 'KI verstehen',
-    ctaAudit: 'KI Reifegrad einschätzen',
-    ctaAbout: 'Über mich',
-    indexLabel: 'Direkt zu den Themen',
+    ctaCheck: 'KI Readiness einschätzen',
     topicsEyebrow: 'Aktuell im Fokus',
     topicsTitle: ['Gute Fragen.', 'Neue Perspektiven.'],
-    topicsText: ['Den Nutzen sehen. Die Grenzen kennen.', 'Und die richtigen Fragen stellen.'],
     topics: [
       {
         slug: 'softwareentwicklung',
         title: 'Softwareentwicklung',
-        teaser: 'Mit Agenten zusammenarbeiten',
         question: 'Wenn KI uns die langweilige Arbeit abnimmt, wird Softwareentwicklung endlich kreativer?',
-        paragraphs: [
-          ['Weniger Routine, mehr Raum für gute Ideen: Das ist eines der großen Versprechen von KI.'],
-          ['Wenn Code erstellen, Tests vorbereiten oder Dokumentation schreiben weniger Zeit kosten, könnten wir uns stärker darauf konzentrieren, Probleme zu verstehen, Lösungswege auszuprobieren und Software besser zu gestalten.'],
-          ['Wenn wir jeden Schritt kontrollieren und jeden Vorschlag nacharbeiten müssen, verschiebt sich die Arbeit oft nur.'],
-          ['Spannend wird es beim ', { em: 'Schritt vom KI-Assistenten zum KI-Agenten' }, '. Statt uns nur einzelne Vorschläge zu liefern, kann ein Agent zusammenhängende Aufgaben übernehmen'],
-          ['Er erschließt bestehenden Code, entwickelt und vergleicht Lösungsansätze, setzt Änderungen um und prüft sie mithilfe von Tests und Code-Reviews.'],
-          ['Diese Eigenständigkeit braucht Orientierung und Grenzen.'],
-          ['Mit ', { em: 'Skills' }, ' geben wir der KI bewährte Vorgehensweisen mit und machen Fachwissen für die KI nutzbar.'],
-          ['Durch ', { em: 'Guardrails' }, ' begrenzen wir ihren Handlungsspielraum um bei kritischen Aktionen die kontrolle zu behalten.'],
-          ['Beides hilft uns, Aufgaben gezielt an die KI zu übertragen. Wir legen fest, was sie tun soll und darf, prüfen ihre Ergebnisse und entscheiden, welche Änderungen wir übernehmen.'],
-          ['Die Verantwortung für das Ergebnis bleibt bei uns aber wir müssen nicht mehr jeden Arbeitsschritt selbst ausführen.'],
-          ['So bleibt mehr Zeit, um die richtigen Herausforderungen zu verstehen und Software zu entwickeln, die echten Mehrwert schafft.'],
-          ['Wie sieht diese Zusammenarbeit in der Praxis aus? Im Artikel ', { em: '„KI in der Softwareentwicklung“' }, ' gehen wir genauer darauf ein, welche Aufgaben KI-Agenten übernehmen können, wie Skills sie dabei unterstützen und wie wir mit Guardrails die Kontrolle behalten.'],
-        ],
-        articleLink: 'Zum Artikel: KI in der Softwareentwicklung',
+        text: 'Wie Agenten-Teams mit klaren Tests und Gates Software entwickeln – und wo der Mensch die Verantwortung behält.',
+      },
+      {
+        slug: 'vibe-coding',
+        title: 'Vibe Coding',
+        question: 'Du beschreibst, was du möchtest, und die KI schreibt den Code. Was kann da schon schiefgehen?',
+        text: 'Warum „Mach es irgendwie moderner“ selten reicht – und wie aus Vibe Coding sinnvolle Ergebnisse werden.',
       },
     ],
-    auditEyebrow: 'Der nächste Schritt',
-    auditTitle: ['KI-Reifegrad', 'einschätzen.'],
-    auditText: 'Wo steht dein Unternehmen beim Einsatz von KI?',
-    auditCta: 'Zum KI-Audit',
-    auditStepsLabel: 'Drei Reifegrade',
-    auditSteps: ['Einfach', 'Strukturiert', 'Intelligent'],
-    auditStepsText: ['Den eigenen Stand verstehen.', 'Den nächsten Schritt erkennen.'],
-    profileEyebrow: 'Die Perspektive dahinter',
-    profileName: 'Marvin Jakob.',
-    profileText: ['Softwareentwicklung, Cloud-Architektur und Business Analyse.', 'Ein praxisnaher Blick auf den professionellen Einsatz von KI.'],
+    check: {
+      eyebrow: 'KI Readiness · Kurzcheck',
+      label: 'KI Readiness Kurzcheck',
+      count: (n, total) => `Frage ${n} von ${total}`,
+      hint: 'Antworte nach dem, was sich tatsächlich zeigen lässt.',
+      answersLabel: 'Antwort auf die Leitfrage',
+      answers: { yes: 'Ja', no: 'Nein', skip: 'Überspringen' },
+      progressLabel: 'Fortschritt',
+      progressState: { yes: 'Ja', no: 'Nein', skip: 'übersprungen', open: 'offen' },
+      intro: 'Acht Leitfragen, eine pro Dimension. Wie viele kannst du mit Ja beantworten?',
+      feedback: {
+        yes: ['Stark. Weiter geht’s.', 'Gut. Das trägt schon.', 'Prima. Nächste Frage.'],
+        no: ['Notiert. Hier liegt ein möglicher nächster Schritt.', 'Kein Problem. Genau dafür ist die Einschätzung da.', 'Ehrlich ist besser als geschönt. Weiter.'],
+        skip: ['Übersprungen. Du kannst sie später in Ruhe klären.'],
+      },
+      resultCount: 'Ergebnis',
+      resultDimension: 'Alle acht Dimensionen',
+      result: (yes, total) => `${yes} von ${total} Leitfragen mit Ja.`,
+      resultAllYes: 'Beeindruckend. Die vollständige Selbsteinschätzung zeigt, ob das auch im Detail trägt und wo du dich weiter verbessern kannst.',
+      resultOpen: (open) =>
+        `${open === 1 ? 'Eine Frage ist' : `${open} Fragen sind`} noch offen. Das sind deine ersten Ansatzpunkte. Die vollständige Selbsteinschätzung geht in jeder Dimension tiefer und zeigt konkrete nächste Schritte.`,
+      resultNote: 'Das ist keine Note, sondern eine erste Orientierung.',
+      restart: 'Noch einmal',
+      start: 'Selbsteinschätzung starten',
+      items: [
+        { dimension: 'Strategie und Wirtschaftlichkeit', question: 'Wissen wir, wofür wir KI einsetzen und ob es sich lohnt?' },
+        { dimension: 'Ressourcenplanung und Kompetenzen', question: 'Haben wir die Menschen, die Zeit und das Wissen, um mit KI zu arbeiten?' },
+        { dimension: 'Betrieb', question: 'Läuft unsere KI-Anwendung auch dann zuverlässig, wenn niemand danebensitzt?' },
+        { dimension: 'Governance und Compliance', question: 'Wissen wir, unter welchen rechtlichen und vertraglichen Bedingungen wir KI einsetzen dürfen?' },
+        { dimension: 'Agenten und Prozesse', question: 'Ist KI sinnvoll in unsere Arbeitsabläufe eingebunden?' },
+        { dimension: 'Technologie und Infrastruktur', question: 'Haben wir eine technische Grundlage, auf der wir weitere KI-Anwendungen aufbauen können?' },
+        { dimension: 'Daten und Wissen', question: 'Findet die KI die Informationen, die sie für ihre Aufgabe braucht, und sind diese verlässlich?' },
+        { dimension: 'Sicherheit und Zuverlässigkeit', question: 'Können wir nachweisen, dass unsere KI-Anwendung verlässlich und sicher arbeitet?' },
+      ],
+    },
+    aboutEyebrow: 'Über mich',
+    aboutName: 'Marvin Jakob',
+    aboutLink: 'Mehr über mich',
   },
   en: {
     title: 'Understand AI. Use it wisely.',
@@ -119,48 +142,62 @@ export const home: Record<Lang, HomeContent> = {
     hook: 'AI can do a lot. What matters is how we use it.',
     display1: 'Understand AI.',
     display2: 'Use it wisely.',
-    lead: ['Practical knowledge for the professional use of AI.', 'With a clear view of benefits, limits and responsibility.'],
+    lead: 'Practical knowledge for the professional use of AI. With a clear view of benefits, limits and responsibility.',
     ctaTopics: 'Explore topics',
-    ctaNews: 'News',
-    ctaUnderstand: 'Understand AI',
-    ctaAudit: 'Assess your AI maturity',
-    ctaAbout: 'About me',
-    indexLabel: 'Jump to the topics',
+    ctaCheck: 'Assess your AI readiness',
     topicsEyebrow: 'Currently in focus',
     topicsTitle: ['Good questions.', 'New perspectives.'],
-    topicsText: ['See the benefits. Know the limits.', 'And ask the right questions.'],
     topics: [
       {
         slug: 'softwareentwicklung',
         title: 'Software Development',
-        teaser: 'Working together with agents',
         question: 'If AI takes the boring work off our hands, will software development finally become more creative?',
-        paragraphs: [
-          ['Less routine, more room for good ideas: that is one of the big promises of AI.'],
-          ['If writing code, preparing tests or documenting takes less time, we could focus more on understanding problems, trying out solutions and designing better software.'],
-          ['If we have to check every step and rework every suggestion, the work often just shifts.'],
-          ['It gets exciting with the ', { em: 'step from AI assistant to AI agent' }, '. Instead of only giving us individual suggestions, an agent can take on connected tasks.'],
-          ['It explores existing code, develops and compares approaches, implements changes and checks them with tests and code reviews.'],
-          ['This autonomy needs direction and limits.'],
-          ['With ', { em: 'skills' }, ', we give AI proven ways of working and make expert knowledge usable for AI.'],
-          ['With ', { em: 'guardrails' }, ', we limit its room for action so that we stay in control of critical actions.'],
-          ['Both help us delegate tasks to AI in a targeted way. We define what it should and may do, check its results and decide which changes we accept.'],
-          ['Responsibility for the result stays with us, but we no longer have to carry out every step ourselves.'],
-          ['That leaves more time to understand the right challenges and build software that creates real value.'],
-          ['What does this collaboration look like in practice? In the article ', { em: '“AI in Software Development”' }, ' we look more closely at which tasks AI agents can take on, how skills support them and how guardrails keep us in control.'],
-        ],
-        articleLink: 'Read the article: AI in Software Development',
+        text: 'How agent teams build software with clear tests and gates – and where people keep the responsibility.',
+      },
+      {
+        slug: 'vibe-coding',
+        title: 'Vibe Coding',
+        question: 'You describe what you want and AI writes the code. What could possibly go wrong?',
+        text: 'Why “Just make it look more modern somehow” rarely works – and how vibe coding leads to meaningful results.',
       },
     ],
-    auditEyebrow: 'The next step',
-    auditTitle: ['Assess your', 'AI maturity.'],
-    auditText: 'Where does your company stand in its use of AI?',
-    auditCta: 'Go to the AI audit',
-    auditStepsLabel: 'Three maturity levels',
-    auditSteps: ['Basic', 'Structured', 'Intelligent'],
-    auditStepsText: ['Understand where you stand.', 'Recognise the next step.'],
-    profileEyebrow: 'The perspective behind it',
-    profileName: 'Marvin Jakob.',
-    profileText: ['Software development, cloud architecture and business analysis.', 'A practical view of the professional use of AI.'],
+    check: {
+      eyebrow: 'AI Readiness · Quick check',
+      label: 'AI Readiness quick check',
+      count: (n, total) => `Question ${n} of ${total}`,
+      hint: 'Answer based on what you can actually demonstrate.',
+      answersLabel: 'Answer to the guiding question',
+      answers: { yes: 'Yes', no: 'No', skip: 'Skip' },
+      progressLabel: 'Progress',
+      progressState: { yes: 'yes', no: 'no', skip: 'skipped', open: 'open' },
+      intro: 'Eight guiding questions, one per dimension. How many can you answer with yes?',
+      feedback: {
+        yes: ['Strong. On we go.', 'Good. That already carries weight.', 'Great. Next question.'],
+        no: ['Noted. This is a possible next step.', 'No problem. That is exactly what the assessment is for.', 'Honest beats polished. Next.'],
+        skip: ['Skipped. You can clarify it later at your own pace.'],
+      },
+      resultCount: 'Result',
+      resultDimension: 'All eight dimensions',
+      result: (yes, total) => `${yes} of ${total} guiding questions answered Yes.`,
+      resultAllYes: 'Impressive. The full self-assessment shows whether this holds up in detail and where you can improve further.',
+      resultOpen: (open) =>
+        `${open === 1 ? 'One question is' : `${open} questions are`} still open. These are your first starting points. The full self-assessment goes deeper in every dimension and shows concrete next steps.`,
+      resultNote: 'This is not a grade, but a first orientation.',
+      restart: 'Try again',
+      start: 'Start self-assessment',
+      items: [
+        { dimension: 'Strategy and economic viability', question: 'Do we know what we use AI for and whether it pays off?' },
+        { dimension: 'Resource planning and skills', question: 'Do we have the people, the time and the knowledge to work with AI?' },
+        { dimension: 'Operations', question: 'Does our AI application run reliably even when nobody is watching it?' },
+        { dimension: 'Governance and compliance', question: 'Do we know the legal and contractual conditions under which we may use AI?' },
+        { dimension: 'Agents and processes', question: 'Is AI meaningfully integrated into our workflows?' },
+        { dimension: 'Technology and infrastructure', question: 'Do we have a technical foundation on which we can build further AI applications?' },
+        { dimension: 'Data and knowledge', question: 'Does the AI find the information it needs for its task, and is that information reliable?' },
+        { dimension: 'Security and reliability', question: 'Can we demonstrate that our AI application works reliably and securely?' },
+      ],
+    },
+    aboutEyebrow: 'About me',
+    aboutName: 'Marvin Jakob',
+    aboutLink: 'More about me',
   },
 };
