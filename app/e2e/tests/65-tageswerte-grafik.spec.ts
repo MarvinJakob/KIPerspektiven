@@ -58,7 +58,7 @@ async function hoverDay(page: Page, period: string, date: string) {
 }
 
 test.describe('Tageswerte in der Grafik', () => {
-  test.use({ storageState: AUTH.editor });
+  test.use({ storageState: AUTH.marketing });
 
   test.beforeEach(async ({ page }) => {
     await mockPageViews(page);
@@ -151,7 +151,7 @@ test.describe('Tageswerte in der Grafik', () => {
 });
 
 test.describe('Tageswerte auf Touch-Geräten', () => {
-  test.use({ storageState: AUTH.editor, viewport: { width: 375, height: 812 }, hasTouch: true });
+  test.use({ storageState: AUTH.marketing, viewport: { width: 375, height: 812 }, hasTouch: true });
 
   test('REQ-65-AC3: Antippen eines Tages zeigt dessen Werte, Antippen außerhalb blendet sie aus', async ({ page }) => {
     await mockPageViews(page);
@@ -173,7 +173,7 @@ test.describe('Tageswerte auf Touch-Geräten', () => {
 });
 
 test.describe('Leerzustand', () => {
-  test.use({ storageState: AUTH.editor });
+  test.use({ storageState: AUTH.marketing });
 
   test('REQ-65-AC4: ohne Seitenaufrufe im Zeitraum bleibt der bestehende Leerzustand ohne Grafik', async ({ page }) => {
     await mockPageViews(page, { '7d': [], '30d': series(30).map((d) => ({ ...d, views: 0, uniqueViews: 0 })), all: [] });

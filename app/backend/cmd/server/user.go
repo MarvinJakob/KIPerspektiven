@@ -23,17 +23,17 @@ import (
 //	server user create --email admin@example.de --role admin
 func userCommand(cfg config, args []string, log *slog.Logger) error {
 	if len(args) == 0 || args[0] != "create" {
-		return errors.New("aufruf: server user create --email ADRESSE [--role admin|editor]")
+		return errors.New("aufruf: server user create --email ADRESSE [--role admin|editor|marketing[,...]]")
 	}
 	fs := flag.NewFlagSet("user create", flag.ContinueOnError)
 	email := fs.String("email", "", "E-Mail-Adresse des Kontos")
-	roleFlag := fs.String("role", string(service.RoleAdmin), "Rolle: admin oder editor")
+	roleFlag := fs.String("role", string(service.RoleAdmin), "Rollen, kommagetrennt: admin, editor, marketing (Ticket #64)")
 	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
-	role, ok := service.ParseRole(*roleFlag)
-	if !ok {
-		return fmt.Errorf("unbekannte rolle %q (erlaubt: admin, editor)", *roleFlag)
+	roles, rerr := service.ParseRoles(strings.Split(*roleFlag, ","))
+	if rerr != nil {
+		return fmt.Errorf("rollen %q: %v (erlaubt: admin, editor, marketing)", *roleFlag, rerr)
 	}
 	if strings.TrimSpace(*email) == "" {
 		return errors.New("--email fehlt")
@@ -52,7 +52,7 @@ func userCommand(cfg config, args []string, log *slog.Logger) error {
 	if err := store.Migrate(ctx, db, false, log); err != nil {
 		return err
 	}
-	u, err := service.NewAccounts(db).CreateUser(ctx, *email, password, role)
+	u, err := service.NewAccounts(db).CreateUser(ctx, *email, password, roles)
 	var verr *service.ValidationError
 	switch {
 	case errors.Is(err, service.ErrEmailTaken):
@@ -62,7 +62,7 @@ func userCommand(cfg config, args []string, log *slog.Logger) error {
 	case err != nil:
 		return err
 	}
-	log.Info("konto angelegt", "id", u.ID, "email", u.Email, "rolle", u.Role)
+	log.Info("konto angelegt", "id", u.ID, "email", u.Email, "rollen", strings.Join(u.Roles.Strings(), ","))
 	return nil
 }
 

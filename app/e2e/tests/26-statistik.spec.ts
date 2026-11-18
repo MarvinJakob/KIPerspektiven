@@ -45,10 +45,10 @@ async function storeResult(ctx: APIRequestContext, lang: 'de' | 'en', levels: (i
   return ratings;
 }
 
-test('REQ-26-AC1: Statistik nur für editor und admin; ohne Sitzung sind Seite und API geschützt', async ({ request, editor, admin, page }) => {
+test('REQ-26-AC1 REQ-64-AC5: Statistik für Marketing und Admin; ohne Sitzung sind Seite und API geschützt', async ({ request, marketing, admin, page }) => {
   expect((await request.get('/api/admin/statistics/page-views')).status()).toBe(401);
   expect((await request.get('/api/admin/statistics/readiness-results')).status()).toBe(401);
-  for (const s of [editor, admin]) {
+  for (const s of [marketing, admin]) {
     expect((await s.get('/api/admin/statistics/page-views')).status()).toBe(200);
     expect((await s.get('/api/admin/statistics/readiness-results')).status()).toBe(200);
   }
@@ -56,13 +56,13 @@ test('REQ-26-AC1: Statistik nur für editor und admin; ohne Sitzung sind Seite u
   await expect(page).toHaveURL(/\/redaktion\/anmelden/);
 });
 
-test('REQ-26-AC3 REQ-26-AC4: absolute und IP-bereinigte Zählung, je Zeitraum und Kalendertag', async ({ request, editor }) => {
-  const before = await pageViews(editor);
+test('REQ-26-AC3 REQ-26-AC4: absolute und IP-bereinigte Zählung, je Zeitraum und Kalendertag', async ({ request, marketing }) => {
+  const before = await pageViews(marketing);
   const [a, b] = [randomIp(), randomIp()];
   for (const ip of [a, a, a, b]) await visit(request, ip);
   await visit(request, b, '/en/profil');
 
-  const after = await pageViews(editor);
+  const after = await pageViews(marketing);
   expect(after.total - before.total).toBe(5);
   expect(after.uniqueTotal).not.toBeNull();
   expect(after.uniqueTotal! - before.uniqueTotal!).toBe(2);
@@ -75,25 +75,25 @@ test('REQ-26-AC3 REQ-26-AC4: absolute und IP-bereinigte Zählung, je Zeitraum un
   // Nicht gezählt: API-Abrufe, Fehlerseiten und Vorab-Abrufe
   await request.get('/api/posts?lang=de', { headers: { 'X-Forwarded-For': a } });
   await request.get('/de/blog', { headers: { 'X-Forwarded-For': a, 'Sec-Purpose': 'prefetch' } });
-  expect((await pageViews(editor)).total).toBe(after.total);
+  expect((await pageViews(marketing)).total).toBe(after.total);
 });
 
-test('REQ-26-AC3: Navigation innerhalb der Webseite zählt nicht zusätzlich', async ({ page, editor }) => {
-  const before = (await pageViews(editor)).total;
+test('REQ-26-AC3: Navigation innerhalb der Webseite zählt nicht zusätzlich', async ({ page, marketing }) => {
+  const before = (await pageViews(marketing)).total;
   await page.goto('/de');
   await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'News', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'News' })).toBeVisible();
   await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'Profil' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Marvin Jakob' })).toBeVisible();
-  expect((await pageViews(editor)).total - before).toBe(1);
+  expect((await pageViews(marketing)).total - before).toBe(1);
 });
 
 test.describe('Oberfläche', () => {
-  test.use({ storageState: AUTH.editor });
+  test.use({ storageState: AUTH.marketing });
 
-  test('REQ-26-AC2 REQ-26-AC3 REQ-26-AC6 REQ-26-AC8: Zeitraum, Kennzahlen, Tageswerte und Ergebnisliste mit Seitennavigation', async ({ page, request, editor }) => {
+  test('REQ-26-AC2 REQ-26-AC3 REQ-26-AC6 REQ-26-AC8: Zeitraum, Kennzahlen, Tageswerte und Ergebnisliste mit Seitennavigation', async ({ page, request, marketing }) => {
     // Genug gespeicherte Ergebnisse für eine zweite Seite (50 je Seite)
-    const existing = ((await (await editor.get('/api/admin/statistics/readiness-results?period=30d')).json()) as { total: number }).total;
+    const existing = ((await (await marketing.get('/api/admin/statistics/readiness-results?period=30d')).json()) as { total: number }).total;
     for (let i = existing; i < 51; i++) await storeResult(request, 'de', () => 2);
     const latest = await storeResult(request, 'en', (i) => (i % 3) + 1);
 
@@ -182,19 +182,19 @@ test.describe('Oberfläche', () => {
 });
 
 // Muss zuletzt laufen: Ein Abruf ohne gültige Client-IP macht die Bereinigung des Tages unvollständig.
-test('REQ-26-AC5: bei unvollständigen Daten steht „Nicht verfügbar“ statt 0, absolute Zahlen bleiben sichtbar', async ({ playwright, baseURL, editor, browser }) => {
+test('REQ-26-AC5: bei unvollständigen Daten steht „Nicht verfügbar“ statt 0, absolute Zahlen bleiben sichtbar', async ({ playwright, baseURL, marketing, browser }) => {
   const noIp = await playwright.request.newContext({ baseURL, extraHTTPHeaders: {} });
-  const before = await pageViews(editor);
+  const before = await pageViews(marketing);
   expect((await noIp.get('/de/blog')).status()).toBe(200);
   await noIp.dispose();
 
-  const after = await pageViews(editor);
+  const after = await pageViews(marketing);
   expect(after.total).toBe(before.total + 1);
   expect(after.uniqueTotal).toBeNull();
   expect(todayOf(after).uniqueViews).toBeNull();
   expect(todayOf(after).views).toBe(todayOf(before).views + 1);
 
-  const ctx = await browser.newContext({ baseURL, storageState: AUTH.editor, extraHTTPHeaders: { 'X-Forwarded-For': randomIp() } });
+  const ctx = await browser.newContext({ baseURL, storageState: AUTH.marketing, extraHTTPHeaders: { 'X-Forwarded-For': randomIp() } });
   const page = await ctx.newPage();
   await page.goto('/redaktion/statistik');
   await expect(page.getByText('Nicht verfügbar').first()).toBeVisible();

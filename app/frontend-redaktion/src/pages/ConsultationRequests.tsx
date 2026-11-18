@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ApiError } from '../api/client';
+import { ApiError, can, useMe } from '../api/client';
 import { useConsultationRequests, useDeleteConsultationRequest, type ConsultationRequest } from '../api/consultations';
 import { Loading, Page } from '../components/Layout';
 
@@ -36,7 +36,7 @@ export function ConsultationRequestsPage() {
       <p className="lead">
         Anfragen für ein kostenloses Beratungsgespräch aus der Auswertung der KI-Readiness-Selbsteinschätzung, neueste
         zuerst. Gespeichert sind nur E-Mail-Adresse, Sprache der Seite und Zeitpunkt, nicht das Ergebnis. Melden Sie sich
-        per E-Mail zur Terminabstimmung und löschen Sie die Anfrage, sobald der Termin abgestimmt ist.
+        per E-Mail zur Terminabstimmung. Admins löschen die Anfrage, sobald der Termin abgestimmt ist.
       </p>
       <p
         ref={noticeRef}
@@ -85,6 +85,9 @@ export function ConsultationRequestsPage() {
 }
 
 function Row({ request: r, onNotice }: { request: ConsultationRequest; onNotice: (n: Notice) => void }) {
+  // Löschen ist Admins vorbehalten (Ticket #64); Marketing sieht die Anfragen nur.
+  const { data: me } = useMe();
+  const canDelete = !!me && can(me.roles, 'deleteConsultations');
   const remove = useDeleteConsultationRequest();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -120,7 +123,7 @@ function Row({ request: r, onNotice }: { request: ConsultationRequest; onNotice:
       </td>
       <td>{LANG_NAMES[r.lang] ?? r.lang}</td>
       <td className="actions">
-        {confirmDelete ? (
+        {!canDelete ? null : confirmDelete ? (
           <div className="row-actions" role="group" aria-label={`Löschen der Anfrage von ${r.email} bestätigen`}>
             <span className="confirm-text">Termin abgestimmt? Endgültig löschen?</span>
             <button ref={cancelRef} type="button" className="btn btn-secondary btn-small press" onClick={cancelDelete}>

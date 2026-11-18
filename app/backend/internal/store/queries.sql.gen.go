@@ -125,17 +125,23 @@ func (q *Queries) CreateMedia(ctx context.Context, arg CreateMediaParams) (int64
 }
 
 const createPost = `-- name: CreatePost :execlastid
-INSERT INTO posts (slug, status, featured, updated_at) VALUES (?, 'draft', ?, ?)
+INSERT INTO posts (slug, status, featured, author_id, updated_at) VALUES (?, 'draft', ?, ?, ?)
 `
 
 type CreatePostParams struct {
 	Slug      string
 	Featured  bool
+	AuthorID  sql.NullInt64
 	UpdatedAt string
 }
 
 func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, createPost, arg.Slug, arg.Featured, arg.UpdatedAt)
+	result, err := q.db.ExecContext(ctx, createPost,
+		arg.Slug,
+		arg.Featured,
+		arg.AuthorID,
+		arg.UpdatedAt,
+	)
 	if err != nil {
 		return 0, err
 	}
@@ -255,6 +261,20 @@ func (q *Queries) DeleteMediaTranslations(ctx context.Context, mediaID int64) er
 	return err
 }
 
+const deleteOtherUserSessions = `-- name: DeleteOtherUserSessions :exec
+DELETE FROM sessions WHERE user_id = ? AND id <> ?
+`
+
+type DeleteOtherUserSessionsParams struct {
+	UserID int64
+	ID     string
+}
+
+func (q *Queries) DeleteOtherUserSessions(ctx context.Context, arg DeleteOtherUserSessionsParams) error {
+	_, err := q.db.ExecContext(ctx, deleteOtherUserSessions, arg.UserID, arg.ID)
+	return err
+}
+
 const deletePageViewSources = `-- name: DeletePageViewSources :exec
 DELETE FROM page_view_sources
 `
@@ -322,6 +342,15 @@ func (q *Queries) DeleteSession(ctx context.Context, id string) error {
 	return err
 }
 
+const deleteUserRoles = `-- name: DeleteUserRoles :exec
+DELETE FROM user_roles WHERE user_id = ?
+`
+
+func (q *Queries) DeleteUserRoles(ctx context.Context, userID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUserRoles, userID)
+	return err
+}
+
 const deleteUserSessions = `-- name: DeleteUserSessions :exec
 DELETE FROM sessions WHERE user_id = ?
 `
@@ -384,7 +413,7 @@ func (q *Queries) GetPageViewSource(ctx context.Context, ipHash string) (string,
 }
 
 const getPostByID = `-- name: GetPostByID :one
-SELECT id, slug, status, published_at, featured, cover_media_id, updated_at, scheduled_at FROM posts WHERE id = ?
+SELECT id, slug, status, published_at, featured, cover_media_id, updated_at, scheduled_at, author_id FROM posts WHERE id = ?
 `
 
 func (q *Queries) GetPostByID(ctx context.Context, id int64) (Post, error) {
@@ -399,6 +428,7 @@ func (q *Queries) GetPostByID(ctx context.Context, id int64) (Post, error) {
 		&i.CoverMediaID,
 		&i.UpdatedAt,
 		&i.ScheduledAt,
+		&i.AuthorID,
 	)
 	return i, err
 }
@@ -414,8 +444,35 @@ func (q *Queries) GetPostIDBySlug(ctx context.Context, slug string) (int64, erro
 	return id, err
 }
 
+const getPublicAuthor = `-- name: GetPublicAuthor :one
+SELECT u.display_name, m.storage_key, m.mime_type, m.width, m.height
+FROM users u LEFT JOIN media m ON m.id = u.avatar_media_id
+WHERE u.id = ?
+`
+
+type GetPublicAuthorRow struct {
+	DisplayName string
+	StorageKey  sql.NullString
+	MimeType    sql.NullString
+	Width       sql.NullInt64
+	Height      sql.NullInt64
+}
+
+func (q *Queries) GetPublicAuthor(ctx context.Context, id int64) (GetPublicAuthorRow, error) {
+	row := q.db.QueryRowContext(ctx, getPublicAuthor, id)
+	var i GetPublicAuthorRow
+	err := row.Scan(
+		&i.DisplayName,
+		&i.StorageKey,
+		&i.MimeType,
+		&i.Width,
+		&i.Height,
+	)
+	return i, err
+}
+
 const getPublishedPostBySlug = `-- name: GetPublishedPostBySlug :one
-SELECT id, slug, status, published_at, featured, cover_media_id, updated_at, scheduled_at
+SELECT id, slug, status, published_at, featured, cover_media_id, updated_at, scheduled_at, author_id
 FROM posts
 WHERE slug = ? AND status = 'published'
 `
@@ -432,6 +489,7 @@ func (q *Queries) GetPublishedPostBySlug(ctx context.Context, slug string) (Post
 		&i.CoverMediaID,
 		&i.UpdatedAt,
 		&i.ScheduledAt,
+		&i.AuthorID,
 	)
 	return i, err
 }
@@ -453,20 +511,21 @@ func (q *Queries) GetReadinessResultByKey(ctx context.Context, keyHash string) (
 }
 
 const getSession = `-- name: GetSession :one
-SELECT s.id, s.user_id, s.csrf_token, s.expires_at, u.email, u.role, u.active
+SELECT s.id, s.user_id, s.csrf_token, s.expires_at, u.email, u.role, u.active, u.display_name
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.id = ?
 `
 
 type GetSessionRow struct {
-	ID        string
-	UserID    int64
-	CsrfToken string
-	ExpiresAt string
-	Email     string
-	Role      string
-	Active    bool
+	ID          string
+	UserID      int64
+	CsrfToken   string
+	ExpiresAt   string
+	Email       string
+	Role        string
+	Active      bool
+	DisplayName string
 }
 
 func (q *Queries) GetSession(ctx context.Context, id string) (GetSessionRow, error) {
@@ -480,6 +539,7 @@ func (q *Queries) GetSession(ctx context.Context, id string) (GetSessionRow, err
 		&i.Email,
 		&i.Role,
 		&i.Active,
+		&i.DisplayName,
 	)
 	return i, err
 }
@@ -495,8 +555,35 @@ func (q *Queries) GetTopicBySlug(ctx context.Context, slug string) (Topic, error
 	return i, err
 }
 
+const getUserAvatar = `-- name: GetUserAvatar :one
+SELECT m.id, m.storage_key, m.mime_type, m.width, m.height
+FROM users u JOIN media m ON m.id = u.avatar_media_id
+WHERE u.id = ?
+`
+
+type GetUserAvatarRow struct {
+	ID         int64
+	StorageKey string
+	MimeType   string
+	Width      int64
+	Height     int64
+}
+
+func (q *Queries) GetUserAvatar(ctx context.Context, id int64) (GetUserAvatarRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserAvatar, id)
+	var i GetUserAvatarRow
+	err := row.Scan(
+		&i.ID,
+		&i.StorageKey,
+		&i.MimeType,
+		&i.Width,
+		&i.Height,
+	)
+	return i, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, role, active, created_at FROM users WHERE email = ?
+SELECT id, email, password_hash, role, active, created_at, display_name, avatar_media_id FROM users WHERE email = ?
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -509,12 +596,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Role,
 		&i.Active,
 		&i.CreatedAt,
+		&i.DisplayName,
+		&i.AvatarMediaID,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, role, active, created_at FROM users WHERE id = ?
+SELECT id, email, password_hash, role, active, created_at, display_name, avatar_media_id FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
@@ -527,6 +616,8 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.Role,
 		&i.Active,
 		&i.CreatedAt,
+		&i.DisplayName,
+		&i.AvatarMediaID,
 	)
 	return i, err
 }
@@ -627,6 +718,20 @@ func (q *Queries) InsertReadinessRating(ctx context.Context, arg InsertReadiness
 	return err
 }
 
+const insertUserRole = `-- name: InsertUserRole :exec
+INSERT INTO user_roles (user_id, role) VALUES (?, ?)
+`
+
+type InsertUserRoleParams struct {
+	UserID int64
+	Role   string
+}
+
+func (q *Queries) InsertUserRole(ctx context.Context, arg InsertUserRoleParams) error {
+	_, err := q.db.ExecContext(ctx, insertUserRole, arg.UserID, arg.Role)
+	return err
+}
+
 const invalidatePageViewDay = `-- name: InvalidatePageViewDay :exec
 UPDATE page_views SET identified_views = -1 WHERE day = ? AND views > 0
 `
@@ -638,7 +743,7 @@ func (q *Queries) InvalidatePageViewDay(ctx context.Context, day string) error {
 
 const listAllPosts = `-- name: ListAllPosts :many
 
-SELECT id, slug, status, published_at, featured, cover_media_id, updated_at, scheduled_at FROM posts ORDER BY updated_at DESC, id DESC
+SELECT id, slug, status, published_at, featured, cover_media_id, updated_at, scheduled_at, author_id FROM posts ORDER BY updated_at DESC, id DESC
 `
 
 // ---------------------------------------------------------------------------
@@ -662,7 +767,35 @@ func (q *Queries) ListAllPosts(ctx context.Context) ([]Post, error) {
 			&i.CoverMediaID,
 			&i.UpdatedAt,
 			&i.ScheduledAt,
+			&i.AuthorID,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAllUserRoles = `-- name: ListAllUserRoles :many
+SELECT user_id, role FROM user_roles ORDER BY user_id, role
+`
+
+func (q *Queries) ListAllUserRoles(ctx context.Context) ([]UserRole, error) {
+	rows, err := q.db.QueryContext(ctx, listAllUserRoles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []UserRole{}
+	for rows.Next() {
+		var i UserRole
+		if err := rows.Scan(&i.UserID, &i.Role); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1037,7 +1170,7 @@ func (q *Queries) ListPostTranslations(ctx context.Context, postID int64) ([]Pos
 }
 
 const listPublishedPosts = `-- name: ListPublishedPosts :many
-SELECT id, slug, status, published_at, featured, cover_media_id, updated_at, scheduled_at
+SELECT id, slug, status, published_at, featured, cover_media_id, updated_at, scheduled_at, author_id
 FROM posts
 WHERE status = 'published'
 ORDER BY published_at DESC, id DESC
@@ -1061,6 +1194,7 @@ func (q *Queries) ListPublishedPosts(ctx context.Context) ([]Post, error) {
 			&i.CoverMediaID,
 			&i.UpdatedAt,
 			&i.ScheduledAt,
+			&i.AuthorID,
 		); err != nil {
 			return nil, err
 		}
@@ -1076,7 +1210,7 @@ func (q *Queries) ListPublishedPosts(ctx context.Context) ([]Post, error) {
 }
 
 const listPublishedPostsByTopic = `-- name: ListPublishedPostsByTopic :many
-SELECT p.id, p.slug, p.status, p.published_at, p.featured, p.cover_media_id, p.updated_at, p.scheduled_at
+SELECT p.id, p.slug, p.status, p.published_at, p.featured, p.cover_media_id, p.updated_at, p.scheduled_at, p.author_id
 FROM posts p
 JOIN post_topics pt ON pt.post_id = p.id
 WHERE pt.topic_id = ? AND p.status = 'published'
@@ -1101,6 +1235,7 @@ func (q *Queries) ListPublishedPostsByTopic(ctx context.Context, topicID int64) 
 			&i.CoverMediaID,
 			&i.UpdatedAt,
 			&i.ScheduledAt,
+			&i.AuthorID,
 		); err != nil {
 			return nil, err
 		}
@@ -1259,8 +1394,51 @@ func (q *Queries) ListTopics(ctx context.Context) ([]Topic, error) {
 	return items, nil
 }
 
+const listUserRoles = `-- name: ListUserRoles :many
+
+SELECT user_id, role FROM user_roles WHERE user_id IN (/*SLICE:user_ids*/?) ORDER BY user_id, role
+`
+
+// ---------------------------------------------------------------------------
+// Rollen, Profil und Autoren (Ticket #64)
+// ---------------------------------------------------------------------------
+// Rollen der Konten. Ein Konto ohne Eintrag (angelegt von einer Version vor #64, etwa nach einem Rollback)
+// behaelt seine Rolle aus der alten Spalte users.role. Das uebernimmt der Dienst.
+func (q *Queries) ListUserRoles(ctx context.Context, userIds []int64) ([]UserRole, error) {
+	query := listUserRoles
+	var queryParams []interface{}
+	if len(userIds) > 0 {
+		for _, v := range userIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:user_ids*/?", strings.Repeat(",?", len(userIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:user_ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []UserRole{}
+	for rows.Next() {
+		var i UserRole
+		if err := rows.Scan(&i.UserID, &i.Role); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, password_hash, role, active, created_at FROM users ORDER BY email
+SELECT id, email, password_hash, role, active, created_at, display_name, avatar_media_id FROM users ORDER BY email
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -1279,6 +1457,8 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Role,
 			&i.Active,
 			&i.CreatedAt,
+			&i.DisplayName,
+			&i.AvatarMediaID,
 		); err != nil {
 			return nil, err
 		}
@@ -1391,6 +1571,24 @@ func (q *Queries) SetPageViewIdentity(ctx context.Context, arg SetPageViewIdenti
 	return err
 }
 
+const setPostAuthor = `-- name: SetPostAuthor :execrows
+UPDATE posts SET author_id = ?, updated_at = ? WHERE id = ?
+`
+
+type SetPostAuthorParams struct {
+	AuthorID  sql.NullInt64
+	UpdatedAt string
+	ID        int64
+}
+
+func (q *Queries) SetPostAuthor(ctx context.Context, arg SetPostAuthorParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setPostAuthor, arg.AuthorID, arg.UpdatedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const setPostCover = `-- name: SetPostCover :execrows
 UPDATE posts SET cover_media_id = ?, updated_at = ? WHERE id = ?
 `
@@ -1420,6 +1618,71 @@ type SetUserActiveParams struct {
 
 func (q *Queries) SetUserActive(ctx context.Context, arg SetUserActiveParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, setUserActive, arg.Active, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const setUserAvatar = `-- name: SetUserAvatar :execrows
+UPDATE users SET avatar_media_id = ? WHERE id = ?
+`
+
+type SetUserAvatarParams struct {
+	AvatarMediaID sql.NullInt64
+	ID            int64
+}
+
+func (q *Queries) SetUserAvatar(ctx context.Context, arg SetUserAvatarParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setUserAvatar, arg.AvatarMediaID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const setUserDisplayName = `-- name: SetUserDisplayName :execrows
+UPDATE users SET display_name = ? WHERE id = ?
+`
+
+type SetUserDisplayNameParams struct {
+	DisplayName string
+	ID          int64
+}
+
+func (q *Queries) SetUserDisplayName(ctx context.Context, arg SetUserDisplayNameParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setUserDisplayName, arg.DisplayName, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const setUserLegacyRole = `-- name: SetUserLegacyRole :exec
+UPDATE users SET role = ? WHERE id = ?
+`
+
+type SetUserLegacyRoleParams struct {
+	Role string
+	ID   int64
+}
+
+func (q *Queries) SetUserLegacyRole(ctx context.Context, arg SetUserLegacyRoleParams) error {
+	_, err := q.db.ExecContext(ctx, setUserLegacyRole, arg.Role, arg.ID)
+	return err
+}
+
+const setUserPassword = `-- name: SetUserPassword :execrows
+UPDATE users SET password_hash = ? WHERE id = ?
+`
+
+type SetUserPasswordParams struct {
+	PasswordHash string
+	ID           int64
+}
+
+func (q *Queries) SetUserPassword(ctx context.Context, arg SetUserPasswordParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setUserPassword, arg.PasswordHash, arg.ID)
 	if err != nil {
 		return 0, err
 	}

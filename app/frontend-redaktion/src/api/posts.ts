@@ -59,7 +59,8 @@ type Action =
   | { kind: 'save'; id: number; input: PostInput }
   | { kind: 'publish' | 'unpublish' | 'unschedule' | 'removeCover'; id: number }
   | { kind: 'setCover'; id: number; file: File }
-  | { kind: 'schedule'; id: number; publishAt: string };
+  | { kind: 'schedule'; id: number; publishAt: string }
+  | { kind: 'setAuthor'; id: number; authorId: number | null };
 
 /** Speichern, Veröffentlichen, Zurücknehmen und Planen (Ticket #23). Danach sind Liste und Beitrag aktuell. */
 export const usePostAction = () => {
@@ -92,6 +93,8 @@ export const usePostAction = () => {
               },
             }),
           );
+        case 'setAuthor':
+          return unwrap(client.PUT('/api/admin/posts/{id}/author', { params: { path: { id: a.id } }, body: { authorId: a.authorId } }));
         case 'removeCover':
           return unwrap(client.DELETE('/api/admin/posts/{id}/cover', { params: { path: { id: a.id } } }));
       }
@@ -118,3 +121,13 @@ export const useDeletePost = () => {
     },
   });
 };
+
+export type AuthorOption = components['schemas']['AuthorOption'];
+
+/** Als Autor wählbare Konten: aktiv, Rolle Redakteur oder Admin (Ticket #64). */
+export const useAuthors = () =>
+  useQuery({
+    queryKey: ['admin', 'authors'],
+    queryFn: () => unwrap(client.GET('/api/admin/authors')).then((d) => d.items),
+    staleTime: 60_000,
+  });

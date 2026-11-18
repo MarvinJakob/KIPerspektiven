@@ -109,7 +109,7 @@ INSERT INTO sessions (id, user_id, csrf_token, expires_at, created_at)
 VALUES (?, ?, ?, ?, ?);
 
 -- name: GetSession :one
-SELECT s.id, s.user_id, s.csrf_token, s.expires_at, u.email, u.role, u.active
+SELECT s.id, s.user_id, s.csrf_token, s.expires_at, u.email, u.role, u.active, u.display_name
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.id = ?;
@@ -137,7 +137,7 @@ SELECT * FROM posts WHERE id = ?;
 SELECT id FROM posts WHERE slug = ?;
 
 -- name: CreatePost :execlastid
-INSERT INTO posts (slug, status, featured, updated_at) VALUES (?, 'draft', ?, ?);
+INSERT INTO posts (slug, status, featured, author_id, updated_at) VALUES (?, 'draft', ?, ?, ?);
 
 -- name: UpdatePost :execrows
 UPDATE posts SET slug = ?, featured = ?, updated_at = ? WHERE id = ?;
@@ -294,3 +294,49 @@ INSERT INTO contact_messages (name, company, email, message, lang, received_at) 
 
 -- name: ListContactMessages :many
 SELECT id, name, company, email, message, lang, received_at FROM contact_messages ORDER BY received_at DESC, id DESC;
+
+-- ---------------------------------------------------------------------------
+-- Rollen, Profil und Autoren (Ticket #64)
+-- ---------------------------------------------------------------------------
+
+-- Rollen der Konten. Ein Konto ohne Eintrag (angelegt von einer Version vor #64, etwa nach einem Rollback)
+-- behaelt seine Rolle aus der alten Spalte users.role. Das uebernimmt der Dienst.
+-- name: ListUserRoles :many
+SELECT user_id, role FROM user_roles WHERE user_id IN (sqlc.slice('user_ids')) ORDER BY user_id, role;
+
+-- name: ListAllUserRoles :many
+SELECT user_id, role FROM user_roles ORDER BY user_id, role;
+
+-- name: InsertUserRole :exec
+INSERT INTO user_roles (user_id, role) VALUES (?, ?);
+
+-- name: DeleteUserRoles :exec
+DELETE FROM user_roles WHERE user_id = ?;
+
+-- name: SetUserLegacyRole :exec
+UPDATE users SET role = ? WHERE id = ?;
+
+-- name: SetUserDisplayName :execrows
+UPDATE users SET display_name = ? WHERE id = ?;
+
+-- name: SetUserAvatar :execrows
+UPDATE users SET avatar_media_id = ? WHERE id = ?;
+
+-- name: SetUserPassword :execrows
+UPDATE users SET password_hash = ? WHERE id = ?;
+
+-- name: DeleteOtherUserSessions :exec
+DELETE FROM sessions WHERE user_id = ? AND id <> ?;
+
+-- name: GetUserAvatar :one
+SELECT m.id, m.storage_key, m.mime_type, m.width, m.height
+FROM users u JOIN media m ON m.id = u.avatar_media_id
+WHERE u.id = ?;
+
+-- name: SetPostAuthor :execrows
+UPDATE posts SET author_id = ?, updated_at = ? WHERE id = ?;
+
+-- name: GetPublicAuthor :one
+SELECT u.display_name, m.storage_key, m.mime_type, m.width, m.height
+FROM users u LEFT JOIN media m ON m.id = u.avatar_media_id
+WHERE u.id = ?;

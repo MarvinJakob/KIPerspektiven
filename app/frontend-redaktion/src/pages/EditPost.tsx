@@ -1,9 +1,10 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
-import { ApiError } from '../api/client';
+import { ApiError, useMe } from '../api/client';
 import {
   LANGS,
   LANG_NAMES,
+  useAuthors,
   usePostAction,
   useEditorPost,
   useTopics,
@@ -15,6 +16,9 @@ import { Loading, Page } from '../components/Layout';
 import { StatusBadge, formatDate, formatWithZone, resolveLocalInput, toLocalInput } from '../components/PostParts';
 
 import { AMBIGUOUS, NONEXISTENT, coverProblem, hasText, toForm, toInput, type Form } from '../lib/postForm';
+
+/** Wert des Autorenfelds: Konto-ID als Text oder '' für „Kein Autor“. */
+const authorValue = (p: EditorPost) => (p.authorId != null ? String(p.authorId) : '');
 
 interface Notice {
   text: string;
@@ -47,6 +51,10 @@ function Editor({ post }: { post?: EditorPost }) {
   const location = useLocation();
   const action = usePostAction();
   const { data: topics } = useTopics();
+  const { data: me } = useMe();
+  const { data: authors } = useAuthors();
+  // Autor (Ticket #64): Ein neuer Beitrag erhält das anlegende Konto; '' bedeutet „Kein Autor“.
+  const [author, setAuthor] = useState<string>(() => (post ? authorValue(post) : String(me?.id ?? '')));
   const [form, setForm] = useState<Form>(() => toForm(post));
   const [baseline, setBaseline] = useState(() => JSON.stringify(toInput(toForm(post))));
   const [lang, setLang] = useState<Lang>('de');
@@ -59,11 +67,12 @@ function Editor({ post }: { post?: EditorPost }) {
   const resolved = resolveLocalInput(scheduleValue);
   const ids = {
     slug: useId(), title: useId(), summary: useId(), body: useId(), error: useId(), schedule: useId(), scheduleHint: useId(),
-    cover: useId(), coverHint: useId(), coverAlt: useId(), coverAltHint: useId(),
+    cover: useId(), coverHint: useId(), coverAlt: useId(), coverAltHint: useId(), author: useId(), authorHint: useId(),
   };
   const coverInput = useRef<HTMLInputElement>(null);
 
   const dirty = JSON.stringify(toInput(form)) !== baseline;
+  const authorDirty = Boolean(post) && author !== authorValue(post!);
   const published = post?.status === 'published';
   const busy = action.isPending;
 
@@ -108,6 +117,7 @@ function Editor({ post }: { post?: EditorPost }) {
         return;
       }
       setForm(toForm(saved));
+      setAuthor(authorValue(saved));
       setBaseline(JSON.stringify(toInput(toForm(saved))));
       setScheduleValue(saved.scheduledAt ? toLocalInput(saved.scheduledAt) : '');
       setScheduleChoice(saved.scheduledAt ?? null);
@@ -117,9 +127,20 @@ function Editor({ post }: { post?: EditorPost }) {
     }
   };
 
+  // Speichert eine geänderte Autorenzuordnung nach den Texten (eigener Endpunkt, Ticket #64).
+  const applyAuthor = (target: EditorPost) =>
+    author === authorValue(target)
+      ? Promise.resolve(target)
+      : action.mutateAsync({ kind: 'setAuthor', id: target.id, authorId: author ? Number(author) : null });
+
   const save = () =>
     run(
-      () => (post ? action.mutateAsync({ kind: 'save', id: post.id, input: toInput(form) }) : action.mutateAsync({ kind: 'create', input: toInput(form) })),
+      async () =>
+        applyAuthor(
+          await (post
+            ? action.mutateAsync({ kind: 'save', id: post.id, input: toInput(form) })
+            : action.mutateAsync({ kind: 'create', input: toInput(form) })),
+        ),
       { text: published ? 'Änderungen gespeichert. Die Webseite zeigt jetzt die neue Fassung.' : 'Gespeichert. Der Beitrag bleibt „In Arbeit“.' },
     );
 
@@ -129,6 +150,7 @@ function Editor({ post }: { post?: EditorPost }) {
         let target = post;
         if (!target) target = await action.mutateAsync({ kind: 'create', input: toInput(form) });
         else if (dirty) target = await action.mutateAsync({ kind: 'save', id: target.id, input: toInput(form) });
+        target = await applyAuthor(target);
         return action.mutateAsync({ kind: 'publish', id: target.id });
       },
       { text: 'Veröffentlicht. Der Beitrag erscheint jetzt im Blog und auf den zugeordneten Themenseiten.' },
@@ -357,6 +379,24 @@ function Editor({ post }: { post?: EditorPost }) {
         </section>
 
         <div className="card">
+          <div className="field">
+            <label htmlFor={ids.author}>Autor</label>
+            <select id={ids.author} value={author} onChange={(e) => setAuthor(e.target.value)} aria-describedby={ids.authorHint}>
+              <option value="">Kein Autor</option>
+              {authors?.map((a) => (
+                <option key={a.id} value={String(a.id)}>
+                  {a.displayName ? `${a.displayName} (${a.email})` : a.email}
+                </option>
+              ))}
+              {author && authors && !authors.some((a) => String(a.id) === author) && (
+                <option value={author}>Bisheriger Autor (nicht mehr wählbar)</option>
+              )}
+            </select>
+            <span className="field-hint" id={ids.authorHint}>
+              Name und Profilbild des Autors erscheinen auf der Beitragsseite, sobald im Profil ein Name gepflegt ist. Die
+              Änderung gilt beim Speichern.
+            </span>
+          </div>
           <fieldset className="field">
             <legend>Themen</legend>
             <div className="checks">
@@ -496,7 +536,7 @@ function Editor({ post }: { post?: EditorPost }) {
                   Veröffentlichung zurücknehmen
                 </button>
               )}
-              <button type="submit" className="btn btn-secondary press" disabled={busy || (Boolean(post) && !dirty)}>
+              <button type="submit" className="btn btn-secondary press" disabled={busy || (Boolean(post) && !dirty && !authorDirty)}>
                 {published ? 'Änderungen speichern' : 'Speichern'}
               </button>
               {!published && (

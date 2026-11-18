@@ -79,6 +79,8 @@ Danach die erste Version wie unter [Neue Version bereitstellen](#neue-version-be
 cd /opt/ki-web && docker compose exec -it backend /server user create --email ADRESSE --role admin
 ```
 
+`--role` nimmt seit Ticket #64 auch mehrere Rollen kommagetrennt an (`admin`, `editor`, `marketing`).
+
 ## Automatisches Deployment
 
 Die Prüfung ist zweistufig:
@@ -134,6 +136,8 @@ app/deploy/deploy.sh switch VERSION
 2. Vor dem Release eine Kopie der Datenbank anlegen:
    `cd /opt/ki-web && docker compose exec -T backend /server backup /data/db/vor-VERSION.db`
 3. Ist eine Migration nicht additiv oder startet die alte Version nach dem Rollback nicht, die Kopie wie unter [Sicherung und Wiederherstellung](#sicherung-und-wiederherstellung) einspielen. Änderungen seit dem Release gehen dabei verloren.
+
+**Rollback hinter Ticket #64 (Migration `00020`):** Versionen vor #64 kennen nur die Spalte `users.role` (`admin` oder `editor`) und ignorieren `user_roles`. Reine Marketing-Konten stehen dort als `editor` und erhielten nach einem solchen Rollback Redakteursrechte (Beiträge, Statistik, Nachrichten, Beratungsanfragen). Vor einem Rollback auf eine Version vor #64 deshalb alle Konten mit ausschließlich der Rolle Marketing in der Benutzerverwaltung deaktivieren und nach dem erneuten Update wieder aktivieren. Konten, die eine alte Version anlegt, behalten nach dem Update ihre Rolle aus `users.role`.
 
 ## Healthcheck und Status
 

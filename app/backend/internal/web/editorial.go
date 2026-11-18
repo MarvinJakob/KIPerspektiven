@@ -58,13 +58,18 @@ func (e *Editorial) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET "+Base+"/", e.page)
 }
 
-// HomeFor ist die Startseite nach der Anmeldung: Beitragsliste für die Redaktion,
-// Benutzerverwaltung für Admin-Konten (Anforderung 6).
-func HomeFor(role service.Role) string {
-	if role.CanManageUsers() {
+// HomeFor ist die Startseite nach der Anmeldung (Anforderung 6, Ticket #64): Benutzerverwaltung für Admins,
+// Beitragsliste für Redakteure, Statistik für reine Marketing-Konten.
+func HomeFor(roles service.Roles) string {
+	switch {
+	case roles.CanManageUsers():
 		return Base + "/benutzer"
+	case roles.CanEditPosts():
+		return Base
+	case roles.CanViewInsights():
+		return Base + "/statistik"
 	}
-	return Base
+	return Base + "/profil"
 }
 
 // SafeTarget prüft ein Ziel nach der Anmeldung (Parameter „weiter“, Ticket #49). Erlaubt sind nur
@@ -94,11 +99,28 @@ func (e *Editorial) assets(w http.ResponseWriter, r *http.Request) {
 type access int
 
 const (
-	accessUnknown access = iota // unbekannte Seite
-	accessPublic                // Anmeldung
-	accessEditor                // Beiträge und Statistik
-	accessAdmin                 // Benutzerverwaltung
+	accessUnknown  access = iota // unbekannte Seite
+	accessPublic                 // Anmeldung
+	accessPosts                  // Beitragssystem (Admin, Redakteur)
+	accessInsights               // Statistik, Nachrichten, Beratungsanfragen (Admin, Marketing)
+	accessAdmin                  // Benutzerverwaltung (Admin)
+	accessProfile                // eigenes Profil (jedes Konto, Ticket #64)
 )
+
+// permits meldet, ob Konten mit diesen Rollen die Seite öffnen dürfen (Rollentabelle aus Ticket #64).
+func (a access) permits(roles service.Roles) bool {
+	switch a {
+	case accessPublic, accessProfile:
+		return true
+	case accessPosts:
+		return roles.CanEditPosts()
+	case accessInsights:
+		return roles.CanViewInsights()
+	case accessAdmin:
+		return roles.CanManageUsers()
+	}
+	return false
+}
 
 // postPath erkennt die Bearbeitungsseite eines Beitrags, z. B. beitraege/12.
 var postPath = regexp.MustCompile(`^beitraege/[1-9][0-9]{0,17}$`)
@@ -109,17 +131,19 @@ func route(rest string) access {
 	case rest == "anmelden":
 		return accessPublic
 	case rest == "":
-		return accessEditor
+		return accessPosts
 	case rest == "beitraege/neu" || postPath.MatchString(rest):
-		return accessEditor
+		return accessPosts
 	case rest == "statistik": // Ticket #130
-		return accessEditor
+		return accessInsights
 	case rest == "nachrichten": // Anforderung #4
-		return accessEditor
+		return accessInsights
 	case rest == "beratungsanfragen": // Ticket #136
-		return accessEditor
+		return accessInsights
 	case rest == "benutzer":
 		return accessAdmin
+	case rest == "profil": // Ticket #64
+		return accessProfile
 	}
 	return accessUnknown
 }
@@ -151,7 +175,7 @@ func (e *Editorial) page(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case need == accessPublic && loggedIn:
 		// Bereits angemeldet: direkt zum gemerkten Ziel (Ticket #49) oder zur passenden Startseite.
-		dest := HomeFor(id.Role)
+		dest := HomeFor(id.Roles)
 		if t, ok := SafeTarget(r.URL.Query().Get("weiter")); ok {
 			dest = t
 		}
@@ -165,7 +189,7 @@ func (e *Editorial) page(w http.ResponseWriter, r *http.Request) {
 		return
 	case need == accessUnknown:
 		e.serve(w, r, http.StatusNotFound)
-	case need == accessAdmin && !id.Role.CanManageUsers(), need == accessEditor && !id.Role.CanEdit():
+	case !need.permits(id.Roles):
 		e.serve(w, r, http.StatusForbidden)
 	default:
 		e.serve(w, r, http.StatusOK)
