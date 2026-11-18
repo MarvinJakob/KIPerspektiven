@@ -1,9 +1,8 @@
-// Unit-Tests der Seitentexte „Softwareentwicklung“ (node:test, Node-Type-Stripping; `npm run test:unit`).
+// Unit-Tests der Seitentexte „Softwareentwicklung“ (Vitest, `npm run test:unit`). Fidelity: app/e2e/tests/37-*.spec.ts.
 // Anforderung #37: Der Beitrag endet mit dem Meinungsabschnitt; der Abschnitt „Weitere Perspektiven /
 // Mehr Themen.“ mit den Karten „Vibe Coding“ und „KI Readiness“ sowie „Alle Themen“ entfällt in DE und EN.
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { softwareDevelopment } from '../src/i18n/softwareDevelopment.ts';
+import { assert, test } from 'vitest';
+import { softwareDevelopment } from './softwareDevelopment';
 
 /** Sollwerte aus Ticket #37 (Screenshot) und der englischen Entsprechung, unabhängig vom Anwendungscode. */
 const removed = {
@@ -40,7 +39,7 @@ for (const lang of ['de', 'en'] as const) {
 
   test(`REQ-37-AC1: Meinungsabschnitt mit Kontaktmöglichkeit bleibt erhalten (${lang})`, () => {
     const c = softwareDevelopment[lang];
-    assert.equal(c.opinionTitle, lang === 'de' ? 'Würdest du auch so entwickeln?' : 'Would you develop like this too?');
-    assert.equal(c.contact, lang === 'de' ? 'Zum Kontaktformular' : 'Go to the contact form');
+    assert.strictEqual(c.opinionTitle, lang === 'de' ? 'Würdest du auch so entwickeln?' : 'Would you develop like this too?');
+    assert.strictEqual(c.contact, lang === 'de' ? 'Zum Kontaktformular' : 'Go to the contact form');
   });
 }
