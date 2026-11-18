@@ -94,31 +94,38 @@ for (const lang of ['de', 'en'] as const) {
     });
   });
 
-  test(`REQ-78-AC3: „merken“ bestätigt die Speicherung und / übernimmt Sprache und Darstellung (${lang})`, async ({ page }) => {
-    const s = SOLL[lang];
-    await page.goto(`/${lang}`);
-    const dialog = await openDialog(page, lang);
-    await dialog.getByRole('button', { name: s.remember, exact: true }).click();
-    await expect(dialog.locator('[aria-live="polite"]')).toHaveText(s.savedRemember);
-    await dialog.getByRole('button', { name: s.close, exact: true }).click();
+  test.describe(`Browsersprache ${lang}`, () => {
+    test.use({ locale: lang === 'de' ? 'de-DE' : 'en-US' });
+    test(`REQ-78-AC3: „merken“ bestätigt die Speicherung und / übernimmt Sprache und Darstellung (${lang})`, async ({ page }) => {
+      const s = SOLL[lang];
+      // Die Sprache wird nur bei ausdrücklicher Wahl gespeichert (REQ-24). Deshalb die jeweils
+      // andere Sprache als die Browsersprache wählen, damit / nur mit gespeicherter Wahl dorthin führt.
+      const other = lang === 'de' ? { lang: 'en', button: 'English', dark: 'Dark mode' } : { lang: 'de', button: 'Deutsch', dark: 'Dunkle Darstellung' };
+      await page.goto(`/${lang}`);
+      const dialog = await openDialog(page, lang);
+      await dialog.getByRole('button', { name: s.remember, exact: true }).click();
+      await expect(dialog.locator('[aria-live="polite"]')).toHaveText(s.savedRemember);
+      await dialog.getByRole('button', { name: s.close, exact: true }).click();
 
-    // Abweichend von der Browsersprache Deutsch: Englisch und dunkel einstellen.
-    if (lang === 'de') await page.getByRole('button', { name: 'English' }).click();
-    await expect(page).toHaveURL(/\/en\/?$/);
-    await page.getByRole('button', { name: 'Dark mode' }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+      await page.getByRole('button', { name: other.button }).click();
+      await expect(page).toHaveURL(new RegExp(`/${other.lang}/?$`));
+      await page.getByRole('button', { name: other.dark }).click();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-    await page.goto('/');
-    await expect(page).toHaveURL(/\/en\/?$/);
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+      await page.goto('/');
+      await expect(page).toHaveURL(new RegExp(`/${other.lang}/?$`));
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    });
   });
 
   test(`REQ-78-AC4: „nur für diesen Besuch“ bestätigt den Verzicht und / stellt nichts wieder her (${lang})`, async ({ page }) => {
-    // Ausgangslage: Englisch und dunkel sind gespeichert.
-    await page.goto('/en');
-    let dialog = await openDialog(page, 'en');
-    await dialog.getByRole('button', { name: SOLL.en.remember, exact: true }).click();
-    await dialog.getByRole('button', { name: SOLL.en.close, exact: true }).click();
+    // Ausgangslage bei Browsersprache Deutsch: Englisch und dunkel sind gespeichert.
+    await page.goto('/de');
+    let dialog = await openDialog(page, 'de');
+    await dialog.getByRole('button', { name: SOLL.de.remember, exact: true }).click();
+    await dialog.getByRole('button', { name: SOLL.de.close, exact: true }).click();
+    await page.getByRole('button', { name: 'English' }).click();
+    await expect(page).toHaveURL(/\/en\/?$/);
     await page.getByRole('button', { name: 'Dark mode' }).click();
     await page.goto('/');
     await expect(page).toHaveURL(/\/en\/?$/);

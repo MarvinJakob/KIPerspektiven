@@ -184,15 +184,16 @@ export const en: Messages = {
     revoke:
       'You can change your choice at any time via "Cookie settings" in the footer. Withdrawal takes effect on click and removes our stored entries. No data is transferred to third countries.',
     details: 'More in the privacy policy',
-    none: 'Store no cookies',
-    necessary: 'Necessary cookies only',
+    none: 'For this visit only',
+    necessary: 'Remember language and appearance',
     all: 'Accept all cookies',
     saved: {
-      none: 'Chosen: no cookies. Nothing is stored.',
-      necessary: 'Chosen: necessary cookies only. Kept for at most 180 days.',
+      none: 'Chosen: for this visit only. The website will not reuse your language and appearance on your next visit.',
+      necessary:
+        'Chosen: remember language and appearance. The website remembers your language and appearance in this browser for future visits.',
       all: 'Chosen: all cookies. Kept for at most 180 days.',
     },
-    noneHint: 'This choice only lasts until the page is fully reloaded. You may need to choose again afterwards.',
+    noneHint: 'This choice only lasts until the page is fully reloaded. You can make it again here afterwards.',
     sessionHint: 'You are signed in to the editorial area. This sign-in stays active.',
     sessionLink: 'Go to the editorial area to sign out',
     close: 'Close',
