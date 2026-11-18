@@ -151,6 +151,10 @@ export const de = {
     sentTitle: 'Vielen Dank für deine Nachricht',
     sent: 'Deine Nachricht ist eingegangen. Wir melden uns per E-Mail an {{email}}.',
     another: 'Weitere Nachricht schreiben',
+    // Anforderung #77: Restlänge und Hinweis beim gekürzten Einfügen im Nachrichtenfeld.
+    remaining_one: '{{count}} Zeichen verbleibt',
+    remaining_other: '{{count}} Zeichen verbleiben',
+    truncated: 'Der eingefügte Text wurde gekürzt, weil eine Nachricht höchstens 5.000 Zeichen lang sein darf.',
   },
   footer: {
     tagline: 'Perspektiven und Erfahrungen rund um künstliche Intelligenz.',
