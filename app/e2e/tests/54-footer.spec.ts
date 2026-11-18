@@ -16,7 +16,7 @@ const SOLL = {
     ],
     siteNav: 'Website',
     pages: [
-      ['Blog', '/de/blog'],
+      ['News', '/de/blog'],
       ['Kontakt', '/de/kontakt'],
       ['Impressum', '/de/impressum'],
       ['Datenschutz', '/de/datenschutz'],
@@ -35,7 +35,7 @@ const SOLL = {
     ],
     siteNav: 'Website',
     pages: [
-      ['Blog', '/en/blog'],
+      ['News', '/en/blog'],
       ['Contact', '/en/kontakt'],
       ['Legal notice', '/en/impressum'],
       ['Privacy', '/en/datenschutz'],
