@@ -76,12 +76,12 @@ test('REQ-84-AC2 AC3 AC4: Geänderte Minute gilt öffentlich, aufgehobener Termi
       expect((await request.get(path)).status()).toBe(404);
     }
   }
-  await expect.poll(async () => {
-    const before = Date.now();
-    const status = (await request.get(`/api/posts/${post.slug}?lang=de`)).status();
-    if (status === 200) expect(Date.now()).toBeGreaterThanOrEqual(due);
-    return status === 200 && before < due + 60_000;
-  }, { timeout: due + 60_000 - Date.now(), intervals: [1000] }).toBe(true);
+  await expect.poll(async () => (await request.get(`/api/posts/${post.slug}?lang=de`)).status(), {
+    timeout: due + 60_000 - Date.now(), intervals: [1000],
+  }).toBe(200);
+  const firstVisible = Date.now();
+  expect(firstVisible).toBeGreaterThanOrEqual(due);
+  expect(firstVisible).toBeLessThan(due + 60_000);
   const published = await (await editor.get(`/api/admin/posts/${post.id}`)).json();
   expect(Date.parse(published.publishedAt)).toBe(due);
   for (const lang of ['de', 'en']) {
