@@ -21,6 +21,9 @@ interface Notice {
   undo?: boolean; // „Rückgängig“ nach dem Zurücknehmen anbieten
 }
 
+// Die Radio-Optionen verwenden ISO mit Millisekunden, die API liefert ganze Sekunden.
+const scheduleOption = (at?: string | null) => at ? new Date(at).toISOString() : null;
+
 /** Beitrag anlegen oder bearbeiten (Anforderung 5). „neu“ legt beim ersten Speichern einen Beitrag „In Arbeit“ an. */
 export function EditPostPage() {
   const { id: param } = useParams();
@@ -55,7 +58,7 @@ function Editor({ post }: { post?: EditorPost }) {
   const [confirmUnpublish, setConfirmUnpublish] = useState(false);
   const [scheduleValue, setScheduleValue] = useState(() => (post?.scheduledAt ? toLocalInput(post.scheduledAt) : ''));
   // Bei doppeldeutiger Ortszeit (Ende der Sommerzeit) wählt die Redaktion den gemeinten Zeitpunkt (Ticket #32).
-  const [scheduleChoice, setScheduleChoice] = useState<string | null>(null);
+  const [scheduleChoice, setScheduleChoice] = useState(() => scheduleOption(post?.scheduledAt));
   const resolved = resolveLocalInput(scheduleValue);
   const ids = {
     slug: useId(), title: useId(), summary: useId(), body: useId(), error: useId(), schedule: useId(), scheduleHint: useId(),
@@ -110,7 +113,7 @@ function Editor({ post }: { post?: EditorPost }) {
       setForm(toForm(saved));
       setBaseline(JSON.stringify(toInput(toForm(saved))));
       setScheduleValue(saved.scheduledAt ? toLocalInput(saved.scheduledAt) : '');
-      setScheduleChoice(saved.scheduledAt ?? null);
+      setScheduleChoice(scheduleOption(saved.scheduledAt));
       setNotice(success);
     } catch (e) {
       setError(errorText(e));
