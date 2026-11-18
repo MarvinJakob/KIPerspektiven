@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # Aufgaben-Sperre für parallele Agenten auf diesem Gerät (AGENTS.md, „Gemeinsame Regeln“).
 #
-#   tools/task.sh claim  <team> <issue>             Aufgabe belegen: Branch <team>/<issue> und Worktree
-#                                                   .worktrees/<team>-<issue> aus origin/main, Label in-progress
-#   tools/task.sh finish <team> <issue> [--abandon] Aufgabe abschließen: Worktree, lokalen und Remote-Branch
+#   tools/task.sh claim  <branch_kind> <issue>             Aufgabe belegen: Branch <branch_kind>/<issue> und Worktree
+#                                                   .worktrees/<branch_kind>-<issue> aus origin/main, Label in-progress
+#   tools/task.sh finish <branch_kind> <issue> [--abandon] Aufgabe abschließen: Worktree, lokalen und Remote-Branch
 #                                                   entfernen, Label in-progress entfernen
 #   tools/task.sh list                              belegte Aufgaben anzeigen
-#   tools/task.sh pause <team> <issue>              sauberen Zwischenstand zur Übernahme freigeben
-#   tools/task.sh resume <team> <issue>             freigegebene Aufgabe atomar übernehmen
+#   tools/task.sh pause <branch_kind> <issue>              sauberen Zwischenstand zur Übernahme freigeben
+#   tools/task.sh resume <branch_kind> <issue>             freigegebene Aufgabe atomar übernehmen
 #
 # AGENT_ID ist eine eindeutige Sitzungs-ID (bei Codex automatisch CODEX_THREAD_ID).
 # pause löscht weder Branch noch Worktree. Fragen und Übergabe vorher im Issue dokumentieren.
 #
-# team: spec (Team 1), verify (Team 2), fix (Team 3), maint (ausdrücklicher Wartungsauftrag).
+# Branchtypen: spec, verify, fix und maint.
 # maint verwendet codex/maint-<issue>; issue: Nummer des GitHub-Issues (REQ-0: 0).
 #
 # Exitcodes von claim: 0 belegt (Pfad des Worktrees in der letzten Zeile), 2 bereits von einem anderen
@@ -24,18 +24,18 @@ REPO=MarvinJakob/KIPerspektiven
 die() { echo "FEHLER: $*" >&2; exit 1; }
 
 cmd=${1:-}
-team=${2:-}
+branch_kind=${2:-}
 issue=${3:-}
 root=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
 agent_id=${AGENT_ID:-${CODEX_THREAD_ID:-${CODEX_SESSION_ID:-}}}
 
 check_args() {
-  [[ "$team" =~ ^(spec|verify|fix|maint)$ ]] || die "team muss spec, verify, fix oder maint sein"
+  [[ "$branch_kind" =~ ^(spec|verify|fix|maint)$ ]] || die "branch_kind muss spec, verify, fix oder maint sein"
   [[ "$issue" =~ ^[0-9]+$ ]] || die "issue muss eine Nummer sein"
-  branch="$team/$issue"
-  if [[ "$team" == maint ]]; then branch="codex/maint-$issue"; fi
-  dir="$root/.worktrees/$team-$issue"
-  state="$(git rev-parse --path-format=absolute --git-common-dir)/agent-tasks/$team-$issue"
+  branch="$branch_kind/$issue"
+  if [[ "$branch_kind" == maint ]]; then branch="codex/maint-$issue"; fi
+  dir="$root/.worktrees/$branch_kind-$issue"
+  state="$(git rev-parse --path-format=absolute --git-common-dir)/agent-tasks/$branch_kind-$issue"
 }
 
 identity() {
@@ -45,7 +45,7 @@ identity() {
 lock_task() {
   # Git-CAS sperrt im gemeinsamen Repository, auch zwischen unterschiedlichen Shells/Worktrees.
   # Ein eigener Objektwert verhindert, dass ein später Cleanup eine fremde Sperre entfernt.
-  operation_ref="refs/agent-task-locks/$team-$issue"
+  operation_ref="refs/agent-task-locks/$branch_kind-$issue"
   operation_oid=$(printf '%s\n%s\n%s\n%s\n' "$agent_id" "$BASHPID" "$RANDOM" "$RANDOM" | git -C "$root" hash-object -w --stdin)
   if ! git -C "$root" update-ref "$operation_ref" "$operation_oid" 0000000000000000000000000000000000000000 2> /dev/null; then
     if git -C "$root" show-ref --verify --quiet "$operation_ref"; then
@@ -124,7 +124,7 @@ case "$cmd" in
     label add
     echo "Fortgesetzt durch $agent_id: $branch"
     if [[ -f "$state/finishing-head" ]]; then
-      echo "Nur Abschluss fortsetzen: tools/task.sh finish $team $issue"
+      echo "Nur Abschluss fortsetzen: tools/task.sh finish $branch_kind $issue"
       pwd
     else
       echo "$dir"

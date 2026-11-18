@@ -2,8 +2,7 @@ import { pathToFileURL } from 'node:url';
 import { api, repository } from './github.mjs';
 import { liveFeatureEvidence, checkFeatureEvidence } from './feature-links.mjs';
 
-// Ein Baseline-PR von Team 2 ändert nur fidelity/baseline.txt (Job „Team-Grenzen“), und der Job „Fidelity“
-// weist nach, dass die ergänzten IDs bestehen. Ein zusätzliches Agenten-Review prüft dort nichts Weiteres.
+// Historische verify-Branches führen nur die Baseline.
 export function reviewRequired(branch) { return !/^verify\/\d+$/.test(branch); }
 
 export function checkReview(body, head, evidence, featureFixes = []) {
@@ -40,7 +39,7 @@ export function checkReview(body, head, evidence, featureFixes = []) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     if (!reviewRequired(process.env.BRANCH ?? '')) {
-      console.log('Baseline-PR von Team 2: Team-Grenzen und Fidelity-Job weisen die Änderung nach, kein Agenten-Review nötig.');
+      console.log('Historischer Baseline-PR erkannt.');
       process.exit(0);
     }
     const pr = process.env.PR_NUMBER;

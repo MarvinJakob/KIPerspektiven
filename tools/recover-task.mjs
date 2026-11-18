@@ -4,19 +4,19 @@ import { join } from 'node:path';
 import { api, repository, command } from './github.mjs';
 
 try {
-  const [team, number, commentId] = process.argv.slice(2);
-  if (!/^(spec|verify|fix|maint)$/.test(team ?? '') || !/^\d+$/.test(number ?? '') || !/^\d+$/.test(commentId ?? '')) {
-    throw new Error('Aufruf: node tools/recover-task.mjs <team> <issue> <Freigabe-Kommentar-ID>');
+  const [branchKind, number, commentId] = process.argv.slice(2);
+  if (!/^(spec|verify|fix|maint)$/.test(branchKind ?? '') || !/^\d+$/.test(number ?? '') || !/^\d+$/.test(commentId ?? '')) {
+    throw new Error('Aufruf: node tools/recover-task.mjs <branchKind> <issue> <Freigabe-Kommentar-ID>');
   }
   const common = command('git', ['rev-parse', '--path-format=absolute', '--git-common-dir']);
-  const state = join(common, 'agent-tasks', `${team}-${number}`);
+  const state = join(common, 'agent-tasks', `${branchKind}-${number}`);
   const owner = existsSync(join(state, 'active/owner')) ? readFileSync(join(state, 'active/owner'), 'utf8').trim() : 'legacy';
-  const ref = `refs/agent-task-locks/${team}-${number}`;
+  const ref = `refs/agent-task-locks/${branchKind}-${number}`;
   const lock = command('git', ['for-each-ref', '--format=%(objectname)', ref]) || 'none';
   const approval = api(`repos/${repository}/issues/comments/${commentId}`);
   const permission = api(`repos/${repository}/collaborators/${encodeURIComponent(approval.user.login)}/permission`).permission;
   if (permission !== 'admin' || !approval.issue_url.endsWith(`/issues/${number}`)) throw new Error('Freigabe muss vom Maintainer am betreffenden Issue stammen.');
-  const marker = `Recover-Task: ${team}/${number}\nOwner: ${owner}\nOperation-Lock: ${lock}`;
+  const marker = `Recover-Task: ${branchKind}/${number}\nOwner: ${owner}\nOperation-Lock: ${lock}`;
   if (!approval.body.replaceAll('\r\n', '\n').includes(marker)) throw new Error(`Freigabe muss den aktuellen Zustand benennen:\n${marker}`);
   if (existsSync(join(state, 'heartbeat')) && Number(readFileSync(join(state, 'heartbeat'), 'utf8')) * 1000 > Date.parse(approval.created_at)) {
     throw new Error('Nach der Freigabe gab es ein Lebenszeichen; erneute Klärung nötig.');
