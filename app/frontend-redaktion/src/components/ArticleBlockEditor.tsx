@@ -77,8 +77,11 @@ export function ArticleBlockEditor({ blocks, onChange, onBusy }: {
     </fieldset>)}
     {error && <p role="alert">{error}</p>}
     <div className="article-actions">
-      <label>Baustein<select value={kind} onChange={e => setKind(e.target.value as Kind)}>{Object.entries(labels).map(([value, label]) =>
-        <option key={value} value={value}>{label}</option>)}</select></label>
+      <div><label htmlFor="article-block-kind">Baustein</label>
+        <select id="article-block-kind" value={kind} onChange={e => setKind(e.target.value as Kind)}>
+          {Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </div>
       <button type="button" onClick={() => onChange([...blocks, kind === 'ordered' || kind === 'unordered' ?
         { kind, items: [{ title: '' }] } : { kind }])}>Baustein hinzufügen</button>
     </div>
