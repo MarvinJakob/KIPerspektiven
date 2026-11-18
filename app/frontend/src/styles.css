@@ -669,6 +669,8 @@ svg { display: block; }
 .contact-status:empty { display: none; }
 .contact-hint { color: var(--text-2); font-size: .9375rem; line-height: 1.55; overflow-wrap: break-word; }
 .contact-hint a { color: var(--accent); font-weight: 650; }
+.contact-counter { color: var(--text-2); font-size: .9375rem; font-variant-numeric: tabular-nums; }
+.contact-truncated { color: var(--text); font-size: .9375rem; font-weight: 650; overflow-wrap: break-word; }
 .contact-done { display: grid; gap: 16px; justify-items: start; margin-top: 32px; }
 .contact-done p { line-height: 1.65; overflow-wrap: anywhere; }
 

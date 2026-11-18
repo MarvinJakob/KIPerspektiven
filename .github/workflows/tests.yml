@@ -49,6 +49,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      # tools/caddy-log.test.mjs prüft das Caddyfile mit genau dem Caddy-Image aus app/compose.yaml (#80).
+      - name: Caddy aus dem ausgelieferten Image bereitstellen
+        run: |
+          image=$(sed -n 's/^ *image: *\(caddy:[^ ]*\).*/\1/p' app/compose.yaml)
+          test -n "$image"
+          id=$(docker create "$image")
+          docker cp "$id:/usr/bin/caddy" "$RUNNER_TEMP/caddy"
+          docker rm "$id" > /dev/null
+          "$RUNNER_TEMP/caddy" version
+          echo "CADDY_BIN=$RUNNER_TEMP/caddy" >> "$GITHUB_ENV"
       - name: Unit-Tests für Prozesswerkzeuge
         run: node --test "tools/*.test.mjs"
 

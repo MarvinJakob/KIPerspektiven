@@ -81,8 +81,8 @@ test('REQ-26-AC3 REQ-26-AC4: absolute und IP-bereinigte Zählung, je Zeitraum un
 test('REQ-26-AC3: Navigation innerhalb der Webseite zählt nicht zusätzlich', async ({ page, marketing }) => {
   const before = (await pageViews(marketing)).total;
   await page.goto('/de');
-  await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'Blog' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Blog' })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'News', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'News' })).toBeVisible();
   await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'Profil' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Marvin Jakob' })).toBeVisible();
   expect((await pageViews(marketing)).total - before).toBe(1);

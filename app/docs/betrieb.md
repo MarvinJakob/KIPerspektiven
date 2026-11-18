@@ -167,7 +167,15 @@ docker compose logs --since 1h caddy
 docker compose exec caddy tail -n 50 /data/logs/access.log
 ```
 
-Das Backend schreibt JSON-Zeilen. Docker hält je Container höchstens fünf Dateien mit 10 MB. Das Zugriffsprotokoll von Caddy kürzt IP-Adressen und behält sieben Tage.
+Das Backend schreibt JSON-Zeilen ohne IP-Adressen. Docker hält je Container höchstens fünf Dateien mit 10 MB.
+
+Das Zugriffsprotokoll von Caddy kürzt `remote_ip` und `client_ip` (IPv4 /24, IPv6 /48) und lässt die Kopfzeilen `X-Forwarded-For`, `X-Real-Ip` und `Forwarded` weg. Es rotiert täglich und löscht rotierte Dateien nach fünf Tagen, sodass kein Eintrag älter als sieben Tage ist (Zusage der Datenschutzerklärung, #80). `roll_interval` braucht Caddy 2.11 oder neuer; deshalb ist das Image in `compose.yaml` auf eine feste Version gesetzt. `tools/caddy-log.test.mjs` prüft das mit genau diesem Image. Änderungen an `output` wirken erst nach einem Neustart von Caddy, nicht mit `caddy reload`.
+
+Bis zur Version mit #80 enthielt das Feld `client_ip` die vollständige IP-Adresse. Nach dem ersten Deployment mit #80 die Altbestände einmalig löschen; laufende Einträge gehen dabei verloren:
+
+```bash
+cd /opt/ki-web && docker compose exec caddy sh -c 'rm -f /data/logs/access-*.log* && : > /data/logs/access.log'
+```
 
 ## Sicherung und Wiederherstellung
 
