@@ -12,7 +12,7 @@ interface Consultation {
 const requests = async (s: Session) => ((await (await s.get('/api/admin/consultation-requests')).json()) as { items: Consultation[] }).items;
 const address = () => `beratung.${uid()}@example.org`;
 
-test('REQ-27-AC1 REQ-27-AC2: freiwillige Anfrage mit nur einer E-Mail-Adresse; gespeichert werden Adresse, Sprache und Zeitpunkt', async ({ page, editor }) => {
+test('REQ-27-AC1 REQ-27-AC2: freiwillige Anfrage mit nur einer E-Mail-Adresse; gespeichert werden Adresse, Sprache und Zeitpunkt', async ({ page, admin }) => {
   await completeAssessment(page, 'de');
   const offer = page.locator('section.consult');
   await expect(offer.getByRole('heading', { name: 'Kostenloses Beratungsgespräch anfragen' })).toBeVisible();
@@ -31,15 +31,15 @@ test('REQ-27-AC1 REQ-27-AC2: freiwillige Anfrage mit nur einer E-Mail-Adresse; g
   await expect(offer).toContainText(email.toUpperCase());
 
   expect(sent!.postDataJSON()).toEqual({ email: email.toUpperCase(), lang: 'de' });
-  const stored = (await requests(editor)).find((r) => r.email === email);
+  const stored = (await requests(admin)).find((r) => r.email === email);
   expect(stored).toBeDefined();
   expect(Object.keys(stored!).sort()).toEqual(['email', 'id', 'lang', 'requestedAt']);
   expect(stored!.lang).toBe('de');
   expect(Date.parse(stored!.requestedAt)).toBeGreaterThanOrEqual(start);
-  await editor.send('DELETE', `/api/admin/consultation-requests/${stored!.id}`);
+  await admin.send('DELETE', `/api/admin/consultation-requests/${stored!.id}`);
 });
 
-test('REQ-27-AC3: leere oder ungültige Adresse zeigt einen Feldfehler mit Fokus und speichert nichts', async ({ page, request, editor }) => {
+test('REQ-27-AC3: leere oder ungültige Adresse zeigt einen Feldfehler mit Fokus und speichert nichts', async ({ page, request, admin }) => {
   await completeAssessment(page, 'de');
   const field = page.locator('section.consult').getByLabel('E-Mail-Adresse');
   const submit = page.getByRole('button', { name: 'Anfrage senden' });
@@ -60,7 +60,7 @@ test('REQ-27-AC3: leere oder ungültige Adresse zeigt einen Feldfehler mit Fokus
   const bad = `kaputt.${uid()}@`;
   expect((await request.post('/api/consultation-requests', { data: { email: bad, lang: 'de' } })).status()).toBe(422);
   expect((await request.post('/api/consultation-requests', { data: { email: '', lang: 'de' } })).status()).toBe(422);
-  expect((await requests(editor)).some((r) => r.email.startsWith(bad))).toBe(false);
+  expect((await requests(admin)).some((r) => r.email.startsWith(bad))).toBe(false);
 });
 
 test('REQ-27-AC4: Server-, Netz- und Ratenfehler zeigen Meldungen, Adresse und Auswertung bleiben erhalten', async ({ page }) => {
@@ -87,23 +87,23 @@ test('REQ-27-AC4: das Backend begrenzt Anfragen je IP-Adresse (429 nach fünf An
   expect(statuses).toEqual([204, 204, 204, 204, 204, 429]);
 });
 
-test('REQ-27-AC5: Anfragen nur mit Sitzung, neueste zuerst', async ({ request, editor, admin }) => {
+test('REQ-27-AC5: Anfragen nur mit Sitzung, neueste zuerst', async ({ request, marketing, admin }) => {
   expect((await request.get('/api/admin/consultation-requests')).status()).toBe(401);
   expect((await request.delete('/api/admin/consultation-requests/1')).status()).toBe(401);
   const [first, second] = [address(), address()];
   for (const email of [first, second]) expect((await request.post('/api/consultation-requests', { data: { email, lang: 'en' } })).status()).toBe(204);
-  for (const s of [editor, admin]) {
+  for (const s of [marketing, admin]) {
     const mine = (await requests(s)).filter((r) => [first, second].includes(r.email));
     expect(mine.map((r) => r.email)).toEqual([second, first]);
     expect(mine.every((r) => r.lang === 'en')).toBe(true);
   }
-  for (const r of (await requests(editor)).filter((x) => [first, second].includes(x.email))) await editor.send('DELETE', `/api/admin/consultation-requests/${r.id}`);
+  for (const r of (await requests(admin)).filter((x) => [first, second].includes(x.email))) await admin.send('DELETE', `/api/admin/consultation-requests/${r.id}`);
 });
 
 test.describe('Verwaltung in der Redaktion', () => {
-  test.use({ storageState: AUTH.editor });
+  test.use({ storageState: AUTH.admin });
 
-  test('REQ-27-AC5 REQ-27-AC6: Liste mit Adresse, Sprache und Eingang; Löschen nur nach Bestätigung', async ({ page, request, editor }) => {
+  test('REQ-27-AC5 REQ-27-AC6: Liste mit Adresse, Sprache und Eingang; Löschen nur nach Bestätigung', async ({ page, request, admin }) => {
     const email = address();
     expect((await request.post('/api/consultation-requests', { data: { email, lang: 'de' } })).status()).toBe(204);
     await page.goto('/redaktion/beratungsanfragen');
@@ -119,16 +119,16 @@ test.describe('Verwaltung in der Redaktion', () => {
     await row.getByRole('button', { name: `Anfrage von ${email} löschen` }).click();
     await row.getByRole('button', { name: 'Abbrechen' }).click();
     await expect(row).toBeVisible();
-    expect((await requests(editor)).some((r) => r.email === email)).toBe(true);
+    expect((await requests(admin)).some((r) => r.email === email)).toBe(true);
 
     await row.getByRole('button', { name: `Anfrage von ${email} löschen` }).click();
     await row.getByRole('button', { name: `Anfrage von ${email} endgültig löschen` }).click();
     await expect(page.getByRole('status')).toHaveText(`Die Anfrage von ${email} wurde gelöscht.`);
     await expect(page.getByRole('row').filter({ hasText: email })).toHaveCount(0);
-    expect((await requests(editor)).some((r) => r.email === email)).toBe(false);
+    expect((await requests(admin)).some((r) => r.email === email)).toBe(false);
   });
 
-  test('REQ-27-AC6 REQ-27-AC7: Löschfehler, leere Liste und Ladefehler werden ausdrücklich angezeigt', async ({ page, request, editor }) => {
+  test('REQ-27-AC6 REQ-27-AC7: Löschfehler, leere Liste und Ladefehler werden ausdrücklich angezeigt', async ({ page, request, admin }) => {
     const email = address();
     expect((await request.post('/api/consultation-requests', { data: { email, lang: 'de' } })).status()).toBe(204);
     await page.goto('/redaktion/beratungsanfragen');
@@ -138,8 +138,8 @@ test.describe('Verwaltung in der Redaktion', () => {
     await row.getByRole('button', { name: `Anfrage von ${email} endgültig löschen` }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'wurde nicht gelöscht' })).toBeVisible();
     await expect(row).toBeVisible();
-    const stored = (await requests(editor)).find((r) => r.email === email)!;
-    await editor.send('DELETE', `/api/admin/consultation-requests/${stored.id}`);
+    const stored = (await requests(admin)).find((r) => r.email === email)!;
+    await admin.send('DELETE', `/api/admin/consultation-requests/${stored.id}`);
 
     await page.unrouteAll();
     await page.route('**/api/admin/consultation-requests', (r) => r.fulfill({ json: { items: [] } }));
@@ -158,7 +158,7 @@ test('REQ-27-AC5: Anfragenseite ohne Sitzung führt zur Anmeldung', async ({ pag
   await expect(page).toHaveURL(/\/redaktion\/anmelden/);
 });
 
-test('REQ-27-AC8: englisches Formular mit englischen Fehlern, Absenden per Tastatur', async ({ page, editor }) => {
+test('REQ-27-AC8: englisches Formular mit englischen Fehlern, Absenden per Tastatur', async ({ page, admin }) => {
   await completeAssessment(page, 'en');
   const field = page.locator('section.consult').getByLabel('Email address');
   await page.getByRole('button', { name: 'Send request' }).click();
@@ -168,9 +168,9 @@ test('REQ-27-AC8: englisches Formular mit englischen Fehlern, Absenden per Tasta
   await page.keyboard.type(email);
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Thank you for your request' })).toBeFocused();
-  const stored = (await requests(editor)).find((r) => r.email === email)!;
+  const stored = (await requests(admin)).find((r) => r.email === email)!;
   expect(stored.lang).toBe('en');
-  await editor.send('DELETE', `/api/admin/consultation-requests/${stored.id}`);
+  await admin.send('DELETE', `/api/admin/consultation-requests/${stored.id}`);
 });
 
 test.describe('mobil', () => {
@@ -182,7 +182,7 @@ test.describe('mobil', () => {
     await expect(field).toBeInViewport();
     await expectNoHorizontalScroll(page);
 
-    const ctx = await browser.newContext({ baseURL, storageState: AUTH.editor, viewport: { width: 375, height: 812 }, extraHTTPHeaders });
+    const ctx = await browser.newContext({ baseURL, storageState: AUTH.admin, viewport: { width: 375, height: 812 }, extraHTTPHeaders });
     const admin = await ctx.newPage();
     await admin.goto('/redaktion/beratungsanfragen');
     await expect(admin.getByRole('heading', { name: 'Beratungsanfragen' })).toBeVisible();
