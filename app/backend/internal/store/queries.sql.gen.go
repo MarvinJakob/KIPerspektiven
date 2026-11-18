@@ -11,6 +11,42 @@ import (
 	"strings"
 )
 
+const claimSocialShare = `-- name: ClaimSocialShare :execrows
+UPDATE social_shares SET status = 'sending', updated_at = ?
+WHERE post_id = ? AND platform = ? AND status = 'pending'
+`
+
+type ClaimSocialShareParams struct {
+	UpdatedAt string
+	PostID    int64
+	Platform  string
+}
+
+func (q *Queries) ClaimSocialShare(ctx context.Context, arg ClaimSocialShareParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, claimSocialShare, arg.UpdatedAt, arg.PostID, arg.Platform)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const clearSocialConnection = `-- name: ClearSocialConnection :exec
+UPDATE social_connections
+SET enabled = FALSE, member_id = '', member_name = '', access_token = '', token_expires_at = NULL, connected_at = NULL,
+    updated_at = ?1
+WHERE platform = ?2
+`
+
+type ClearSocialConnectionParams struct {
+	UpdatedAt string
+	Platform  string
+}
+
+func (q *Queries) ClearSocialConnection(ctx context.Context, arg ClearSocialConnectionParams) error {
+	_, err := q.db.ExecContext(ctx, clearSocialConnection, arg.UpdatedAt, arg.Platform)
+	return err
+}
+
 const countIdentifiedPageView = `-- name: CountIdentifiedPageView :exec
 UPDATE page_views SET identified_views = identified_views + 1,
 unique_views = unique_views + ?1 WHERE day = ?2
@@ -190,6 +226,32 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 	return err
 }
 
+const createSocialShare = `-- name: CreateSocialShare :execrows
+INSERT INTO social_shares (post_id, platform, status, created_at, updated_at)
+VALUES (?, ?, 'pending', ?, ?)
+ON CONFLICT (post_id, platform) DO NOTHING
+`
+
+type CreateSocialShareParams struct {
+	PostID    int64
+	Platform  string
+	CreatedAt string
+	UpdatedAt string
+}
+
+func (q *Queries) CreateSocialShare(ctx context.Context, arg CreateSocialShareParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createSocialShare,
+		arg.PostID,
+		arg.Platform,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const createUser = `-- name: CreateUser :execlastid
 
 INSERT INTO users (email, password_hash, role, active, created_at)
@@ -237,6 +299,36 @@ DELETE FROM consultation_requests WHERE id = ?
 
 func (q *Queries) DeleteConsultationRequest(ctx context.Context, id int64) (int64, error) {
 	result, err := q.db.ExecContext(ctx, deleteConsultationRequest, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteConsultationRequestIfUnchanged = `-- name: DeleteConsultationRequestIfUnchanged :execrows
+DELETE FROM consultation_requests WHERE id = ? AND requested_at = ?
+`
+
+type DeleteConsultationRequestIfUnchangedParams struct {
+	ID          int64
+	RequestedAt string
+}
+
+// Loescht nur, wenn die Anfrage seit der Auswahl nicht erneut gesendet wurde (neuer Fristbeginn).
+func (q *Queries) DeleteConsultationRequestIfUnchanged(ctx context.Context, arg DeleteConsultationRequestIfUnchangedParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteConsultationRequestIfUnchanged, arg.ID, arg.RequestedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteContactMessage = `-- name: DeleteContactMessage :execrows
+DELETE FROM contact_messages WHERE id = ?
+`
+
+func (q *Queries) DeleteContactMessage(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteContactMessage, id)
 	if err != nil {
 		return 0, err
 	}
@@ -369,6 +461,34 @@ DELETE FROM sessions WHERE user_id = ?
 
 func (q *Queries) DeleteUserSessions(ctx context.Context, userID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteUserSessions, userID)
+	return err
+}
+
+const finishSocialShare = `-- name: FinishSocialShare :exec
+UPDATE social_shares SET status = ?, lang = ?, post_urn = ?, message = ?, updated_at = ?
+WHERE post_id = ? AND platform = ?
+`
+
+type FinishSocialShareParams struct {
+	Status    string
+	Lang      string
+	PostUrn   string
+	Message   string
+	UpdatedAt string
+	PostID    int64
+	Platform  string
+}
+
+func (q *Queries) FinishSocialShare(ctx context.Context, arg FinishSocialShareParams) error {
+	_, err := q.db.ExecContext(ctx, finishSocialShare,
+		arg.Status,
+		arg.Lang,
+		arg.PostUrn,
+		arg.Message,
+		arg.UpdatedAt,
+		arg.PostID,
+		arg.Platform,
+	)
 	return err
 }
 
@@ -607,6 +727,56 @@ func (q *Queries) GetSession(ctx context.Context, id string) (GetSessionRow, err
 	return i, err
 }
 
+const getSocialConnection = `-- name: GetSocialConnection :one
+
+SELECT platform, enabled, preferred_lang, member_id, member_name, access_token, token_expires_at, connected_at, updated_at FROM social_connections WHERE platform = ?
+`
+
+// ---------------------------------------------------------------------------
+// Social Media (Ticket #85)
+// ---------------------------------------------------------------------------
+func (q *Queries) GetSocialConnection(ctx context.Context, platform string) (SocialConnection, error) {
+	row := q.db.QueryRowContext(ctx, getSocialConnection, platform)
+	var i SocialConnection
+	err := row.Scan(
+		&i.Platform,
+		&i.Enabled,
+		&i.PreferredLang,
+		&i.MemberID,
+		&i.MemberName,
+		&i.AccessToken,
+		&i.TokenExpiresAt,
+		&i.ConnectedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getSocialShare = `-- name: GetSocialShare :one
+SELECT post_id, platform, status, lang, post_urn, message, created_at, updated_at FROM social_shares WHERE post_id = ? AND platform = ?
+`
+
+type GetSocialShareParams struct {
+	PostID   int64
+	Platform string
+}
+
+func (q *Queries) GetSocialShare(ctx context.Context, arg GetSocialShareParams) (SocialShare, error) {
+	row := q.db.QueryRowContext(ctx, getSocialShare, arg.PostID, arg.Platform)
+	var i SocialShare
+	err := row.Scan(
+		&i.PostID,
+		&i.Platform,
+		&i.Status,
+		&i.Lang,
+		&i.PostUrn,
+		&i.Message,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getTopicBySlug = `-- name: GetTopicBySlug :one
 SELECT id, slug, sort_order FROM topics WHERE slug = ?
 `
@@ -818,6 +988,24 @@ func (q *Queries) InsertUserRole(ctx context.Context, arg InsertUserRoleParams) 
 	return err
 }
 
+const interruptSocialShares = `-- name: InterruptSocialShares :execrows
+UPDATE social_shares SET status = 'unknown', message = ?1, updated_at = ?2
+WHERE status = 'sending'
+`
+
+type InterruptSocialSharesParams struct {
+	Message   string
+	UpdatedAt string
+}
+
+func (q *Queries) InterruptSocialShares(ctx context.Context, arg InterruptSocialSharesParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, interruptSocialShares, arg.Message, arg.UpdatedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const invalidatePageViewDay = `-- name: InvalidatePageViewDay :exec
 UPDATE page_views SET identified_views = -1 WHERE day = ? AND views > 0
 `
@@ -975,6 +1163,39 @@ func (q *Queries) ListConsultationRequests(ctx context.Context) ([]ConsultationR
 	return items, nil
 }
 
+const listConsultationRequestsBefore = `-- name: ListConsultationRequestsBefore :many
+SELECT id, requested_at FROM consultation_requests WHERE requested_at <= ? ORDER BY id
+`
+
+type ListConsultationRequestsBeforeRow struct {
+	ID          int64
+	RequestedAt string
+}
+
+// Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
+func (q *Queries) ListConsultationRequestsBefore(ctx context.Context, requestedAt string) ([]ListConsultationRequestsBeforeRow, error) {
+	rows, err := q.db.QueryContext(ctx, listConsultationRequestsBefore, requestedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListConsultationRequestsBeforeRow{}
+	for rows.Next() {
+		var i ListConsultationRequestsBeforeRow
+		if err := rows.Scan(&i.ID, &i.RequestedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listContactMessages = `-- name: ListContactMessages :many
 SELECT id, name, company, email, message, lang, received_at FROM contact_messages ORDER BY received_at DESC, id DESC
 `
@@ -997,6 +1218,39 @@ func (q *Queries) ListContactMessages(ctx context.Context) ([]ContactMessage, er
 			&i.Lang,
 			&i.ReceivedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listContactMessagesBefore = `-- name: ListContactMessagesBefore :many
+SELECT id, received_at FROM contact_messages WHERE received_at <= ? ORDER BY id
+`
+
+type ListContactMessagesBeforeRow struct {
+	ID         int64
+	ReceivedAt string
+}
+
+// Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
+func (q *Queries) ListContactMessagesBefore(ctx context.Context, receivedAt string) ([]ListContactMessagesBeforeRow, error) {
+	rows, err := q.db.QueryContext(ctx, listContactMessagesBefore, receivedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListContactMessagesBeforeRow{}
+	for rows.Next() {
+		var i ListContactMessagesBeforeRow
+		if err := rows.Scan(&i.ID, &i.ReceivedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1384,6 +1638,65 @@ func (q *Queries) ListPublishedPostsByTopic(ctx context.Context, topicID int64) 
 	return items, nil
 }
 
+const listPublishedPostsPage = `-- name: ListPublishedPostsPage :many
+SELECT id, slug, status, published_at, featured, cover_media_id, updated_at, scheduled_at, author_id
+FROM posts
+WHERE status = 'published'
+  AND (?1 = 0
+       OR published_at < ?2
+       OR (published_at = ?2 AND id < ?3))
+ORDER BY published_at DESC, id DESC
+LIMIT ?4
+`
+
+type ListPublishedPostsPageParams struct {
+	HasAfter         interface{}
+	AfterPublishedAt sql.NullString
+	AfterID          int64
+	RowLimit         int64
+}
+
+// Portion der Blog-Uebersicht (Ticket #75): Keyset hinter (after_published_at, after_id) in derselben
+// Sortierung wie ListPublishedPosts. Ohne Fortsetzung (has_after = 0) beginnt die Liste vorn.
+// Kommentare vor Abfragen mit sqlc.arg ohne Umlaute: sqlc verschiebt sonst die Ersetzungspositionen.
+func (q *Queries) ListPublishedPostsPage(ctx context.Context, arg ListPublishedPostsPageParams) ([]Post, error) {
+	rows, err := q.db.QueryContext(ctx, listPublishedPostsPage,
+		arg.HasAfter,
+		arg.AfterPublishedAt,
+		arg.AfterID,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Post{}
+	for rows.Next() {
+		var i Post
+		if err := rows.Scan(
+			&i.ID,
+			&i.Slug,
+			&i.Status,
+			&i.PublishedAt,
+			&i.Featured,
+			&i.CoverMediaID,
+			&i.UpdatedAt,
+			&i.ScheduledAt,
+			&i.AuthorID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listReadinessRatings = `-- name: ListReadinessRatings :many
 SELECT result_id, dimension, level FROM readiness_result_ratings
 WHERE result_id IN (/*SLICE:result_ids*/?)
@@ -1607,6 +1920,26 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const nextPendingSocialShare = `-- name: NextPendingSocialShare :one
+SELECT post_id, platform, status, lang, post_urn, message, created_at, updated_at FROM social_shares WHERE status = 'pending' ORDER BY created_at, post_id LIMIT 1
+`
+
+func (q *Queries) NextPendingSocialShare(ctx context.Context) (SocialShare, error) {
+	row := q.db.QueryRowContext(ctx, nextPendingSocialShare)
+	var i SocialShare
+	err := row.Scan(
+		&i.PostID,
+		&i.Platform,
+		&i.Status,
+		&i.Lang,
+		&i.PostUrn,
+		&i.Message,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const ping = `-- name: Ping :one
 SELECT 1
 `
@@ -1667,6 +2000,86 @@ func (q *Queries) PublishScheduledPost(ctx context.Context, arg PublishScheduled
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const retrySocialShare = `-- name: RetrySocialShare :execrows
+UPDATE social_shares SET status = 'pending', message = '', updated_at = ?
+WHERE post_id = ? AND platform = ? AND status = 'failed'
+`
+
+type RetrySocialShareParams struct {
+	UpdatedAt string
+	PostID    int64
+	Platform  string
+}
+
+func (q *Queries) RetrySocialShare(ctx context.Context, arg RetrySocialShareParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, retrySocialShare, arg.UpdatedAt, arg.PostID, arg.Platform)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const saveSocialConnection = `-- name: SaveSocialConnection :exec
+INSERT INTO social_connections (platform, member_id, member_name, access_token, token_expires_at, connected_at, updated_at)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+ON CONFLICT (platform) DO UPDATE SET
+    member_id = excluded.member_id,
+    member_name = excluded.member_name,
+    access_token = excluded.access_token,
+    token_expires_at = excluded.token_expires_at,
+    connected_at = excluded.connected_at,
+    updated_at = excluded.updated_at
+`
+
+type SaveSocialConnectionParams struct {
+	Platform       string
+	MemberID       string
+	MemberName     string
+	AccessToken    string
+	TokenExpiresAt sql.NullString
+	ConnectedAt    sql.NullString
+	UpdatedAt      string
+}
+
+func (q *Queries) SaveSocialConnection(ctx context.Context, arg SaveSocialConnectionParams) error {
+	_, err := q.db.ExecContext(ctx, saveSocialConnection,
+		arg.Platform,
+		arg.MemberID,
+		arg.MemberName,
+		arg.AccessToken,
+		arg.TokenExpiresAt,
+		arg.ConnectedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
+const saveSocialSettings = `-- name: SaveSocialSettings :exec
+INSERT INTO social_connections (platform, enabled, preferred_lang, updated_at)
+VALUES (?1, ?2, ?3, ?4)
+ON CONFLICT (platform) DO UPDATE SET
+    enabled = excluded.enabled,
+    preferred_lang = excluded.preferred_lang,
+    updated_at = excluded.updated_at
+`
+
+type SaveSocialSettingsParams struct {
+	Platform      string
+	Enabled       bool
+	PreferredLang string
+	UpdatedAt     string
+}
+
+func (q *Queries) SaveSocialSettings(ctx context.Context, arg SaveSocialSettingsParams) error {
+	_, err := q.db.ExecContext(ctx, saveSocialSettings,
+		arg.Platform,
+		arg.Enabled,
+		arg.PreferredLang,
+		arg.UpdatedAt,
+	)
+	return err
 }
 
 const schedulePost = `-- name: SchedulePost :execrows

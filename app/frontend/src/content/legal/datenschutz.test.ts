@@ -50,6 +50,9 @@ const SOLL = {
     contactLimit: '100 Nachrichten pro Stunde',
     contactRetention: 'spätestens sechs Monate nach Eingang',
     consultLimit: 'fünf Anfragen pro Stunde',
+    // Ticket #90: Höchstfrist ohne abgestimmten Termin, Entscheidung vom 18.11.2026
+    consultRetention: 'spätestens aber sechs Monate nach deiner letzten Anfrage',
+    consultRetentionShort: 'höchstens sechs Monate',
     noIpStored: 'keine IP-Adresse',
     supervisor: 'Der Hessische Beauftragte für Datenschutz und Informationsfreiheit',
   },
@@ -75,6 +78,8 @@ const SOLL = {
     contactLimit: '100 messages per hour',
     contactRetention: 'no later than six months after receipt',
     consultLimit: 'five requests per hour',
+    consultRetention: 'and in any case no later than six months after your most recent request',
+    consultRetentionShort: 'for no longer than six months',
     noIpStored: 'no IP address',
     supervisor: 'Der Hessische Beauftragte für Datenschutz und Informationsfreiheit',
   },
@@ -145,6 +150,14 @@ describe.each(LANGS)('Datenschutzerklärung (%s)', (lang) => {
     expect(text).not.toContain(soll.contactLimit);
   });
 
+  it('REQ-90-AC7: Fristen für Kontaktnachrichten und Beratungsanfragen stimmen mit der automatischen Löschung überein', () => {
+    // Backend: service.RetentionMonths = 6, Fristbeginn Eingang bzw. letzte Anfrage (retention_test.go)
+    expect(section(md, soll.contactHeading)).toContain(soll.contactRetention);
+    expect(section(md, soll.consultHeading)).toContain(soll.consultRetention);
+    expect(section(md, soll.consultHeading)).toMatch(/Termin abgestimmt ist|appointment has been arranged/);
+    expect(md, 'Kurzfassung nennt die Höchstfrist').toContain(soll.consultRetentionShort);
+  });
+
   it('REQ-74-AC3: Reichweitenstatistik und Ergebnisse der Selbsteinschätzung mit Kennungen, Auswahl und Dauer', () => {
     const text = section(md, soll.statsHeading);
     expect(text).toContain('HMAC-SHA-256');
@@ -185,7 +198,7 @@ describe('Datenschutzerklärung DE/EN', () => {
 
   it('REQ-74-AC4: veröffentlichte Fassungen entsprechen der freigegebenen Revision', async () => {
     expect(release.freigegebenAm, 'Freigabedatum fehlt').toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(release.nachweis, 'Freigabenachweis fehlt').toMatch(/^https:\/\/github\.com\/MarvinJakob\/KIPerspektiven\/issues\/74#issuecomment-\d+$/);
+    expect(release.nachweis, 'Freigabenachweis fehlt').toMatch(/^https:\/\/github\.com\/MarvinJakob\/KIPerspektiven\/issues\/(74|90)#issuecomment-\d+$/); // #90: Ergänzung der Frist für Beratungsanfragen
     expect(await sha256(privacyDe), 'deutsche Fassung weicht von der Freigabe ab').toBe(release.sha256.de);
     expect(await sha256(privacyEn), 'englische Fassung weicht von der Freigabe ab').toBe(release.sha256.en);
   });

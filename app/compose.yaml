@@ -38,6 +38,9 @@ services:
       # Die Webseite ist öffentlich (Ticket #108); die Redaktion prüft Sitzung und Rolle unabhängig davon.
       # REQUIRE_LOGIN=true in der .env schaltet den optionalen Zugangsschutz aus Ticket #49 wieder ein.
       REQUIRE_LOGIN: ${REQUIRE_LOGIN:-false}
+      # LinkedIn-App für das automatische Teilen (Ticket #85). Leer: Teilen lässt sich nicht einschalten.
+      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID:-}
+      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET:-}
     # Feste Adresse: Startet das Backend vor Caddy, würde Docker ihm sonst die erste freie Adresse
     # 172.30.142.2 zuweisen und Caddy scheitert mit „Address already in use“ (Ticket #17).
     networks:

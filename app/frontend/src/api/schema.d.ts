@@ -588,6 +588,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/posts/{id}/linkedin/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Abgelehnten LinkedIn-Versand wiederholen (Ticket
+         * @description Nur bei Status `failed` (LinkedIn hat eindeutig abgelehnt). Bei `unknown` (unklarer Ausgang), `succeeded` oder ohne LinkedIn-Status `422`, damit kein zweiter Post entsteht.
+         */
+        post: operations["adminRetryLinkedInShare"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/social/linkedin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * LinkedIn-Einstellungen lesen (Ticket
+         * @description Enthält nie Zugriffstoken oder App-Secret.
+         */
+        get: operations["adminGetLinkedInSettings"];
+        /**
+         * Automatisches Teilen schalten und bevorzugte Sprache setzen (nur Admin)
+         * @description Einschalten verlangt konfigurierte App, verbundenes Profil und gültige Autorisierung (sonst `422` mit Grund).
+         */
+        put: operations["adminUpdateLinkedInSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/social/linkedin/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * OAuth-Autorisierung bei LinkedIn beginnen (nur Admin)
+         * @description Liefert die LinkedIn-Adresse mit einem einmaligen, kontogebundenen `state` (10 Minuten gültig).
+         */
+        post: operations["adminAuthorizeLinkedIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/social/linkedin/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rückruf von LinkedIn nach der Autorisierung (nur Admin)
+         * @description Prüft `state`, tauscht den Code gegen ein Token, liest das Profil und speichert die Verbindung. Leitet immer zur Einstellungsseite zurück, mit `verbindung=ok` oder `verbindung=fehler`.
+         */
+        get: operations["adminLinkedInCallback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/social/linkedin/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * LinkedIn-Verbindung trennen (nur Admin)
+         * @description Entfernt Profil und Token und schaltet das automatische Teilen aus.
+         */
+        delete: operations["adminDisconnectLinkedIn"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/posts/{id}/schedule": {
         parameters: {
             query?: never;
@@ -742,6 +848,30 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/contact-messages/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Nachricht der Kontaktseite löschen
+         * @description Ticket #90. Löscht eine Nachricht sofort, etwa auf Wunsch der absendenden Person. Erlaubt für die Rollen
+         *     `marketing` und `admin`, die die Nachrichten lesen. Unabhängig davon löscht die Anwendung jede Nachricht
+         *     automatisch spätestens sechs Monate nach Eingang.
+         */
+        delete: operations["adminDeleteContactMessage"];
         options?: never;
         head?: never;
         patch?: never;
@@ -913,6 +1043,11 @@ export interface components {
         };
         PostList: {
             items: components["schemas"]["PostSummary"][];
+            /**
+             * @description Nur wenn weitere Beiträge folgen (Ticket #75): Wert für `cursor` beim nächsten Abruf.
+             *     Fehlt nach der letzten Portion, auch wenn diese genau voll ist.
+             */
+            nextCursor?: string;
         };
         Post: components["schemas"]["PostSummary"] & {
             bodyMarkdown: string;
@@ -1037,8 +1172,47 @@ export interface components {
              * @description Konto-ID des Autors (Ticket #64), fehlt bei „Kein Autor“
              */
             authorId?: number;
+            linkedin?: components["schemas"]["LinkedInShare"];
             /** Format: date-time */
             updatedAt: string;
+        };
+        /** @description LinkedIn-Status eines Beitrags (Ticket */
+        LinkedInShare: {
+            /**
+             * @description `failed`: eindeutig abgelehnt, wiederholbar. `unknown`: Ausgang unklar, nicht wiederholbar.
+             * @enum {string}
+             */
+            state: "pending" | "sending" | "succeeded" | "failed" | "unknown";
+            lang?: components["schemas"]["Lang"];
+            /** @description Link zum LinkedIn-Post bei `succeeded` */
+            postUrl?: string;
+            /** @description Hinweis bei `failed` oder `unknown` */
+            message?: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @description Einstellungen unter „Einstellungen → Social Media → LinkedIn“ (Ticket */
+        LinkedInSettings: {
+            /** @description LINKEDIN_CLIENT_ID und LINKEDIN_CLIENT_SECRET sind auf dem Server gesetzt */
+            appConfigured: boolean;
+            connected: boolean;
+            /** @description Die Autorisierung des verbundenen Profils ist abgelaufen */
+            expired: boolean;
+            enabled: boolean;
+            /** @description Name des verbundenen LinkedIn-Profils (Ziel) */
+            profileName?: string;
+            /** Format: date-time */
+            connectedAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            preferredLang: components["schemas"]["Lang"];
+        };
+        LinkedInSettingsUpdate: {
+            enabled: boolean;
+            preferredLang: components["schemas"]["Lang"];
+        };
+        LinkedInAuthorization: {
+            authorizationUrl: string;
         };
         EditorPostSummary: {
             /** Format: int64 */
@@ -1649,6 +1823,12 @@ export interface operations {
                  *     die neuesten weiteren hervorgehobenen Beiträge.
                  */
                 featured?: boolean;
+                /**
+                 * @description Fortsetzung der Blogübersicht (Ticket #75): `nextCursor` der vorigen Antwort. Die Liste
+                 *     setzt direkt hinter deren letztem Eintrag fort; später vorn einsortierte Beiträge verschieben
+                 *     die Fortsetzung nicht. Ungültige Werte ergeben `400`. Bei `featured=true` ohne Wirkung.
+                 */
+                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -1656,7 +1836,10 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Beiträge */
+            /**
+             * @description Beiträge. Ohne `featured` höchstens 20 je Abruf (Ticket #75), neueste zuerst und bei
+             *     gleichem Veröffentlichungsdatum nach Beitrags-ID absteigend.
+             */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2376,6 +2559,150 @@ export interface operations {
             422: components["responses"]["Unprocessable"];
         };
     };
+    adminRetryLinkedInShare: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Versand erneut eingeplant */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditorPost"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    adminGetLinkedInSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Einstellungen */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkedInSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminUpdateLinkedInSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkedInSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Gespeichert */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkedInSettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    adminAuthorizeLinkedIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Adresse für die Weiterleitung zu LinkedIn */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkedInAuthorization"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    adminLinkedInCallback: {
+        parameters: {
+            query?: {
+                code?: string;
+                state?: string;
+                error?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Weiterleitung zur Einstellungsseite */
+            303: {
+                headers: {
+                    Location: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminDisconnectLinkedIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Getrennt */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
     adminSchedulePost: {
         parameters: {
             query?: never;
@@ -2613,6 +2940,29 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    adminDeleteContactMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Gelöscht */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminListConsultationRequests: {

@@ -75,6 +75,11 @@ function Header({ me }: { me: Me }) {
               Benutzer
             </NavLink>
           )}
+          {can(me.roles, 'settings') && (
+            <NavLink className="nav-btn press" to="/einstellungen">
+              Einstellungen
+            </NavLink>
+          )}
           <NavLink className="nav-btn press" to="/profil">
             Profil
           </NavLink>

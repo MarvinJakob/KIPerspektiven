@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client, unwrap } from './client';
 import type { components } from './schema';
+import { sharing } from '../lib/linkedin';
 
 export type EditorPost = components['schemas']['EditorPost'];
 export type EditorPostSummary = components['schemas']['EditorPostSummary'];
@@ -22,6 +23,9 @@ const postKey = (id: number) => ['admin', 'post', id] as const;
  */
 export const STATUS_REFRESH_MS = 15_000;
 
+/** Abfrageintervall, solange ein LinkedIn-Versand läuft (Ticket #85). */
+export const SHARE_REFRESH_MS = 2_000;
+
 const scheduled = (p?: { status: string; scheduledAt?: string }) => p?.status === 'draft' && Boolean(p.scheduledAt);
 
 /** Alle Beiträge inklusive Entwürfe (Anforderung 5). */
@@ -42,7 +46,8 @@ export const useEditorPost = (id: number | undefined) =>
     queryKey: postKey(id ?? 0),
     queryFn: () => unwrap(client.GET('/api/admin/posts/{id}', { params: { path: { id: id! } } })),
     enabled: id !== undefined,
-    refetchInterval: (q) => (scheduled(q.state.data) ? STATUS_REFRESH_MS : false),
+    // Ticket #85: Während der LinkedIn-Versand läuft, erscheint das Ergebnis nach wenigen Sekunden.
+    refetchInterval: (q) => (sharing(q.state.data?.linkedin) ? SHARE_REFRESH_MS : scheduled(q.state.data) ? STATUS_REFRESH_MS : false),
     refetchOnWindowFocus: true,
   });
 
@@ -57,7 +62,7 @@ export const useTopics = () =>
 type Action =
   | { kind: 'create'; input: PostInput }
   | { kind: 'save'; id: number; input: PostInput }
-  | { kind: 'publish' | 'unpublish' | 'unschedule' | 'removeCover'; id: number }
+  | { kind: 'publish' | 'unpublish' | 'unschedule' | 'removeCover' | 'retryLinkedIn'; id: number }
   | { kind: 'setCover'; id: number; file: File }
   | { kind: 'schedule'; id: number; publishAt: string }
   | { kind: 'setAuthor'; id: number; authorId: number | null };
@@ -95,6 +100,8 @@ export const usePostAction = () => {
           );
         case 'setAuthor':
           return unwrap(client.PUT('/api/admin/posts/{id}/author', { params: { path: { id: a.id } }, body: { authorId: a.authorId } }));
+        case 'retryLinkedIn':
+          return unwrap(client.POST('/api/admin/posts/{id}/linkedin/retry', { params: { path: { id: a.id } } }));
         case 'removeCover':
           return unwrap(client.DELETE('/api/admin/posts/{id}/cover', { params: { path: { id: a.id } } }));
       }

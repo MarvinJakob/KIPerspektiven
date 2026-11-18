@@ -13,6 +13,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const port = Number(process.env.E2E_PORT ?? 8090);
 const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${port}`;
+const linkedinPort = Number(process.env.E2E_LINKEDIN_PORT ?? 8091);
 
 export default defineConfig({
   testDir: './tests',
@@ -50,14 +51,28 @@ export default defineConfig({
       fullyParallel: false,
     },
   ],
-  webServer: process.env.E2E_BASE_URL
-    ? undefined
-    : {
-        command: `node scripts/start-server.mjs ${port}`,
-        url: `${baseURL}/api/health`,
-        reuseExistingServer: false,
-        timeout: 60_000,
-        stdout: 'ignore',
-        stderr: 'pipe',
-      },
+  // Das LinkedIn-Testdouble (Ticket #85) läuft immer; die Anwendung startet nur lokal. Im Merge Gate zeigt das Image
+  // per LINKEDIN_AUTH_URL und LINKEDIN_API_URL auf dasselbe Testdouble (.github/workflows/tests.yml).
+  webServer: [
+    {
+      command: `node scripts/linkedin-stub.mjs ${linkedinPort}`,
+      url: `http://127.0.0.1:${linkedinPort}/__stub/health`,
+      reuseExistingServer: false,
+      timeout: 15_000,
+      stdout: 'ignore',
+      stderr: 'pipe',
+    },
+    ...(process.env.E2E_BASE_URL
+      ? []
+      : [
+          {
+            command: `node scripts/start-server.mjs ${port} ${linkedinPort}`,
+            url: `${baseURL}/api/health`,
+            reuseExistingServer: false,
+            timeout: 60_000,
+            stdout: 'ignore' as const,
+            stderr: 'pipe' as const,
+          },
+        ]),
+  ],
 });

@@ -56,3 +56,16 @@ func TestREQ64StartseiteNachAnmeldung(t *testing.T) {
 		}
 	}
 }
+
+// Unit-Test zu REQ-85-AC4 (Ticket #85): Die Einstellungen der Redaktion stehen nur Admin-Konten offen.
+func TestREQ85AC4EinstellungsseitenNurFuerAdmins(t *testing.T) {
+	for _, rest := range []string{"einstellungen", "einstellungen/social-media", "einstellungen/social-media/linkedin"} {
+		need := route(rest)
+		if need != accessAdmin {
+			t.Errorf("/redaktion/%s: Zugriff %v, erwartet nur Admins", rest, need)
+		}
+		if need.permits(service.Roles{service.RoleEditor}) || need.permits(service.Roles{service.RoleMarketing}) {
+			t.Errorf("/redaktion/%s darf Redakteuren und Marketing nicht offenstehen", rest)
+		}
+	}
+}

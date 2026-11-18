@@ -10,6 +10,8 @@ import (
 )
 
 type Querier interface {
+	ClaimSocialShare(ctx context.Context, arg ClaimSocialShareParams) (int64, error)
+	ClearSocialConnection(ctx context.Context, arg ClearSocialConnectionParams) error
 	CountIdentifiedPageView(ctx context.Context, arg CountIdentifiedPageViewParams) error
 	// ---------------------------------------------------------------------------
 	// Statistik der Redaktion (Ticket #130). Zeitraeume beginnen bei einem Tag bzw. Zeitpunkt; "" heisst gesamt.
@@ -22,12 +24,16 @@ type Querier interface {
 	CreatePost(ctx context.Context, arg CreatePostParams) (int64, error)
 	CreateReadinessResult(ctx context.Context, arg CreateReadinessResultParams) (int64, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
+	CreateSocialShare(ctx context.Context, arg CreateSocialShareParams) (int64, error)
 	// ---------------------------------------------------------------------------
 	// Konten und Sitzungen der Redaktion (Anforderungen 6 und 11)
 	// ---------------------------------------------------------------------------
 	CreateUser(ctx context.Context, arg CreateUserParams) (int64, error)
 	DeleteArticle(ctx context.Context, id int64) (int64, error)
 	DeleteConsultationRequest(ctx context.Context, id int64) (int64, error)
+	// Loescht nur, wenn die Anfrage seit der Auswahl nicht erneut gesendet wurde (neuer Fristbeginn).
+	DeleteConsultationRequestIfUnchanged(ctx context.Context, arg DeleteConsultationRequestIfUnchangedParams) (int64, error)
+	DeleteContactMessage(ctx context.Context, id int64) (int64, error)
 	DeleteExpiredSessions(ctx context.Context, expiresAt string) (int64, error)
 	DeleteMedia(ctx context.Context, id int64) error
 	DeleteMediaTranslations(ctx context.Context, mediaID int64) error
@@ -42,6 +48,7 @@ type Querier interface {
 	DeleteSession(ctx context.Context, id string) error
 	DeleteUserRoles(ctx context.Context, userID int64) error
 	DeleteUserSessions(ctx context.Context, userID int64) error
+	FinishSocialShare(ctx context.Context, arg FinishSocialShareParams) error
 	GetEditorArticle(ctx context.Context, id int64) (GetEditorArticleRow, error)
 	GetMedia(ctx context.Context, id int64) (GetMediaRow, error)
 	GetPageViewIdentity(ctx context.Context) (GetPageViewIdentityRow, error)
@@ -53,6 +60,11 @@ type Querier interface {
 	GetPublishedPostBySlug(ctx context.Context, slug string) (Post, error)
 	GetReadinessResultByKey(ctx context.Context, keyHash string) (GetReadinessResultByKeyRow, error)
 	GetSession(ctx context.Context, id string) (GetSessionRow, error)
+	// ---------------------------------------------------------------------------
+	// Social Media (Ticket #85)
+	// ---------------------------------------------------------------------------
+	GetSocialConnection(ctx context.Context, platform string) (SocialConnection, error)
+	GetSocialShare(ctx context.Context, arg GetSocialShareParams) (SocialShare, error)
 	GetTopicBySlug(ctx context.Context, slug string) (Topic, error)
 	GetUserAvatar(ctx context.Context, id int64) (GetUserAvatarRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
@@ -67,6 +79,7 @@ type Querier interface {
 	InsertPostTranslation(ctx context.Context, arg InsertPostTranslationParams) error
 	InsertReadinessRating(ctx context.Context, arg InsertReadinessRatingParams) error
 	InsertUserRole(ctx context.Context, arg InsertUserRoleParams) error
+	InterruptSocialShares(ctx context.Context, arg InterruptSocialSharesParams) (int64, error)
 	InvalidatePageViewDay(ctx context.Context, day string) error
 	// ---------------------------------------------------------------------------
 	// Redaktion: Beitraege verwalten (Anforderung 5)
@@ -75,7 +88,11 @@ type Querier interface {
 	ListAllUserRoles(ctx context.Context) ([]UserRole, error)
 	ListArticleSummaries(ctx context.Context, arg ListArticleSummariesParams) ([]ListArticleSummariesRow, error)
 	ListConsultationRequests(ctx context.Context) ([]ConsultationRequest, error)
+	// Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
+	ListConsultationRequestsBefore(ctx context.Context, requestedAt string) ([]ListConsultationRequestsBeforeRow, error)
 	ListContactMessages(ctx context.Context) ([]ContactMessage, error)
+	// Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
+	ListContactMessagesBefore(ctx context.Context, receivedAt string) ([]ListContactMessagesBeforeRow, error)
 	ListDuePosts(ctx context.Context, scheduledAt sql.NullString) ([]ListDuePostsRow, error)
 	ListMedia(ctx context.Context, mediaIds []int64) ([]ListMediaRow, error)
 	ListMediaTranslations(ctx context.Context, mediaIds []int64) ([]MediaTranslation, error)
@@ -85,6 +102,10 @@ type Querier interface {
 	ListPostTranslations(ctx context.Context, postID int64) ([]PostTranslation, error)
 	ListPublishedPosts(ctx context.Context) ([]Post, error)
 	ListPublishedPostsByTopic(ctx context.Context, topicID int64) ([]Post, error)
+	// Portion der Blog-Uebersicht (Ticket #75): Keyset hinter (after_published_at, after_id) in derselben
+	// Sortierung wie ListPublishedPosts. Ohne Fortsetzung (has_after = 0) beginnt die Liste vorn.
+	// Kommentare vor Abfragen mit sqlc.arg ohne Umlaute: sqlc verschiebt sonst die Ersetzungspositionen.
+	ListPublishedPostsPage(ctx context.Context, arg ListPublishedPostsPageParams) ([]Post, error)
 	ListReadinessRatings(ctx context.Context, resultIds []int64) ([]ReadinessResultRating, error)
 	ListReadinessResults(ctx context.Context, arg ListReadinessResultsParams) ([]ListReadinessResultsRow, error)
 	ListTopicTranslations(ctx context.Context) ([]TopicTranslation, error)
@@ -96,11 +117,15 @@ type Querier interface {
 	// behaelt seine Rolle aus der alten Spalte users.role. Das uebernimmt der Dienst.
 	ListUserRoles(ctx context.Context, userIds []int64) ([]UserRole, error)
 	ListUsers(ctx context.Context) ([]User, error)
+	NextPendingSocialShare(ctx context.Context) (SocialShare, error)
 	Ping(ctx context.Context) (int64, error)
 	PublishPost(ctx context.Context, arg PublishPostParams) (int64, error)
 	// Ticket #31: Eine automatische Veroeffentlichung traegt immer den geplanten Zeitpunkt als Datum,
 	// auch wenn der Beitrag frueher schon einmal veroeffentlicht war.
 	PublishScheduledPost(ctx context.Context, arg PublishScheduledPostParams) (int64, error)
+	RetrySocialShare(ctx context.Context, arg RetrySocialShareParams) (int64, error)
+	SaveSocialConnection(ctx context.Context, arg SaveSocialConnectionParams) error
+	SaveSocialSettings(ctx context.Context, arg SaveSocialSettingsParams) error
 	// Geplante Veroeffentlichung (Ticket #23). Zeitpunkte in UTC, RFC 3339 ohne Sekundenbruchteile,
 	// damit der Textvergleich der zeitlichen Reihenfolge entspricht.
 	SchedulePost(ctx context.Context, arg SchedulePostParams) (int64, error)

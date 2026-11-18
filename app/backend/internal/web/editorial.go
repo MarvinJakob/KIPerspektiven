@@ -103,7 +103,7 @@ const (
 	accessPublic                 // Anmeldung
 	accessPosts                  // Beitragssystem (Admin, Redakteur)
 	accessInsights               // Statistik, Nachrichten, Beratungsanfragen (Admin, Marketing)
-	accessAdmin                  // Benutzerverwaltung (Admin)
+	accessAdmin                  // Benutzerverwaltung und Einstellungen (Admin)
 	accessProfile                // eigenes Profil (jedes Konto, Ticket #64)
 )
 
@@ -141,6 +141,8 @@ func route(rest string) access {
 	case rest == "beratungsanfragen": // Ticket #136
 		return accessInsights
 	case rest == "benutzer":
+		return accessAdmin
+	case rest == "einstellungen" || rest == "einstellungen/social-media" || rest == "einstellungen/social-media/linkedin": // Ticket #85
 		return accessAdmin
 	case rest == "profil": // Ticket #64
 		return accessProfile

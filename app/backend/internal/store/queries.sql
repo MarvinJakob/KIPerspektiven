@@ -25,6 +25,19 @@ FROM posts
 WHERE status = 'published'
 ORDER BY published_at DESC, id DESC;
 
+-- Portion der Blog-Uebersicht (Ticket #75): Keyset hinter (after_published_at, after_id) in derselben
+-- Sortierung wie ListPublishedPosts. Ohne Fortsetzung (has_after = 0) beginnt die Liste vorn.
+-- Kommentare vor Abfragen mit sqlc.arg ohne Umlaute: sqlc verschiebt sonst die Ersetzungspositionen.
+-- name: ListPublishedPostsPage :many
+SELECT *
+FROM posts
+WHERE status = 'published'
+  AND (sqlc.arg(has_after) = 0
+       OR published_at < sqlc.arg(after_published_at)
+       OR (published_at = sqlc.arg(after_published_at) AND id < sqlc.arg(after_id)))
+ORDER BY published_at DESC, id DESC
+LIMIT sqlc.arg(row_limit);
+
 -- name: ListPublishedPostsByTopic :many
 SELECT p.*
 FROM posts p
@@ -285,6 +298,14 @@ SELECT id, email, lang, requested_at FROM consultation_requests ORDER BY request
 -- name: DeleteConsultationRequest :execrows
 DELETE FROM consultation_requests WHERE id = ?;
 
+-- Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
+-- name: ListConsultationRequestsBefore :many
+SELECT id, requested_at FROM consultation_requests WHERE requested_at <= ? ORDER BY id;
+
+-- Loescht nur, wenn die Anfrage seit der Auswahl nicht erneut gesendet wurde (neuer Fristbeginn).
+-- name: DeleteConsultationRequestIfUnchanged :execrows
+DELETE FROM consultation_requests WHERE id = ? AND requested_at = ?;
+
 -- ---------------------------------------------------------------------------
 -- Nachrichten der Kontaktseite (Anforderung #4)
 -- ---------------------------------------------------------------------------
@@ -319,6 +340,13 @@ DELETE FROM articles WHERE id = ?;
 
 -- name: ListContactMessages :many
 SELECT id, name, company, email, message, lang, received_at FROM contact_messages ORDER BY received_at DESC, id DESC;
+
+-- name: DeleteContactMessage :execrows
+DELETE FROM contact_messages WHERE id = ?;
+
+-- Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
+-- name: ListContactMessagesBefore :many
+SELECT id, received_at FROM contact_messages WHERE received_at <= ? ORDER BY id;
 
 -- ---------------------------------------------------------------------------
 -- Rollen, Profil und Autoren (Ticket #64)
@@ -365,3 +393,62 @@ UPDATE posts SET author_id = ?, updated_at = ? WHERE id = ?;
 SELECT u.display_name, m.storage_key, m.mime_type, m.width, m.height
 FROM users u LEFT JOIN media m ON m.id = u.avatar_media_id
 WHERE u.id = ?;
+
+-- ---------------------------------------------------------------------------
+-- Social Media (Ticket #85)
+-- ---------------------------------------------------------------------------
+
+-- name: GetSocialConnection :one
+SELECT * FROM social_connections WHERE platform = ?;
+
+-- name: SaveSocialConnection :exec
+INSERT INTO social_connections (platform, member_id, member_name, access_token, token_expires_at, connected_at, updated_at)
+VALUES (sqlc.arg(platform), sqlc.arg(member_id), sqlc.arg(member_name), sqlc.arg(access_token), sqlc.arg(token_expires_at), sqlc.arg(connected_at), sqlc.arg(updated_at))
+ON CONFLICT (platform) DO UPDATE SET
+    member_id = excluded.member_id,
+    member_name = excluded.member_name,
+    access_token = excluded.access_token,
+    token_expires_at = excluded.token_expires_at,
+    connected_at = excluded.connected_at,
+    updated_at = excluded.updated_at;
+
+-- name: SaveSocialSettings :exec
+INSERT INTO social_connections (platform, enabled, preferred_lang, updated_at)
+VALUES (sqlc.arg(platform), sqlc.arg(enabled), sqlc.arg(preferred_lang), sqlc.arg(updated_at))
+ON CONFLICT (platform) DO UPDATE SET
+    enabled = excluded.enabled,
+    preferred_lang = excluded.preferred_lang,
+    updated_at = excluded.updated_at;
+
+-- name: ClearSocialConnection :exec
+UPDATE social_connections
+SET enabled = FALSE, member_id = '', member_name = '', access_token = '', token_expires_at = NULL, connected_at = NULL,
+    updated_at = sqlc.arg(updated_at)
+WHERE platform = sqlc.arg(platform);
+
+-- name: CreateSocialShare :execrows
+INSERT INTO social_shares (post_id, platform, status, created_at, updated_at)
+VALUES (?, ?, 'pending', ?, ?)
+ON CONFLICT (post_id, platform) DO NOTHING;
+
+-- name: GetSocialShare :one
+SELECT * FROM social_shares WHERE post_id = ? AND platform = ?;
+
+-- name: NextPendingSocialShare :one
+SELECT * FROM social_shares WHERE status = 'pending' ORDER BY created_at, post_id LIMIT 1;
+
+-- name: ClaimSocialShare :execrows
+UPDATE social_shares SET status = 'sending', updated_at = ?
+WHERE post_id = ? AND platform = ? AND status = 'pending';
+
+-- name: FinishSocialShare :exec
+UPDATE social_shares SET status = ?, lang = ?, post_urn = ?, message = ?, updated_at = ?
+WHERE post_id = ? AND platform = ?;
+
+-- name: RetrySocialShare :execrows
+UPDATE social_shares SET status = 'pending', message = '', updated_at = ?
+WHERE post_id = ? AND platform = ? AND status = 'failed';
+
+-- name: InterruptSocialShares :execrows
+UPDATE social_shares SET status = 'unknown', message = sqlc.arg(message), updated_at = sqlc.arg(updated_at)
+WHERE status = 'sending';

@@ -252,9 +252,21 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: cursor
+          in: query
+          required: false
+          description: |
+            Fortsetzung der Blogübersicht (Ticket #75): `nextCursor` der vorigen Antwort. Die Liste
+            setzt direkt hinter deren letztem Eintrag fort; später vorn einsortierte Beiträge verschieben
+            die Fortsetzung nicht. Ungültige Werte ergeben `400`. Bei `featured=true` ohne Wirkung.
+          schema:
+            type: string
+            maxLength: 200
       responses:
         '200':
-          description: Beiträge
+          description: |
+            Beiträge. Ohne `featured` höchstens 20 je Abruf (Ticket #75), neueste zuerst und bei
+            gleichem Veröffentlichungsdatum nach Beitrags-ID absteigend.
           content:
             application/json:
               schema:
@@ -916,6 +928,149 @@ paths:
           $ref: '#/components/responses/NotFound'
         '422':
           $ref: '#/components/responses/Unprocessable'
+  /api/admin/posts/{id}/linkedin/retry:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      operationId: adminRetryLinkedInShare
+      summary: Abgelehnten LinkedIn-Versand wiederholen (Ticket #85)
+      description: >-
+        Nur bei Status `failed` (LinkedIn hat eindeutig abgelehnt). Bei `unknown` (unklarer Ausgang), `succeeded`
+        oder ohne LinkedIn-Status `422`, damit kein zweiter Post entsteht.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '200':
+          description: Versand erneut eingeplant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditorPost'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/admin/social/linkedin:
+    get:
+      operationId: adminGetLinkedInSettings
+      summary: LinkedIn-Einstellungen lesen (Ticket #85, nur Admin)
+      description: Enthält nie Zugriffstoken oder App-Secret.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Einstellungen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkedInSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      operationId: adminUpdateLinkedInSettings
+      summary: Automatisches Teilen schalten und bevorzugte Sprache setzen (nur Admin)
+      description: Einschalten verlangt konfigurierte App, verbundenes Profil und gültige Autorisierung (sonst `422` mit Grund).
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkedInSettingsUpdate'
+      responses:
+        '200':
+          description: Gespeichert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkedInSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/admin/social/linkedin/authorize:
+    post:
+      operationId: adminAuthorizeLinkedIn
+      summary: OAuth-Autorisierung bei LinkedIn beginnen (nur Admin)
+      description: Liefert die LinkedIn-Adresse mit einem einmaligen, kontogebundenen `state` (10 Minuten gültig).
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '200':
+          description: Adresse für die Weiterleitung zu LinkedIn
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkedInAuthorization'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/admin/social/linkedin/callback:
+    get:
+      operationId: adminLinkedInCallback
+      summary: Rückruf von LinkedIn nach der Autorisierung (nur Admin)
+      description: >-
+        Prüft `state`, tauscht den Code gegen ein Token, liest das Profil und speichert die Verbindung. Leitet immer
+        zur Einstellungsseite zurück, mit `verbindung=ok` oder `verbindung=fehler`.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: code
+          in: query
+          schema:
+            type: string
+        - name: state
+          in: query
+          schema:
+            type: string
+        - name: error
+          in: query
+          schema:
+            type: string
+      responses:
+        '303':
+          description: Weiterleitung zur Einstellungsseite
+          headers:
+            Location:
+              required: true
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/social/linkedin/connection:
+    delete:
+      operationId: adminDisconnectLinkedIn
+      summary: LinkedIn-Verbindung trennen (nur Admin)
+      description: Entfernt Profil und Token und schaltet das automatische Teilen aus.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '204':
+          description: Getrennt
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/admin/posts/{id}/schedule:
     parameters:
       - $ref: '#/components/parameters/Id'
@@ -1153,6 +1308,28 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /api/admin/contact-messages/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    delete:
+      operationId: adminDeleteContactMessage
+      summary: Nachricht der Kontaktseite löschen
+      description: |
+        Ticket #90. Löscht eine Nachricht sofort, etwa auf Wunsch der absendenden Person. Erlaubt für die Rollen
+        `marketing` und `admin`, die die Nachrichten lesen. Unabhängig davon löscht die Anwendung jede Nachricht
+        automatisch spätestens sechs Monate nach Eingang.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '204':
+          description: Gelöscht
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/admin/consultation-requests:
     get:
       operationId: adminListConsultationRequests
@@ -1519,6 +1696,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PostSummary'
+        nextCursor:
+          type: string
+          description: |
+            Nur wenn weitere Beiträge folgen (Ticket #75): Wert für `cursor` beim nächsten Abruf.
+            Fehlt nach der letzten Portion, auch wenn diese genau voll ist.
     Post:
       allOf:
         - $ref: '#/components/schemas/PostSummary'
@@ -1725,9 +1907,71 @@ components:
           type: integer
           format: int64
           description: "Konto-ID des Autors (Ticket #64), fehlt bei „Kein Autor“"
+        linkedin:
+          $ref: '#/components/schemas/LinkedInShare'
         updatedAt:
           type: string
           format: date-time
+    LinkedInShare:
+      type: object
+      description: LinkedIn-Status eines Beitrags (Ticket #85)
+      required: [state, updatedAt]
+      properties:
+        state:
+          type: string
+          enum: [pending, sending, succeeded, failed, unknown]
+          description: "`failed`: eindeutig abgelehnt, wiederholbar. `unknown`: Ausgang unklar, nicht wiederholbar."
+        lang:
+          $ref: '#/components/schemas/Lang'
+        postUrl:
+          type: string
+          description: Link zum LinkedIn-Post bei `succeeded`
+        message:
+          type: string
+          description: Hinweis bei `failed` oder `unknown`
+        updatedAt:
+          type: string
+          format: date-time
+    LinkedInSettings:
+      type: object
+      description: Einstellungen unter „Einstellungen → Social Media → LinkedIn“ (Ticket #85), ohne Token
+      required: [appConfigured, connected, expired, enabled, preferredLang]
+      properties:
+        appConfigured:
+          type: boolean
+          description: LINKEDIN_CLIENT_ID und LINKEDIN_CLIENT_SECRET sind auf dem Server gesetzt
+        connected:
+          type: boolean
+        expired:
+          type: boolean
+          description: Die Autorisierung des verbundenen Profils ist abgelaufen
+        enabled:
+          type: boolean
+        profileName:
+          type: string
+          description: Name des verbundenen LinkedIn-Profils (Ziel)
+        connectedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        preferredLang:
+          $ref: '#/components/schemas/Lang'
+    LinkedInSettingsUpdate:
+      type: object
+      required: [enabled, preferredLang]
+      properties:
+        enabled:
+          type: boolean
+        preferredLang:
+          $ref: '#/components/schemas/Lang'
+    LinkedInAuthorization:
+      type: object
+      required: [authorizationUrl]
+      properties:
+        authorizationUrl:
+          type: string
     EditorPostSummary:
       type: object
       required: [id, slug, status, title, featured, topics, translations, updatedAt]

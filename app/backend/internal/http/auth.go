@@ -125,14 +125,17 @@ func under(p, prefix string) bool { return p == prefix || strings.HasPrefix(p, p
 
 // allowed prüft die Rollen für einen geschützten API-Pfad nach der Rollentabelle aus Ticket #64:
 // Beiträge für Admin und Redakteur, Statistik, Nachrichten und Beratungsanfragen lesend für Admin und
-// Marketing, Löschen von Beratungsanfragen und Benutzerverwaltung nur für Admin. Unbekannte /api/admin-Pfade
-// bleiben Admin-Konten vorbehalten. Profil, /api/auth/me und /api/auth/logout gelten für jede gültige Sitzung.
+// Marketing, Löschen von Beratungsanfragen und Benutzerverwaltung nur für Admin. Einzelne Nachrichten löschen
+// Admin und Marketing (Ticket #90). Unbekannte /api/admin-Pfade bleiben Admin-Konten vorbehalten. Profil,
+// /api/auth/me und /api/auth/logout gelten für jede gültige Sitzung.
 func allowed(method, p string, roles service.Roles) bool {
 	switch {
 	case under(p, "/api/admin/posts"), under(p, "/api/admin/articles"), p == "/api/admin/authors":
 		return roles.CanEditPosts()
 	case under(p, "/api/admin/consultation-requests") && method == http.MethodDelete:
 		return roles.CanDeleteConsultations()
+	case strings.HasPrefix(p, "/api/admin/contact-messages/") && method == http.MethodDelete:
+		return roles.CanDeleteContactMessages()
 	case under(p, "/api/admin/statistics"), under(p, "/api/admin/contact-messages"), under(p, "/api/admin/consultation-requests"):
 		return roles.CanViewInsights() && !unsafeMethod(method)
 	case under(p, "/api/admin"):

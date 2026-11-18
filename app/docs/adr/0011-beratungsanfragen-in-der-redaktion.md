@@ -29,6 +29,9 @@ Möglich waren:
   „Beratungsanfragen“, Rollen `editor` und `admin`, wie die Statistik aus #130). Sie meldet sich per E-Mail
   zur Terminabstimmung und löscht die Anfrage danach (`DELETE /api/admin/consultation-requests/{id}`, mit
   CSRF-Token).
+- **Höchstfrist (Ergänzung Ticket #90):** Kommt kein Termin zustande, löscht eine tägliche Bereinigung die
+  Anfrage spätestens sechs Kalendermonate nach der letzten Anfrage. Eine erneute Anfrage beginnt die Frist neu.
+  Regeln und Fälligkeit in `backend/internal/service/retention.go`.
 - **Prüfung:** Frontend und Backend prüfen die Adresse. Das Frontend prüft grob (ein `@`, keine Leerzeichen,
   Punkt in der Domain, höchstens 254 Zeichen), maßgeblich ist das Backend (`net/mail`, eine einzelne Adresse
   ohne Namen, Punkt in der Domain, höchstens 254 Zeichen; dieselbe Prüfung wie für Redaktionskonten). Leere
