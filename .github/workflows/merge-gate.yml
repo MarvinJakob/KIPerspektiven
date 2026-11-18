@@ -23,10 +23,18 @@ jobs:
     timeout-minutes: 45
     outputs:
       commit: ${{ steps.identity.outputs.commit }}
+      tree: ${{ steps.identity.outputs.tree }}
       version: ${{ steps.identity.outputs.version }}
       image-id: ${{ steps.identity.outputs.image-id }}
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/e2e/package-lock.json
+      - name: Unit-Tests für Prozesswerkzeuge
+        run: node --test "tools/*.test.mjs"
       - uses: docker/setup-buildx-action@v3
       - name: Image bauen
         uses: docker/build-push-action@v6
@@ -42,6 +50,7 @@ jobs:
         run: |
           docker load -i "$RUNNER_TEMP/image.tar"
           commit=$(git rev-parse HEAD)
+          echo "tree=$(git rev-parse HEAD^{tree})" >> "$GITHUB_OUTPUT"
           image=$(docker image inspect -f '{{.Id}}' ki-web:ci)
           digest=${image#sha256:}
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
@@ -60,11 +69,6 @@ jobs:
           done
           docker logs ki-e2e
           exit 1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: app/e2e/package-lock.json
       - name: Playwright installieren
         working-directory: app/e2e
         run: |
@@ -87,6 +91,20 @@ jobs:
       - name: Serverprotokoll bei Fehlern
         if: failure()
         run: docker logs ki-e2e | tail -200
+      - name: Geprüften Dateiinhalt dokumentieren
+        run: git show -s --format='%H %T' HEAD > "$RUNNER_TEMP/gepruefter-stand.txt"
+      - name: Nachweis zum geprüften Stand sichern
+        id: evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ steps.identity.outputs.tree }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/gepruefter-stand.txt
+          if-no-files-found: error
+      - name: Nachweislink für Bug-Tickets ausgeben
+        env:
+          EVIDENCE_URL: ${{ steps.evidence.outputs.artifact-url }}
+        run: |
+          echo "Release-Nachweis: $EVIDENCE_URL" >> "$GITHUB_STEP_SUMMARY"
       - name: Geprüftes Image für die Installation speichern
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
@@ -99,6 +117,10 @@ jobs:
   deploy:
     name: Neue Version installieren
     needs: build
+    permissions:
+      contents: read
+      issues: read
+      actions: read
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -131,6 +153,11 @@ jobs:
           previous=$(bash app/deploy/deploy.sh version)
           [[ -z "$previous" || "$previous" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
           echo "version=$previous" >> "$GITHUB_OUTPUT"
+      - name: Offene Release-Blocker für das geprüfte Image prüfen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TREE: ${{ needs.build.outputs.tree }}
+        run: node tools/release-blockers.mjs
       - name: Geprüftes Image installieren und Healthcheck ausführen
         id: install
         env:
