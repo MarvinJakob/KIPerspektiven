@@ -1,5 +1,6 @@
 # Testsuiten für Merge Gate und Release Gate (AGENTS.md, Abschnitt 5 und 7; Anforderung #55).
 # Die Auswahl bestimmt tools/affected-tests.mjs; nicht ausgewählte Suiten werden übersprungen.
+# Messlauf Ausgangsstand für #94: nur dieser Kommentar ist geändert (wählt die vollständige Suite).
 name: Tests
 
 on:
