@@ -239,6 +239,14 @@ svg { display: block; }
 .field input:focus-visible, .field textarea:focus-visible, .field select:focus-visible { outline-offset: 1px; }
 .field [aria-invalid="true"] { border-color: var(--danger); }
 .field-hint { font-size: .8125rem; color: var(--text-2); }
+/* Passwortfeld mit Icon zum Anzeigen beim Gedrückthalten (Ticket #6) */
+.password-input { position: relative; display: grid; }
+.password-input input { width: 100%; box-sizing: border-box; padding-right: 52px; }
+.password-reveal {
+  position: absolute; top: 50%; right: 2px; transform: translateY(-50%); color: var(--text-2);
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.password-reveal:focus-visible { outline-offset: -3px; }
 .form-error { min-height: 1.4em; margin-top: 12px; color: var(--danger); font-size: .875rem; font-weight: 600; }
 .form-error:empty { min-height: 0; margin: 0; }
 .form-ok { margin-top: 12px; color: var(--ok); font-size: .875rem; font-weight: 600; }
@@ -253,7 +261,8 @@ svg { display: block; }
 .login-card h1 { font-size: 1.75rem; font-weight: 740; }
 
 /* Tabellen */
-.table-wrap { margin-top: 24px; overflow-x: auto; border-radius: var(--radius-l); background: var(--surface); box-shadow: var(--shadow-card); }
+/* position: relative hält absolut positionierte Inhalte (.visually-hidden) im Bildlaufbereich (Ticket #6, AC7) */
+.table-wrap { position: relative; margin-top: 24px; overflow-x: auto; border-radius: var(--radius-l); background: var(--surface); box-shadow: var(--shadow-card); }
 .table { width: 100%; border-collapse: collapse; font-size: .9375rem; }
 .table th, .table td { padding: 14px 18px; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--border); }
 .table th { font-size: .8125rem; font-weight: 650; color: var(--text-2); }
