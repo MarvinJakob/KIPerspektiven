@@ -23,6 +23,9 @@ type apiServer struct {
 	stats         *service.Statistics
 	consultations *service.Consultations
 	contact       *service.Contact
+	social        *service.Social // Teilen auf LinkedIn (Ticket #85)
+	linkedin      LinkedInOAuth   // OAuth-Verbindung zu LinkedIn, nil ohne Konfiguration
+	oauth         *oauthStates
 	media         *media.Store
 	secureCookies bool
 	log           *slog.Logger

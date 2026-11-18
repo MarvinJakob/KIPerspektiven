@@ -6,7 +6,7 @@ export type Role = components['schemas']['Role'];
  * Bereiche der Redaktion nach der Rollentabelle aus Ticket #64. Das Backend prüft dieselben Regeln bei jedem
  * Seiten- und API-Aufruf; die Oberfläche blendet nur aus, was ohnehin gesperrt ist.
  */
-export type Permission = 'posts' | 'insights' | 'deleteContactMessages' | 'deleteConsultations' | 'users' | 'profile';
+export type Permission = 'posts' | 'insights' | 'deleteContactMessages' | 'deleteConsultations' | 'users' | 'settings' | 'profile';
 
 /** Feste Reihenfolge und deutsche Bezeichnung der Rollen. */
 export const ROLES: readonly { role: Role; label: string }[] = [
@@ -25,6 +25,7 @@ export function can(roles: readonly Role[], permission: Permission): boolean {
       return has('admin') || has('marketing');
     case 'deleteConsultations':
     case 'users':
+    case 'settings': // Einstellungen, z. B. Social Media (Ticket #85)
       return has('admin');
     case 'profile':
       return true;

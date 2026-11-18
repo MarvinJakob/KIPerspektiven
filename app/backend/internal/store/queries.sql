@@ -393,3 +393,62 @@ UPDATE posts SET author_id = ?, updated_at = ? WHERE id = ?;
 SELECT u.display_name, m.storage_key, m.mime_type, m.width, m.height
 FROM users u LEFT JOIN media m ON m.id = u.avatar_media_id
 WHERE u.id = ?;
+
+-- ---------------------------------------------------------------------------
+-- Social Media (Ticket #85)
+-- ---------------------------------------------------------------------------
+
+-- name: GetSocialConnection :one
+SELECT * FROM social_connections WHERE platform = ?;
+
+-- name: SaveSocialConnection :exec
+INSERT INTO social_connections (platform, member_id, member_name, access_token, token_expires_at, connected_at, updated_at)
+VALUES (sqlc.arg(platform), sqlc.arg(member_id), sqlc.arg(member_name), sqlc.arg(access_token), sqlc.arg(token_expires_at), sqlc.arg(connected_at), sqlc.arg(updated_at))
+ON CONFLICT (platform) DO UPDATE SET
+    member_id = excluded.member_id,
+    member_name = excluded.member_name,
+    access_token = excluded.access_token,
+    token_expires_at = excluded.token_expires_at,
+    connected_at = excluded.connected_at,
+    updated_at = excluded.updated_at;
+
+-- name: SaveSocialSettings :exec
+INSERT INTO social_connections (platform, enabled, preferred_lang, updated_at)
+VALUES (sqlc.arg(platform), sqlc.arg(enabled), sqlc.arg(preferred_lang), sqlc.arg(updated_at))
+ON CONFLICT (platform) DO UPDATE SET
+    enabled = excluded.enabled,
+    preferred_lang = excluded.preferred_lang,
+    updated_at = excluded.updated_at;
+
+-- name: ClearSocialConnection :exec
+UPDATE social_connections
+SET enabled = FALSE, member_id = '', member_name = '', access_token = '', token_expires_at = NULL, connected_at = NULL,
+    updated_at = sqlc.arg(updated_at)
+WHERE platform = sqlc.arg(platform);
+
+-- name: CreateSocialShare :execrows
+INSERT INTO social_shares (post_id, platform, status, created_at, updated_at)
+VALUES (?, ?, 'pending', ?, ?)
+ON CONFLICT (post_id, platform) DO NOTHING;
+
+-- name: GetSocialShare :one
+SELECT * FROM social_shares WHERE post_id = ? AND platform = ?;
+
+-- name: NextPendingSocialShare :one
+SELECT * FROM social_shares WHERE status = 'pending' ORDER BY created_at, post_id LIMIT 1;
+
+-- name: ClaimSocialShare :execrows
+UPDATE social_shares SET status = 'sending', updated_at = ?
+WHERE post_id = ? AND platform = ? AND status = 'pending';
+
+-- name: FinishSocialShare :exec
+UPDATE social_shares SET status = ?, lang = ?, post_urn = ?, message = ?, updated_at = ?
+WHERE post_id = ? AND platform = ?;
+
+-- name: RetrySocialShare :execrows
+UPDATE social_shares SET status = 'pending', message = '', updated_at = ?
+WHERE post_id = ? AND platform = ? AND status = 'failed';
+
+-- name: InterruptSocialShares :execrows
+UPDATE social_shares SET status = 'unknown', message = sqlc.arg(message), updated_at = sqlc.arg(updated_at)
+WHERE status = 'sending';

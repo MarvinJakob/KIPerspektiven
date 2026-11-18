@@ -161,6 +161,8 @@ jobs:
           docker run -d --name ki-e2e --network host \
             -e ADDR=127.0.0.1:8080 -e DEV_SEED=true -e SERVE_MEDIA=true \
             -e PUBLIC_BASE_URL=http://127.0.0.1:8080 -e TRUSTED_PROXIES=127.0.0.1 \
+            -e LINKEDIN_CLIENT_ID=e2e-linkedin-client -e LINKEDIN_CLIENT_SECRET=e2e-linkedin-secret \
+            -e LINKEDIN_AUTH_URL=http://127.0.0.1:8091 -e LINKEDIN_API_URL=http://127.0.0.1:8091 \
             ki-web:ci
           for i in $(seq 1 30); do
             curl -fsS http://127.0.0.1:8080/api/health && exit 0

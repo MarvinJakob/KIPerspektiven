@@ -183,7 +183,7 @@ func toEditorPost(p service.EditorPost) api.EditorPost {
 	out := api.EditorPost{
 		Id: p.ID, Slug: p.Slug, Status: api.PostStatus(p.Status), Featured: p.Featured,
 		Topics: p.Topics, Texts: texts, PublishedAt: p.PublishedAt, ScheduledAt: p.ScheduledAt, UpdatedAt: p.UpdatedAt,
-		AuthorId: p.AuthorID,
+		AuthorId: p.AuthorID, Linkedin: toLinkedInShare(p.LinkedIn),
 	}
 	if c := p.Cover; c != nil {
 		alt := ""

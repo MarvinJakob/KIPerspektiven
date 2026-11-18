@@ -26,6 +26,7 @@ import (
 	"ki-web/backend/internal/audit"
 	"ki-web/backend/internal/clientip"
 	httpserver "ki-web/backend/internal/http"
+	"ki-web/backend/internal/linkedin"
 	"ki-web/backend/internal/media"
 	"ki-web/backend/internal/service"
 	"ki-web/backend/internal/statisticskey"
@@ -43,6 +44,7 @@ type config struct {
 	trustedProxies    string
 	statisticsKeyPath string
 	requireLogin      bool
+	linkedin          linkedin.Config
 }
 
 func env(key, def string) string {
@@ -71,6 +73,14 @@ func loadConfig() config {
 		trustedProxies:    env("TRUSTED_PROXIES", ""),
 		statisticsKeyPath: env("STATISTICS_KEY_PATH", ""),
 		requireLogin:      envBool("REQUIRE_LOGIN"),
+		// Ticket #85: LinkedIn-App für das automatische Teilen. Ohne Client-ID und Secret ist das Teilen nicht
+		// einschaltbar. AUTH_URL und API_URL zeigen nur in Tests auf ein Testdouble.
+		linkedin: linkedin.Config{
+			ClientID:     env("LINKEDIN_CLIENT_ID", ""),
+			ClientSecret: env("LINKEDIN_CLIENT_SECRET", ""),
+			AuthBaseURL:  env("LINKEDIN_AUTH_URL", ""),
+			APIBaseURL:   env("LINKEDIN_API_URL", ""),
+		},
 	}
 }
 
@@ -127,7 +137,18 @@ func runServer(cfg config, log *slog.Logger) error {
 	accounts := service.NewAccounts(db)
 	go cleanupSessions(ctx, accounts, log)
 	editorial := service.NewEditorial(db)
-	go publishScheduled(ctx, editorial, log)
+	cfg.linkedin.RedirectURL = strings.TrimRight(cfg.baseURL, "/") + "/api/admin/social/linkedin/callback"
+	linkedinClient := linkedin.New(cfg.linkedin)
+	social := service.NewSocial(db, linkedinClient, cfg.baseURL)
+	editorial.SetFirstPublicationHook(social.OnFirstPublication)
+	editorial.OnPublished(social.Notify)
+	if n, err := social.RecoverInterrupted(ctx); err != nil {
+		return err
+	} else if n > 0 {
+		log.Warn("unterbrochene linkedin-versände als unklar markiert", "anzahl", n)
+	}
+	go publishScheduled(ctx, editorial, social, log)
+	go shareOnSocialMedia(ctx, social, log)
 	proxies, err := clientip.ParseProxies(cfg.trustedProxies)
 	if err != nil {
 		return err
@@ -157,6 +178,8 @@ func runServer(cfg config, log *slog.Logger) error {
 		Statistics:     stats,
 		Consultations:  consultations,
 		Contact:        contact,
+		Social:         social,
+		LinkedIn:       linkedinClient,
 		Media:          media.NewStore(cfg.mediaPath),
 		EditorialSite:  web.NewEditorial(accounts, nil, log),
 		SecureCookies:  strings.HasPrefix(cfg.baseURL, "https://"),
@@ -203,7 +226,7 @@ const publishInterval = 15 * time.Second
 
 // publishScheduled veröffentlicht beim Start und danach regelmäßig alle Beiträge, deren geplanter
 // Zeitpunkt erreicht ist (Ticket #23).
-func publishScheduled(ctx context.Context, editorial *service.Editorial, log *slog.Logger) {
+func publishScheduled(ctx context.Context, editorial *service.Editorial, social *service.Social, log *slog.Logger) {
 	t := time.NewTicker(publishInterval)
 	defer t.Stop()
 	for {
@@ -217,10 +240,36 @@ func publishScheduled(ctx context.Context, editorial *service.Editorial, log *sl
 		for _, id := range skipped {
 			log.Warn("geplanter beitrag unvollständig, zeitpunkt entfernt", "id", id)
 		}
+		if len(published) > 0 {
+			social.Notify()
+		}
 		select {
 		case <-ctx.Done():
 			return
 		case <-t.C:
+		}
+	}
+}
+
+// shareInterval ist der Rückfall, falls eine Benachrichtigung verloren geht. Normalerweise weckt jede
+// Erstveröffentlichung den Versand sofort (Ticket #85).
+const shareInterval = 15 * time.Second
+
+// shareOnSocialMedia sendet wartende LinkedIn-Posts nach jeder Erstveröffentlichung und regelmäßig (Ticket #85).
+func shareOnSocialMedia(ctx context.Context, social *service.Social, log *slog.Logger) {
+	t := time.NewTicker(shareInterval)
+	defer t.Stop()
+	for {
+		if n, err := social.SendPending(ctx); err != nil && ctx.Err() == nil {
+			log.Error("linkedin-posts senden", "fehler", err)
+		} else if n > 0 {
+			log.Info("linkedin-posts gesendet", "anzahl", n)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		case <-social.Wake():
 		}
 	}
 }

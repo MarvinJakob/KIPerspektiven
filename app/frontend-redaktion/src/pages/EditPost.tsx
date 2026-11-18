@@ -16,6 +16,7 @@ import { Loading, Page } from '../components/Layout';
 import { StatusBadge, formatDate, formatWithZone, resolveLocalInput, toLocalInput } from '../components/PostParts';
 
 import { AMBIGUOUS, NONEXISTENT, coverProblem, hasText, toForm, toInput, type Form } from '../lib/postForm';
+import { canRetry, shareLabel } from '../lib/linkedin';
 
 /** Wert des Autorenfelds: Konto-ID als Text oder '' für „Kein Autor“. */
 const authorValue = (p: EditorPost) => (p.authorId != null ? String(p.authorId) : '');
@@ -127,6 +128,18 @@ function Editor({ post }: { post?: EditorPost }) {
       setNotice(success);
     } catch (e) {
       setError(errorText(e));
+    }
+  };
+
+  // Ticket #85: Wiederholt einen abgelehnten LinkedIn-Versand. Das Formular bleibt unverändert.
+  const [retryError, setRetryError] = useState('');
+  const retryLinkedIn = async () => {
+    if (!post) return;
+    setRetryError('');
+    try {
+      await action.mutateAsync({ kind: 'retryLinkedIn', id: post.id });
+    } catch (e) {
+      setRetryError(errorText(e));
     }
   };
 
@@ -498,6 +511,8 @@ function Editor({ post }: { post?: EditorPost }) {
           </section>
         )}
 
+        {post && <LinkedInStatus post={post} busy={busy} onRetry={() => void retryLinkedIn()} retryError={retryError} />}
+
         <div className="toolbar glass" role="toolbar" aria-label="Beitrag">
           <div className="toolbar-status" aria-live="polite">
             {error ? (
@@ -552,6 +567,61 @@ function Editor({ post }: { post?: EditorPost }) {
         </div>
       </form>
     </Page>
+  );
+}
+
+/** LinkedIn-Status des Beitrags (Ticket #85, REQ-85-AC8, AC12, AC13). */
+function LinkedInStatus({ post, busy, onRetry, retryError }: { post: EditorPost; busy: boolean; onRetry: () => void; retryError: string }) {
+  const id = useId();
+  const share = post.linkedin;
+  return (
+    <section className="card" aria-labelledby={id}>
+      <h2 className="card-title" id={id}>
+        LinkedIn
+      </h2>
+      <div aria-live="polite">
+        {share ? (
+          <>
+            <p className={`linkedin-state linkedin-${share.state}`}>
+              <strong>{shareLabel(share)}</strong>
+              {share.lang && ` · Fassung ${LANG_NAMES[share.lang]}`}
+              {share.state !== 'pending' && share.state !== 'sending' && ` · ${formatDate(share.updatedAt)}`}
+            </p>
+            {share.postUrl && (
+              <p>
+                <a href={share.postUrl} target="_blank" rel="noopener noreferrer">
+                  Post auf LinkedIn öffnen (neuer Tab)
+                </a>
+              </p>
+            )}
+            {share.message && <p className="field-hint">{share.message}</p>}
+          </>
+        ) : (
+          <>
+            <p className="linkedin-state">
+              <strong>Nicht geteilt</strong>
+            </p>
+            <p className="field-hint">
+              {post.status === 'published'
+                ? 'Dieser Beitrag wurde nicht automatisch geteilt, etwa weil das Teilen bei seiner ersten Veröffentlichung ausgeschaltet war.'
+                : 'Neue Beiträge werden bei ihrer ersten Veröffentlichung automatisch geteilt, wenn ein Admin das unter Einstellungen → Social Media → LinkedIn eingeschaltet hat.'}
+            </p>
+          </>
+        )}
+      </div>
+      {share && canRetry(share) && (
+        <div className="schedule-actions">
+          <button type="button" className="btn btn-secondary press" disabled={busy} onClick={onRetry}>
+            Erneut an LinkedIn senden
+          </button>
+        </div>
+      )}
+      {retryError && (
+        <p className="form-error" role="alert">
+          {retryError}
+        </p>
+      )}
+    </section>
   );
 }
 
