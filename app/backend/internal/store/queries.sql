@@ -25,6 +25,19 @@ FROM posts
 WHERE status = 'published'
 ORDER BY published_at DESC, id DESC;
 
+-- Portion der Blog-Uebersicht (Ticket #75): Keyset hinter (after_published_at, after_id) in derselben
+-- Sortierung wie ListPublishedPosts. Ohne Fortsetzung (has_after = 0) beginnt die Liste vorn.
+-- Kommentare vor Abfragen mit sqlc.arg ohne Umlaute: sqlc verschiebt sonst die Ersetzungspositionen.
+-- name: ListPublishedPostsPage :many
+SELECT *
+FROM posts
+WHERE status = 'published'
+  AND (sqlc.arg(has_after) = 0
+       OR published_at < sqlc.arg(after_published_at)
+       OR (published_at = sqlc.arg(after_published_at) AND id < sqlc.arg(after_id)))
+ORDER BY published_at DESC, id DESC
+LIMIT sqlc.arg(row_limit);
+
 -- name: ListPublishedPostsByTopic :many
 SELECT p.*
 FROM posts p

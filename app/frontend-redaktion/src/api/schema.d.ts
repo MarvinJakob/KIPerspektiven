@@ -937,6 +937,11 @@ export interface components {
         };
         PostList: {
             items: components["schemas"]["PostSummary"][];
+            /**
+             * @description Nur wenn weitere Beiträge folgen (Ticket #75): Wert für `cursor` beim nächsten Abruf.
+             *     Fehlt nach der letzten Portion, auch wenn diese genau voll ist.
+             */
+            nextCursor?: string;
         };
         Post: components["schemas"]["PostSummary"] & {
             bodyMarkdown: string;
@@ -1673,6 +1678,12 @@ export interface operations {
                  *     die neuesten weiteren hervorgehobenen Beiträge.
                  */
                 featured?: boolean;
+                /**
+                 * @description Fortsetzung der Blogübersicht (Ticket #75): `nextCursor` der vorigen Antwort. Die Liste
+                 *     setzt direkt hinter deren letztem Eintrag fort; später vorn einsortierte Beiträge verschieben
+                 *     die Fortsetzung nicht. Ungültige Werte ergeben `400`. Bei `featured=true` ohne Wirkung.
+                 */
+                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -1680,7 +1691,10 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Beiträge */
+            /**
+             * @description Beiträge. Ohne `featured` höchstens 20 je Abruf (Ticket #75), neueste zuerst und bei
+             *     gleichem Veröffentlichungsdatum nach Beitrags-ID absteigend.
+             */
             200: {
                 headers: {
                     [name: string]: unknown;

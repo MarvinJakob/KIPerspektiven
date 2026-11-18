@@ -92,6 +92,10 @@ type Querier interface {
 	ListPostTranslations(ctx context.Context, postID int64) ([]PostTranslation, error)
 	ListPublishedPosts(ctx context.Context) ([]Post, error)
 	ListPublishedPostsByTopic(ctx context.Context, topicID int64) ([]Post, error)
+	// Portion der Blog-Uebersicht (Ticket #75): Keyset hinter (after_published_at, after_id) in derselben
+	// Sortierung wie ListPublishedPosts. Ohne Fortsetzung (has_after = 0) beginnt die Liste vorn.
+	// Kommentare vor Abfragen mit sqlc.arg ohne Umlaute: sqlc verschiebt sonst die Ersetzungspositionen.
+	ListPublishedPostsPage(ctx context.Context, arg ListPublishedPostsPageParams) ([]Post, error)
 	ListReadinessRatings(ctx context.Context, resultIds []int64) ([]ReadinessResultRating, error)
 	ListReadinessResults(ctx context.Context, arg ListReadinessResultsParams) ([]ListReadinessResultsRow, error)
 	ListTopicTranslations(ctx context.Context) ([]TopicTranslation, error)

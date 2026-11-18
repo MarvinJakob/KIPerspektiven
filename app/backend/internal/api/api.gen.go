@@ -620,6 +620,10 @@ type PostInput struct {
 // PostList defines model for PostList.
 type PostList struct {
 	Items []PostSummary `json:"items"`
+
+	// NextCursor Nur wenn weitere Beiträge folgen (Ticket #75): Wert für `cursor` beim nächsten Abruf.
+	// Fehlt nach der letzten Portion, auch wenn diese genau voll ist.
+	NextCursor *string `json:"nextCursor,omitempty"`
 }
 
 // PostStatus `draft` erscheint in der Redaktion als „In Arbeit“, `published` als „Veröffentlicht“
@@ -905,6 +909,11 @@ type ListPostsParams struct {
 	// An erster Stelle steht immer der zuletzt veröffentlichte Beitrag, danach folgen
 	// die neuesten weiteren hervorgehobenen Beiträge.
 	Featured *bool `form:"featured,omitempty" json:"featured,omitempty"`
+
+	// Cursor Fortsetzung der Blogübersicht (Ticket #75): `nextCursor` der vorigen Antwort. Die Liste
+	// setzt direkt hinter deren letztem Eintrag fort; später vorn einsortierte Beiträge verschieben
+	// die Fortsetzung nicht. Ungültige Werte ergeben `400`. Bei `featured=true` ohne Wirkung.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
 }
 
 // GetPostParams defines parameters for GetPost.
@@ -2038,6 +2047,19 @@ func (siw *ServerInterfaceWrapper) ListPosts(w http.ResponseWriter, r *http.Requ
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "featured"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "featured", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
 		}
 		return
 	}
