@@ -10,6 +10,7 @@ import { AuditDimensionPage } from './pages/AuditDimension';
 import { AuditResultPage } from './pages/AuditResult';
 import { Blog } from './pages/Blog';
 import { Home } from './pages/Home';
+import { ArticlePage } from './pages/Article';
 import { Legal } from './pages/Legal';
 import { NotFound } from './pages/NotFound';
 import { PostPage } from './pages/Post';
@@ -26,6 +27,7 @@ export const routes: RouteObject[] = [
     element: <LangLayout />,
     children: [
       { index: true, element: <Home /> },
+      { path: 'themenartikel/:id', element: <ArticlePage /> },
       { path: 'themen/:slug', element: <TopicPage /> },
       { path: `themen/${AUDIT_TOPIC}/${RESULT_SLUG}`, element: <AuditResultPage /> },
       { path: `themen/${AUDIT_TOPIC}/:dimension`, element: <AuditDimensionPage /> },

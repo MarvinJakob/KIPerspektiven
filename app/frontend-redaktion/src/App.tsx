@@ -8,6 +8,7 @@ import { LoginPage } from './pages/Login';
 import { EditPostPage } from './pages/EditPost';
 import { NotFound } from './pages/NotFound';
 import { PostsPage } from './pages/Posts';
+import { ArticlesPage, ArticleEditorPage } from './pages/Articles';
 import { ProfilePage } from './pages/Profile';
 import { StatisticsPage } from './pages/Statistics';
 import { UsersPage } from './pages/Users';
@@ -23,6 +24,8 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <RequireRole can="posts"><PostsPage /></RequireRole> },
       { path: 'beitraege/:id', element: <RequireRole can="posts"><EditPostPage /></RequireRole> },
+      { path: 'themenartikel', element: <RequireRole can="posts"><ArticlesPage /></RequireRole> },
+      { path: 'themenartikel/:id', element: <RequireRole can="posts"><ArticleEditorPage /></RequireRole> },
       { path: 'statistik', element: <RequireRole can="insights"><StatisticsPage /></RequireRole> },
       { path: 'beratungsanfragen', element: <RequireRole can="insights"><ConsultationRequestsPage /></RequireRole> },
       { path: 'nachrichten', element: <RequireRole can="insights"><ContactMessagesPage /></RequireRole> },

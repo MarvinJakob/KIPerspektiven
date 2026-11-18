@@ -53,6 +53,20 @@ async function unwrap<T>(p: Promise<{ data?: T; error?: unknown; response: Respo
   return data;
 }
 
+export const useArticles = (lang: Lang) =>
+  useQuery({
+    queryKey: ['articles', lang],
+    queryFn: () => unwrap(client.GET('/api/articles', { params: { query: { lang } } })).then(list => list.items),
+    staleTime: 0,
+  });
+
+export const useArticle = (id: number, lang: Lang) =>
+  useQuery({
+    queryKey: ['article', id, lang],
+    queryFn: () => unwrap(client.GET('/api/articles/{id}', { params: { path: { id }, query: { lang } } })),
+    staleTime: 0,
+  });
+
 export const useTopics = (lang: Lang) =>
   useQuery({
     queryKey: ['topics', lang],

@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
 import type { TFunction } from 'i18next';
 import { LangContext, type Lang } from '../lib/lang';
@@ -19,7 +20,7 @@ function render(lang: Lang) {
   const html = renderToStaticMarkup(
     <MemoryRouter initialEntries={[`/${lang}`]}>
       <LangContext.Provider value={{ lang, t }}>
-        <Home />
+        <QueryClientProvider client={new QueryClient()}><Home /></QueryClientProvider>
       </LangContext.Provider>
     </MemoryRouter>,
   );

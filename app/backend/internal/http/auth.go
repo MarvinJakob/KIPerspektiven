@@ -129,7 +129,7 @@ func under(p, prefix string) bool { return p == prefix || strings.HasPrefix(p, p
 // bleiben Admin-Konten vorbehalten. Profil, /api/auth/me und /api/auth/logout gelten für jede gültige Sitzung.
 func allowed(method, p string, roles service.Roles) bool {
 	switch {
-	case under(p, "/api/admin/posts"), p == "/api/admin/authors":
+	case under(p, "/api/admin/posts"), under(p, "/api/admin/articles"), p == "/api/admin/authors":
 		return roles.CanEditPosts()
 	case under(p, "/api/admin/consultation-requests") && method == http.MethodDelete:
 		return roles.CanDeleteConsultations()

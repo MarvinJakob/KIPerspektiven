@@ -26,6 +26,7 @@ type Querier interface {
 	// Konten und Sitzungen der Redaktion (Anforderungen 6 und 11)
 	// ---------------------------------------------------------------------------
 	CreateUser(ctx context.Context, arg CreateUserParams) (int64, error)
+	DeleteArticle(ctx context.Context, id int64) (int64, error)
 	DeleteConsultationRequest(ctx context.Context, id int64) (int64, error)
 	DeleteExpiredSessions(ctx context.Context, expiresAt string) (int64, error)
 	DeleteMedia(ctx context.Context, id int64) error
@@ -41,12 +42,14 @@ type Querier interface {
 	DeleteSession(ctx context.Context, id string) error
 	DeleteUserRoles(ctx context.Context, userID int64) error
 	DeleteUserSessions(ctx context.Context, userID int64) error
+	GetEditorArticle(ctx context.Context, id int64) (GetEditorArticleRow, error)
 	GetMedia(ctx context.Context, id int64) (GetMediaRow, error)
 	GetPageViewIdentity(ctx context.Context) (GetPageViewIdentityRow, error)
 	GetPageViewSource(ctx context.Context, ipHash string) (string, error)
 	GetPostByID(ctx context.Context, id int64) (Post, error)
 	GetPostIDBySlug(ctx context.Context, slug string) (int64, error)
 	GetPublicAuthor(ctx context.Context, id int64) (GetPublicAuthorRow, error)
+	GetPublishedArticle(ctx context.Context, id int64) (GetPublishedArticleRow, error)
 	GetPublishedPostBySlug(ctx context.Context, slug string) (Post, error)
 	GetReadinessResultByKey(ctx context.Context, keyHash string) (GetReadinessResultByKeyRow, error)
 	GetSession(ctx context.Context, id string) (GetSessionRow, error)
@@ -54,6 +57,7 @@ type Querier interface {
 	GetUserAvatar(ctx context.Context, id int64) (GetUserAvatarRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
+	InsertArticle(ctx context.Context, arg InsertArticleParams) (int64, error)
 	// ---------------------------------------------------------------------------
 	// Nachrichten der Kontaktseite (Anforderung #4)
 	// ---------------------------------------------------------------------------
@@ -69,6 +73,7 @@ type Querier interface {
 	// ---------------------------------------------------------------------------
 	ListAllPosts(ctx context.Context) ([]Post, error)
 	ListAllUserRoles(ctx context.Context) ([]UserRole, error)
+	ListArticleSummaries(ctx context.Context, arg ListArticleSummariesParams) ([]ListArticleSummariesRow, error)
 	ListConsultationRequests(ctx context.Context) ([]ConsultationRequest, error)
 	ListContactMessages(ctx context.Context) ([]ContactMessage, error)
 	ListDuePosts(ctx context.Context, scheduledAt sql.NullString) ([]ListDuePostsRow, error)
@@ -110,6 +115,7 @@ type Querier interface {
 	UnpublishPost(ctx context.Context, arg UnpublishPostParams) (int64, error)
 	UnscheduleDuePost(ctx context.Context, arg UnscheduleDuePostParams) (int64, error)
 	UnschedulePost(ctx context.Context, arg UnschedulePostParams) (int64, error)
+	UpdateArticle(ctx context.Context, arg UpdateArticleParams) error
 	UpdatePost(ctx context.Context, arg UpdatePostParams) (int64, error)
 	UpdateReadinessResult(ctx context.Context, arg UpdateReadinessResultParams) error
 	// ---------------------------------------------------------------------------

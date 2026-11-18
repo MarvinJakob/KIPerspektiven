@@ -383,7 +383,11 @@ func (a *Accounts) AuthorCandidates(ctx context.Context) ([]AuthorOption, error)
 
 // CanAuthor prüft, ob ein Konto als Autor wählbar ist (aktiv, Rolle Redakteur oder Admin).
 func (a *Accounts) CanAuthor(ctx context.Context, userID int64) (bool, error) {
-	u, err := loadUser(ctx, a.q, userID)
+	return canAuthor(ctx, a.q, userID)
+}
+
+func canAuthor(ctx context.Context, q *store.Queries, userID int64) (bool, error) {
+	u, err := loadUser(ctx, q, userID)
 	if errors.Is(err, ErrNotFound) {
 		return false, nil
 	}

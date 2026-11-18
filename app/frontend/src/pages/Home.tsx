@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { Icon } from '../components/Icon';
+import { useArticles } from '../api/client';
 import { home, type CheckAnswer } from '../i18n/home';
 import { auditPath } from '../lib/audit';
 import { jumpTo, prefersReducedMotion } from '../lib/jump';
@@ -24,6 +25,7 @@ const number = (i: number) => String(i + 1).padStart(2, '0');
 export function Home() {
   const { lang } = useLang();
   const c = home[lang];
+  const articles = useArticles(lang);
   const h1 = usePageFocus<HTMLHeadingElement>();
   useHead(c.title, c.description);
 
@@ -78,6 +80,13 @@ export function Home() {
                 </span>
               </li>
             ))}
+            {articles.data?.map((entry, i) => <li key={entry.id}>
+              <span className="topic-number">{number(c.topics.length + i)}</span>
+              <div className="home-topic-copy"><h3>
+                <Link className="home-topic-link" to={href(lang, '/themenartikel/' + entry.id)}>{entry.title}</Link>
+              </h3>{entry.subtitle && <p>{entry.subtitle}</p>}</div>
+              <span className="home-topic-go" aria-hidden="true"><Icon name="arrowRight" /></span>
+            </li>)}
           </ol>
         </div>
       </section>

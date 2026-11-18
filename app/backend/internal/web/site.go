@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 
 	"ki-web/backend/internal/audit"
@@ -166,6 +167,21 @@ func (s *Site) resolve(r *http.Request, parts []string) (int, Meta, error) {
 		return http.StatusOK, s.staticMeta(lang, "imprint", "/impressum"), nil
 	case len(rest) == 1 && rest[0] == "datenschutz":
 		return http.StatusOK, s.staticMeta(lang, "privacy", "/datenschutz"), nil
+	case len(rest) == 2 && rest[0] == "themenartikel":
+		id, err := strconv.ParseInt(rest[1], 10, 64)
+		if err != nil || id <= 0 {
+			return http.StatusNotFound, s.notFoundMeta(lang), nil
+		}
+		article, err := s.svc.Article(ctx, id, lang)
+		if errors.Is(err, service.ErrNotFound) {
+			return http.StatusNotFound, s.notFoundMeta(lang), nil
+		}
+		if err != nil {
+			return 0, Meta{}, err
+		}
+		return http.StatusOK, Meta{Lang: service.Lang(article.Lang), Title: pageTitle(article.Content.Title),
+			Description: excerpt(article.Content.Subtitle, 160), OGType: "article",
+			Canonical: s.url(service.Lang(article.Lang), "/themenartikel/"+strconv.FormatInt(id, 10))}, nil
 	case len(rest) == 2 && rest[0] == "blog":
 		post, err := s.svc.Post(ctx, rest[1], lang)
 		if errors.Is(err, service.ErrNotFound) {

@@ -8,6 +8,14 @@ import (
 	"database/sql"
 )
 
+type Article struct {
+	ID       int64
+	AuthorID int64
+	Status   string
+	De       string
+	En       sql.NullString
+}
+
 type ConsultationRequest struct {
 	ID          int64
 	Email       string

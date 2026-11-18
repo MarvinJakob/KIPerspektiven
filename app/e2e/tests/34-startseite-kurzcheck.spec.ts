@@ -92,7 +92,8 @@ test('REQ-34-AC1: Hero unter der Navigation, Einstiege springen zu Themenliste u
   await expect(question(page)).toBeInViewport();
 });
 
-test('REQ-34-AC2: genau zwei Themenzeilen in Reihenfolge mit Leitfrage und Satz; Zeile und Link öffnen den Artikel', async ({ page }) => {
+test('REQ-34-AC2: ohne redaktionelle Veröffentlichungen erscheinen zwei Themenzeilen mit Leitfrage und Artikelverweis', async ({ page }) => {
+  await page.route('**/api/articles?*', route => route.fulfill({ json: { items: [] } }));
   await page.goto('/de');
   const rows = topicList(page).getByRole('listitem');
   await expect(rows).toHaveCount(2);

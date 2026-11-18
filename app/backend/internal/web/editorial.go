@@ -123,7 +123,7 @@ func (a access) permits(roles service.Roles) bool {
 }
 
 // postPath erkennt die Bearbeitungsseite eines Beitrags, z. B. beitraege/12.
-var postPath = regexp.MustCompile(`^beitraege/[1-9][0-9]{0,17}$`)
+var postPath = regexp.MustCompile(`^(beitraege|themenartikel)/[1-9][0-9]{0,17}$`)
 
 // route ordnet einen Pfad unterhalb von /redaktion einer Zugriffsstufe zu (ARCHITECTURE.md, Abschnitt 3).
 func route(rest string) access {
@@ -132,7 +132,7 @@ func route(rest string) access {
 		return accessPublic
 	case rest == "":
 		return accessPosts
-	case rest == "beitraege/neu" || postPath.MatchString(rest):
+	case rest == "themenartikel" || rest == "themenartikel/neu" || rest == "beitraege/neu" || postPath.MatchString(rest):
 		return accessPosts
 	case rest == "statistik": // Ticket #130
 		return accessInsights
