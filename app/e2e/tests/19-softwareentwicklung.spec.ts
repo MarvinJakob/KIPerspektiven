@@ -63,11 +63,7 @@ test('REQ-19-AC4: Vibe-Coding-, Kontakt- und Themenverweise führen zu vorhanden
       await expect(page.getByRole('heading', { name: /Seite nicht gefunden|Page not found/ }), href).toHaveCount(0);
     }
   }
-  await page.goto(PATH('de'));
-  // Seit #37 ohne „Alle Themen“ am Beitragsende: Der Themenverweis im Brotkrumenpfad führt zur Themenübersicht.
-  await page.locator('.article-crumbs').getByRole('link', { name: 'Themen', exact: true }).click();
-  await expect(page).toHaveURL(/\/de#themen$/);
-  await expect(page.locator('#themen')).toBeInViewport();
+  // Der Themenverweis im Brotkrumenpfad entfällt mit #61 (REQ-61-AC2); Themen bleiben über die Hauptnavigation erreichbar.
 });
 
 for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 }]) {
