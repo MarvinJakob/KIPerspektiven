@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>KI Perspektiven · Footer-Entwürfe</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    background: light-dark(#f7f8fa, #101720);
+    color: light-dark(#162538, #edf1f8);
+  }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
+  body { margin: 0; padding: clamp(12px, 4vw, 40px); }
+  #ki-footer-varianten { max-inline-size: 1120px; margin-inline: auto; }
+  #ki-footer-varianten .ki-toolbar {
+    display: grid;
+    gap: 14px;
+    padding-block: 0 18px;
+  }
+  #ki-footer-varianten .ki-toolbar h1 {
+    margin: 0;
+    font-size: clamp(22px, 4vw, 30px);
+    line-height: 1.2;
+  }
+  #ki-footer-varianten .ki-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px 24px;
+  }
+  #ki-footer-varianten :is(.ki-picker, .ki-options) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  #ki-footer-varianten .ki-picker button {
+    padding: 7px 12px;
+    border: 1px solid var(--ki-line);
+    border-radius: 4px;
+    color: var(--ki-ink);
+    background: var(--ki-surface);
+    font: inherit;
+    cursor: pointer;
+  }
+  #ki-footer-varianten .ki-picker button[aria-pressed="true"] {
+    color: var(--ki-surface);
+    background: var(--ki-ink);
+    border-color: var(--ki-ink);
+  }
+  #ki-footer-varianten .ki-preview {
+    border: 1px solid var(--ki-line);
+    background-image: radial-gradient(var(--ki-line) 1px, transparent 1px);
+    background-size: 12px 12px;
+  }
+  @media (pointer: coarse) {
+    #ki-footer-varianten .ki-picker button { min-block-size: 44px; }
+  }
+  #ki-footer-varianten {
+    --ki-surface: light-dark(#fff, #131c28);
+    --ki-ink: light-dark(#162538, #edf1f8);
+    --ki-muted: light-dark(#4d5c70, #b3bfd1);
+    --ki-line: light-dark(#d9dfe7, #374557);
+    --ki-accent: light-dark(#9d4815, #ffab72);
+    --ki-dot: light-dark(#dd7c38, #f7a263);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    container-type: inline-size;
+  }
+  #ki-footer-varianten .ki-stage:not([hidden]) {
+    box-sizing: border-box;
+    min-block-size: 315px;
+    padding: 22px clamp(8px, 3cqi, 24px);
+    display: grid;
+    align-items: end;
+  }
+  #ki-footer-varianten .ki-footer,
+  #ki-footer-varianten .ki-consent {
+    box-sizing: border-box;
+    background: var(--ki-surface);
+    color: var(--ki-ink);
+    font: 400 14px/1.5 'Segoe UI', system-ui, sans-serif;
+  }
+  #ki-footer-varianten .ki-footer {
+    --ki-space: 22px;
+    border-top: 1px solid var(--ki-line);
+    padding: var(--ki-space) clamp(16px, 4cqi, 32px) 0;
+  }
+  #ki-footer-varianten .ki-main,
+  #ki-footer-varianten .ki-bottom { display: grid; gap: 16px 24px; align-items: start; }
+  #ki-footer-varianten .ki-compact .ki-main { grid-template-columns: minmax(174px, 1fr) minmax(0, 1.85fr); }
+  #ki-footer-varianten .ki-compact .ki-main nav { padding-top: 3px; }
+  #ki-footer-varianten .ki-identity { display: grid; justify-items: start; gap: 4px; }
+  #ki-footer-varianten a.ki-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--ki-ink);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  #ki-footer-varianten .ki-mark { font-size: 28px; line-height: 1; font-weight: 800; letter-spacing: -.09em; }
+  #ki-footer-varianten .ki-mark span { color: var(--ki-dot); }
+  #ki-footer-varianten .ki-note,
+  #ki-footer-varianten .ki-copy { margin: 0; color: var(--ki-muted); font-size: 12px; }
+  #ki-footer-varianten .ki-note span { display: block; }
+  #ki-footer-varianten .ki-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 18px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  #ki-footer-varianten .ki-links a,
+  #ki-footer-varianten .ki-links button,
+  #ki-footer-varianten .ki-consent a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: .21em;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  }
+  #ki-footer-varianten .ki-links button {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  #ki-footer-varianten .ki-links :is(a, button):hover,
+  #ki-footer-varianten .ki-brand:hover { color: var(--ki-accent); }
+  #ki-footer-varianten .ki-bottom {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    margin-top: var(--ki-space);
+    border-top: 1px solid var(--ki-line);
+    padding-block: 12px 14px;
+    color: var(--ki-muted);
+  }
+  #ki-footer-varianten .ki-bottom .ki-links { justify-content: end; font-size: 13px; }
+  #ki-footer-varianten .ki-label {
+    margin: 0 0 8px;
+    color: var(--ki-accent);
+    font: 700 12px/1.4 'Segoe UI', system-ui, sans-serif;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  #ki-footer-varianten .ki-columns .ki-main { grid-template-columns: 1.15fr 1fr; max-inline-size: 540px; }
+  #ki-footer-varianten .ki-columns .ki-main .ki-links { display: grid; gap: 5px; }
+  #ki-footer-varianten .ki-columns .ki-bottom .ki-note { justify-self: end; }
+  #ki-footer-varianten .ki-bottom .ki-brand { font-size: 12px; }
+  #ki-footer-varianten .ki-bottom .ki-mark { font-size: 24px; }
+  #ki-footer-varianten .ki-topics .ki-links { column-gap: 24px; font-weight: 600; }
+  #ki-footer-varianten .ki-consent {
+    width: min(360px, calc(100% - 32px));
+    border: 1px solid var(--ki-line);
+    border-radius: 8px;
+    padding: 18px;
+  }
+  #ki-footer-varianten .ki-consent::backdrop { background: rgb(15 22 32 / .45); }
+  #ki-footer-varianten .ki-consent h2 { margin: 0; font-size: 16px; }
+  #ki-footer-varianten .ki-consent p { margin: 8px 0; }
+  #ki-footer-varianten .ki-consent-actions { margin-top: 14px; }
+  #ki-footer-varianten .ki-consent button {
+    padding: 6px 12px;
+    color: inherit;
+    border: 1px solid var(--ki-line);
+    border-radius: 4px;
+    background: var(--ki-surface);
+    font: inherit;
+    cursor: pointer;
+  }
+  @container (max-width: 560px) {
+    #ki-footer-varianten .ki-stage:not([hidden]) { min-block-size: 340px; }
+    #ki-footer-varianten :is(.ki-compact .ki-main, .ki-bottom) { grid-template-columns: 1fr; gap: 8px; }
+    #ki-footer-varianten .ki-columns .ki-bottom .ki-note { justify-self: start; }
+    #ki-footer-varianten .ki-bottom .ki-links { justify-content: start; }
+    #ki-footer-varianten .ki-compact .ki-copy { order: 1; }
+    #ki-footer-varianten .ki-compact .ki-main nav { padding-top: 0; }
+    #ki-footer-varianten .ki-topics .ki-links { display: grid; }
+    #ki-footer-varianten #kompakt-mit-themen .ki-main { row-gap: 16px; }
+  }
+  @container (max-width: 360px) {
+    #ki-footer-varianten .ki-stage:not([hidden]) { min-block-size: 375px; }
+    #ki-footer-varianten .ki-columns .ki-main { gap: 12px; }
+  }
+  @media (pointer: coarse) {
+    #ki-footer-varianten .ki-stage:not([hidden]) { min-block-size: 420px; }
+    #ki-footer-varianten .ki-links :is(a, button),
+    #ki-footer-varianten .ki-brand { display: inline-flex; align-items: center; min-block-size: 44px; }
+    #ki-footer-varianten .ki-footer .ki-links { row-gap: 0; }
+  }
+</style>
+</head>
+<body>
+<main id="ki-footer-varianten">
+  <header class="ki-toolbar">
+    <h1 data-en="Footer Designs">Footer-Entwürfe</h1>
+    <div class="ki-controls">
+      <div class="ki-picker" role="group" aria-label="Footer-Variante" data-en-label="Footer variant">
+        <button type="button" aria-controls="kompakt-mit-themen" aria-pressed="true" data-en="Compact with Topics">Kompakt mit Themen</button>
+        <button type="button" aria-controls="kompakt" aria-pressed="false" data-en="Compact">Kompakt</button>
+        <button type="button" aria-controls="zwei-spalten" aria-pressed="false" data-en="Two Columns">Zwei Spalten</button>
+        <button type="button" aria-controls="themen-zuerst" aria-pressed="false" data-en="Topics First">Themen zuerst</button>
+      </div>
+      <div class="ki-options">
+        <div class="ki-picker" role="group" aria-label="Sprache" data-en-label="Language">
+          <button type="button" data-language-choice="de" lang="de" aria-label="Deutsch" aria-pressed="true">DE</button>
+          <button type="button" data-language-choice="en" lang="en" aria-label="English" aria-pressed="false">EN</button>
+        </div>
+        <div class="ki-picker" role="group" aria-label="Darstellung" data-en-label="Appearance">
+          <button type="button" data-theme-choice="light" aria-pressed="false" data-en="Light">Hell</button>
+          <button type="button" data-theme-choice="dark" aria-pressed="false" data-en="Dark">Dunkel</button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div class="ki-preview">
+    <section class="ki-stage" id="kompakt-mit-themen" aria-label="Kompakt mit Themen" data-en-label="Compact with Topics">
+      <footer class="ki-footer ki-compact" aria-label="Footer Kompakt mit Themen" data-en-label="Compact with Topics footer">
+        <div class="ki-main">
+          <div class="ki-identity">
+            <a class="ki-brand" href="https://marvinjakob.de/de" target="_blank" rel="noopener"><span class="ki-mark" aria-hidden="true">ki<span>.</span></span><span>KI Perspektiven</span></a>
+            <p class="ki-note">
+              <span data-en="Perspectives and experiences around artificial intelligence.">Perspektiven und Erfahrungen rund um künstliche Intelligenz.</span>
+              <span data-en="This website was created with the help of AI.">Diese Website wurde mit Unterstützung von KI erstellt.</span>
+            </p>
+          </div>
+          <nav class="ki-topics" aria-labelledby="ki-footer-compact-topics">
+            <h2 id="ki-footer-compact-topics" class="ki-label" data-en="Topics">Themen</h2>
+            <ul class="ki-links">
+              <li><a href="https://marvinjakob.de/de/themen/softwareentwicklung" target="_blank" rel="noopener" data-en="AI in Software Development">KI in der Softwareentwicklung</a></li>
+              <li><a href="https://marvinjakob.de/de/themen/ai-audit" target="_blank" rel="noopener" data-en="AI Readiness">KI Readiness</a></li>
+              <li><a href="https://marvinjakob.de/de/themen/vibe-coding" target="_blank" rel="noopener">Vibe Coding</a></li>
+            </ul>
+          </nav>
+        </div>
+        <div class="ki-bottom">
+          <p class="ki-copy">2026 KI Perspektiven</p>
+          <nav aria-label="Website">
+            <ul class="ki-links">
+              <li><a href="https://marvinjakob.de/de/blog" target="_blank" rel="noopener">Blog</a></li>
+              <li><a href="https://marvinjakob.de/de/kontakt" target="_blank" rel="noopener" data-en="Contact">Kontakt</a></li>
+              <li><a href="https://marvinjakob.de/de/impressum" target="_blank" rel="noopener" data-en="Legal notice">Impressum</a></li>
+              <li><a href="https://marvinjakob.de/de/datenschutz" target="_blank" rel="noopener" data-en="Privacy">Datenschutz</a></li>
+              <li><button type="button" data-cookie-settings aria-haspopup="dialog" data-en="Cookie settings">Cookie-Einstellungen</button></li>
+            </ul>
+          </nav>
+        </div>
+      </footer>
+    </section>
+    <section class="ki-stage" id="kompakt" aria-label="Kompakt" data-en-label="Compact" hidden>
+      <footer class="ki-footer ki-compact" aria-label="Footer Kompakt" data-en-label="Compact footer">
+        <div class="ki-main">
+          <div class="ki-identity">
+            <a class="ki-brand" href="https://marvinjakob.de/de" target="_blank" rel="noopener"><span class="ki-mark" aria-hidden="true">ki<span>.</span></span><span>KI Perspektiven</span></a>
+            <p class="ki-note">
+              <span data-en="Perspectives and experiences around artificial intelligence.">Perspektiven und Erfahrungen rund um künstliche Intelligenz.</span>
+              <span data-en="This website was created with the help of AI.">Diese Website wurde mit Unterstützung von KI erstellt.</span>
+            </p>
+          </div>
+          <nav aria-label="Themen und Blog" data-en-label="Topics and blog">
+            <ul class="ki-links">
+              <li><a href="https://marvinjakob.de/de/themen/softwareentwicklung" target="_blank" rel="noopener" data-en="AI in Software Development">KI in der Softwareentwicklung</a></li>
+              <li><a href="https://marvinjakob.de/de/themen/ai-audit" target="_blank" rel="noopener" data-en="AI Readiness">KI Readiness</a></li>
+              <li><a href="https://marvinjakob.de/de/themen/vibe-coding" target="_blank" rel="noopener">Vibe Coding</a></li>
+              <li><a href="https://marvinjakob.de/de/blog" target="_blank" rel="noopener">Blog</a></li>
+            </ul>
+          </nav>
+        </div>
+        <div class="ki-bottom">
+          <p class="ki-copy">2026 KI Perspektiven</p>
+          <nav aria-label="Service und Rechtliches" data-en-label="Service and legal information">
+            <ul class="ki-links">
+              <li><a href="https://marvinjakob.de/de/kontakt" target="_blank" rel="noopener" data-en="Contact">Kontakt</a></li>
+              <li><a href="https://marvinjakob.de/de/impressum" target="_blank" rel="noopener" data-en="Legal notice">Impressum</a></li>
+              <li><a href="https://marvinjakob.de/de/datenschutz" target="_blank" rel="noopener" data-en="Privacy">Datenschutz</a></li>
+              <li><button type="button" data-cookie-settings aria-haspopup="dialog" data-en="Cookie settings">Cookie-Einstellungen</button></li>
+            </ul>
+          </nav>
+        </div>
+      </footer>
+    </section>
+    <section class="ki-stage" id="zwei-spalten" aria-label="Zwei Spalten" data-en-label="Two Columns" hidden>
+      <footer class="ki-footer ki-columns" aria-label="Footer Zwei Spalten" data-en-label="Two Columns footer">
+        <div class="ki-main">
+          <nav aria-labelledby="ki-footer-topics">
+            <h2 id="ki-footer-topics" class="ki-label" data-en="Topics">Themen</h2>
+            <ul class="ki-links">
+              <li><a href="https://marvinjakob.de/de/themen/softwareentwicklung" target="_blank" rel="noopener" data-en="AI in Software Development">KI in der Softwareentwicklung</a></li>
+              <li><a href="https://marvinjakob.de/de/themen/ai-audit" target="_blank" rel="noopener" data-en="AI Readiness">KI Readiness</a></li>
+              <li><a href="https://marvinjakob.de/de/themen/vibe-coding" target="_blank" rel="noopener">Vibe Coding</a></li>
+              <li><a href="https://marvinjakob.de/de/blog" target="_blank" rel="noopener">Blog</a></li>
+            </ul>
+          </nav>
+          <nav aria-labelledby="ki-footer-service">
+            <h2 id="ki-footer-service" class="ki-label">Website</h2>
+            <ul class="ki-links">
+              <li><a href="https://marvinjakob.de/de/kontakt" target="_blank" rel="noopener" data-en="Contact">Kontakt</a></li>
+              <li><a href="https://marvinjakob.de/de/impressum" target="_blank" rel="noopener" data-en="Legal notice">Impressum</a></li>
+              <li><a href="https://marvinjakob.de/de/datenschutz" target="_blank" rel="noopener" data-en="Privacy">Datenschutz</a></li>
+              <li><button type="button" data-cookie-settings aria-haspopup="dialog" data-en="Cookie settings">Cookie-Einstellungen</button></li>
+            </ul>
+          </nav>
+        </div>
+        <div class="ki-bottom">
+          <a class="ki-brand" href="https://marvinjakob.de/de" target="_blank" rel="noopener"><span class="ki-mark" aria-hidden="true">ki<span>.</span></span><span>2026 KI Perspektiven</span></a>
+          <p class="ki-note">
+            <span data-en="Perspectives and experiences around artificial intelligence.">Perspektiven und Erfahrungen rund um künstliche Intelligenz.</span>
+            <span data-en="This website was created with the help of AI.">Diese Website wurde mit Unterstützung von KI erstellt.</span>
+          </p>
+        </div>
+      </footer>
+    </section>
+    <section class="ki-stage" id="themen-zuerst" aria-label="Themen zuerst" data-en-label="Topics First" hidden>
+      <footer class="ki-footer ki-editorial" aria-label="Footer Themen zuerst" data-en-label="Topics First footer">
+        <nav class="ki-topics" aria-labelledby="ki-footer-explore">
+          <h2 id="ki-footer-explore" class="ki-label" data-en="Topics">Themen</h2>
+          <ul class="ki-links">
+            <li><a href="https://marvinjakob.de/de/themen/softwareentwicklung" target="_blank" rel="noopener" data-en="AI in Software Development">KI in der Softwareentwicklung</a></li>
+            <li><a href="https://marvinjakob.de/de/themen/ai-audit" target="_blank" rel="noopener" data-en="AI Readiness">KI Readiness</a></li>
+            <li><a href="https://marvinjakob.de/de/themen/vibe-coding" target="_blank" rel="noopener">Vibe Coding</a></li>
+          </ul>
+        </nav>
+        <div class="ki-bottom">
+          <div class="ki-identity">
+            <a class="ki-brand" href="https://marvinjakob.de/de" target="_blank" rel="noopener"><span class="ki-mark" aria-hidden="true">ki<span>.</span></span><span>2026 KI Perspektiven</span></a>
+            <p class="ki-note">
+              <span data-en="Perspectives and experiences around artificial intelligence.">Perspektiven und Erfahrungen rund um künstliche Intelligenz.</span>
+              <span data-en="This website was created with the help of AI.">Diese Website wurde mit Unterstützung von KI erstellt.</span>
+            </p>
+          </div>
+          <nav aria-label="Website">
+            <ul class="ki-links">
+              <li><a href="https://marvinjakob.de/de/blog" target="_blank" rel="noopener">Blog</a></li>
+              <li><a href="https://marvinjakob.de/de/kontakt" target="_blank" rel="noopener" data-en="Contact">Kontakt</a></li>
+              <li><a href="https://marvinjakob.de/de/impressum" target="_blank" rel="noopener" data-en="Legal notice">Impressum</a></li>
+              <li><a href="https://marvinjakob.de/de/datenschutz" target="_blank" rel="noopener" data-en="Privacy">Datenschutz</a></li>
+              <li><button type="button" data-cookie-settings aria-haspopup="dialog" data-en="Cookie settings">Cookie-Einstellungen</button></li>
+            </ul>
+          </nav>
+        </div>
+      </footer>
+    </section>
+  </div>
+  <dialog class="ki-consent" aria-labelledby="ki-consent-title">
+    <h2 id="ki-consent-title" data-en="Cookie settings">Cookie-Einstellungen</h2>
+    <p data-en="This website does not use tracking cookies. Language and appearance preferences are stored in your browser only at your request.">Diese Website verwendet keine Tracking-Cookies. Sprache und Darstellung werden nur auf Wunsch in deinem Browser gespeichert.</p>
+    <a href="https://marvinjakob.de/de/datenschutz" target="_blank" rel="noopener" data-en="Privacy policy">Zur Datenschutzerklärung</a>
+    <div class="ki-consent-actions"><button type="button" autofocus data-en="Close">Schließen</button></div>
+  </dialog>
+</main>
+<script>
+  (() => {
+    const root = document.getElementById('ki-footer-varianten');
+    const variantButtons = root.querySelectorAll('[aria-controls]');
+    for (const selected of variantButtons) {
+      selected.addEventListener('click', () => {
+        for (const button of variantButtons) {
+          const active = button === selected;
+          const panel = document.getElementById(button.getAttribute('aria-controls'));
+          button.setAttribute('aria-pressed', String(active));
+          panel.hidden = !active;
+        }
+      });
+    }
+
+    const languageButtons = root.querySelectorAll('[data-language-choice]');
+    const translatedText = Array.from(root.querySelectorAll('[data-en]'), (element) => ({
+      element,
+      de: element.textContent,
+      en: element.dataset.en,
+    }));
+    const translatedLabels = Array.from(root.querySelectorAll('[data-en-label]'), (element) => ({
+      element,
+      de: element.getAttribute('aria-label'),
+      en: element.dataset.enLabel,
+    }));
+    const localizedLinks = root.querySelectorAll('a[href^="https://marvinjakob.de/de"]');
+    for (const choice of languageButtons) {
+      choice.addEventListener('click', () => {
+        const language = choice.dataset.languageChoice;
+        document.documentElement.lang = language;
+        document.title = language === 'en' ? 'KI Perspektiven · Footer Designs' : 'KI Perspektiven · Footer-Entwürfe';
+        for (const entry of translatedText) entry.element.textContent = entry[language];
+        for (const entry of translatedLabels) entry.element.setAttribute('aria-label', entry[language]);
+        for (const link of localizedLinks) {
+          const target = new URL(link.href);
+          target.pathname = target.pathname.replace(/^\/(de|en)(?=\/|$)/, `/${language}`);
+          link.href = target.href;
+        }
+        for (const button of languageButtons) {
+          button.setAttribute('aria-pressed', String(button === choice));
+        }
+      });
+    }
+
+    const themeButtons = root.querySelectorAll('[data-theme-choice]');
+    const preferredTheme = window.matchMedia('(prefers-color-scheme: dark)');
+    function updateThemeButtons() {
+      const theme = document.documentElement.dataset.theme || (preferredTheme.matches ? 'dark' : 'light');
+      for (const button of themeButtons) {
+        button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme));
+      }
+    }
+    for (const button of themeButtons) {
+      button.addEventListener('click', () => {
+        document.documentElement.dataset.theme = button.dataset.themeChoice;
+        updateThemeButtons();
+      });
+    }
+    preferredTheme.addEventListener('change', updateThemeButtons);
+    updateThemeButtons();
+
+    const dialog = root.querySelector('.ki-consent');
+    dialog.querySelector('button').addEventListener('click', () => dialog.close());
+    for (const button of root.querySelectorAll('[data-cookie-settings]')) {
+      button.addEventListener('click', () => dialog.showModal());
+    }
+  })();
+</script>
+</body>
+</html>

@@ -154,9 +154,9 @@ export const de = {
     another: 'Weitere Nachricht schreiben',
   },
   footer: {
-    aiNote: 'Diese Webseite wurde mit Unterstützung von KI erstellt. Marvin Jakob prüft alle Inhalte vor der Veröffentlichung und verantwortet sie.',
-    tagline: 'Einordnungen und Erfahrungen rund um künstliche Intelligenz.',
-    privacyNote: 'Wir setzen keine Tracking-Cookies ein. Sprache und Darstellung speichern wir nur auf deinen Wunsch in deinem Browser; du kannst das in den Cookie-Einstellungen ausschalten.',
+    tagline: 'Perspektiven und Erfahrungen rund um künstliche Intelligenz.',
+    aiNote: 'Diese Website wurde mit Unterstützung von KI erstellt.',
+    topics: { softwareentwicklung: 'KI in der Softwareentwicklung', 'ai-audit': 'KI Readiness', 'vibe-coding': 'Vibe Coding' },
     site: 'Website',
     imprint: 'Impressum',
     privacy: 'Datenschutz',

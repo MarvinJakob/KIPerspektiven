@@ -156,9 +156,9 @@ export const en: Messages = {
     another: 'Write another message',
   },
   footer: {
-    aiNote: 'This website was created with the help of AI. Marvin Jakob reviews all content before publication and is responsible for it.',
     tagline: 'Perspectives and experiences around artificial intelligence.',
-    privacyNote: 'We do not use tracking cookies. We store language and appearance in your browser only at your request; you can switch this off in the cookie settings.',
+    aiNote: 'This website was created with the help of AI.',
+    topics: { softwareentwicklung: 'AI in Software Development', 'ai-audit': 'AI Readiness', 'vibe-coding': 'Vibe Coding' },
     site: 'Website',
     imprint: 'Legal notice',
     privacy: 'Privacy',

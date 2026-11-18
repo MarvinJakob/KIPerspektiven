@@ -1,10 +1,10 @@
 import { useEffect, useMemo } from 'react';
 import { Link, Outlet, ScrollRestoration, useParams } from 'react-router';
-import { useTopics } from '../api/client';
 import { i18n } from '../i18n';
 import { DEFAULT_LANG, LangContext, href, isLang, useLang, type Lang } from '../lib/lang';
 import { BrandMark, Header } from './Header';
 import { CookieSettings } from './CookieSettings';
+import { footerNotes, footerPages, footerTopics, footerYearLine } from './footer';
 import { NotFound } from '../pages/NotFound';
 
 /** Rahmen aller öffentlichen Seiten: Sprache aus der URL, Kopfzeile, Inhalt, Fußzeile. */
@@ -48,53 +48,48 @@ export function Shell({ lang, children }: { lang: Lang; children: React.ReactNod
 
 function Footer() {
   const { lang, t } = useLang();
-  const { data: topics } = useTopics(lang);
   return (
     <footer className="site-footer">
       <div className="container">
-        <div className="footer-grid">
-          <div>
-            <div className="footer-brand">
+        <div className="footer-main">
+          <div className="footer-identity">
+            <Link className="footer-brand" to={href(lang)}>
               <BrandMark />
-              {t('siteName')}
-            </div>
-            <p className="footer-note">{t('footer.tagline')}</p>
-            <p className="footer-note">{t('footer.privacyNote')}</p>
-            <p className="footer-note">{t('footer.aiNote')}</p>
+              <span>{t('siteName')}</span>
+            </Link>
+            {footerNotes(t).map((note) => (
+              <p key={note} className="footer-note">
+                {note}
+              </p>
+            ))}
           </div>
-          <div>
-            <h2 className="footer-head">{t('nav.topics')}</h2>
+          <nav className="footer-topics" aria-labelledby="footer-topics-title">
+            <h2 id="footer-topics-title" className="footer-head">
+              {t('nav.topics')}
+            </h2>
             <ul className="footer-links">
-              {topics?.map((tp) => (
-                <li key={tp.slug}>
-                  <Link to={href(lang, `/themen/${tp.slug}`)}>{tp.title}</Link>
+              {footerTopics(lang, t).map((topic) => (
+                <li key={topic.to}>
+                  <Link to={topic.to}>{topic.label}</Link>
                 </li>
               ))}
             </ul>
-          </div>
-          <div>
-            <h2 className="footer-head">{t('footer.site')}</h2>
+          </nav>
+        </div>
+        <div className="footer-bottom">
+          <p className="footer-copy">{footerYearLine(new Date().getFullYear(), t('siteName'))}</p>
+          <nav aria-label={t('footer.site')}>
             <ul className="footer-links">
-              <li>
-                <Link to={href(lang, '/blog')}>{t('nav.blog')}</Link>
-              </li>
-              <li>
-                <Link to={href(lang, '/impressum')}>{t('footer.imprint')}</Link>
-              </li>
-              <li>
-                <Link to={href(lang, '/datenschutz')}>{t('footer.privacy')}</Link>
-              </li>
-              <li>
-                <Link to={href(lang, '/kontakt')}>{t('nav.contact')}</Link>
-              </li>
+              {footerPages(lang, t).map((page) => (
+                <li key={page.to}>
+                  <Link to={page.to}>{page.label}</Link>
+                </li>
+              ))}
               <li>
                 <CookieSettings />
               </li>
             </ul>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} {t('siteName')}</span>
+          </nav>
         </div>
       </div>
     </footer>
