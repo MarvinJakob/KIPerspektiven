@@ -9,14 +9,14 @@ const SOLL = {
     notes: ['Perspektiven und Erfahrungen rund um künstliche Intelligenz.', 'Diese Website wurde mit Unterstützung von KI erstellt.'],
     heading: 'Themen',
     topics: ['KI in der Softwareentwicklung', 'KI Readiness', 'Vibe Coding'],
-    pages: ['Blog', 'Kontakt', 'Impressum', 'Datenschutz'],
+    pages: ['News', 'Kontakt', 'Impressum', 'Datenschutz'],
     cookies: 'Cookie-Einstellungen',
   },
   en: {
     notes: ['Perspectives and experiences around artificial intelligence.', 'This website was created with the help of AI.'],
     heading: 'Topics',
     topics: ['AI in Software Development', 'AI Readiness', 'Vibe Coding'],
-    pages: ['Blog', 'Contact', 'Legal notice', 'Privacy'],
+    pages: ['News', 'Contact', 'Legal notice', 'Privacy'],
     cookies: 'Cookie settings',
   },
 } as const;
@@ -38,7 +38,7 @@ describe.each(['de', 'en'] as const)('Footer (%s)', (lang) => {
     ]);
   });
 
-  it('REQ-54-AC1/AC3: Seitenlinks Blog, Kontakt, Impressum, Datenschutz in dieser Reihenfolge, danach Cookie-Einstellungen', () => {
+  it('REQ-54-AC1/AC3 REQ-76-AC2: Seitenlinks News, Kontakt, Impressum, Datenschutz in dieser Reihenfolge, danach Cookie-Einstellungen', () => {
     expect(footerPages(lang, t)).toEqual([
       { label: soll.pages[0], to: `/${lang}/blog` },
       { label: soll.pages[1], to: `/${lang}/kontakt` },
