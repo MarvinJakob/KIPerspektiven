@@ -98,6 +98,49 @@ test('REQ-67-AC10: direkte Aktionen ohne Sitzung gesperrt', async ({ request }) 
 
 test.describe('Redaktionsoberfläche', () => {
   test.use({storageState: AUTH.editor});
+  test('REQ-67-AC4–AC12: Bausteine im Editor anordnen und beide Fassungen veröffentlichen', async ({page,editor,admin}) => {
+    await page.goto(editorial+'/neu');
+    const title = 'Redaktion '+uid();
+    await page.getByLabel('Titel',{exact:true}).fill(title);
+    await page.getByLabel('Autor').selectOption(String(admin.me.id));
+    const add = async (kind: string) => {
+      await page.getByLabel('Baustein',{exact:true}).selectOption(kind);
+      await page.getByRole('button',{name:'Baustein hinzufügen'}).press('Enter');
+      return page.locator('.article-block-editor > fieldset').last();
+    };
+    const info = await add('info');
+    await info.getByLabel('Text',{exact:true}).fill('Merken');
+    const quote = await add('quote');
+    await quote.getByLabel('Text',{exact:true}).fill('Ein Zitat');
+    await quote.getByLabel('Zuschreibung').fill('Ada');
+    await quote.getByRole('button',{name:'Nach oben'}).press('Enter');
+    const list = await add('ordered');
+    await list.getByLabel('Eintragstitel').fill('Eintrag A');
+    await list.getByLabel('Kurzbeschreibung').fill('Beschreibung A');
+    await list.getByRole('button',{name:'Eintrag hinzufügen'}).press('Enter');
+    await list.getByLabel('Eintragstitel').last().fill('Eintrag B');
+    await page.getByLabel('Sprachfassung').selectOption('en');
+    await page.getByLabel('Titel',{exact:true}).fill('English '+title);
+    await page.getByRole('button',{name:'Veröffentlichen',exact:true}).press('Enter');
+    await expect(page).toHaveURL(/themenartikel\/\d+$/);
+    const id = page.url().split('/').pop();
+    try {
+      const data = await (await editor.get(api+'/'+id)).json();
+      expect(data.authorId).toBe(admin.me.id);
+      expect(data.de.blocks).toEqual([
+        {kind:'quote',text:'Ein Zitat',attribution:'Ada'}, {kind:'info',text:'Merken'},
+        {kind:'ordered',items:[{title:'Eintrag A',description:'Beschreibung A'},{title:'Eintrag B'}]},
+      ]);
+      expect(data.en.title).toBe('English '+title);
+      await page.getByRole('button',{name:'Zurücknehmen'}).press('Enter');
+      await expect(page.getByRole('status')).toContainText('gespeichert');
+      expect((await page.request.get('/de/themenartikel/'+id)).status()).toBe(404);
+      await page.getByRole('button',{name:'Löschen',exact:true}).press('Enter');
+      await page.getByRole('button',{name:'Endgültig löschen'}).press('Enter');
+      await expect(page).toHaveURL(/\/redaktion\/themenartikel$/);
+      await expect(page.getByRole('link',{name:title})).toHaveCount(0);
+    } finally { await editor.send('DELETE',api+'/'+id); }
+  });
   for (const width of [375,1280]) {
     test('REQ-67-AC1/AC2/AC3/AC6/AC10: per Tastatur anlegen, nach Uploadfehler bearbeiten und wieder öffnen bei '+width+' px', async ({page,editor}) => {
       await page.setViewportSize({width,height:800});

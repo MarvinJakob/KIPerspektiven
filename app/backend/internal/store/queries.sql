@@ -292,6 +292,31 @@ DELETE FROM consultation_requests WHERE id = ?;
 -- name: InsertContactMessage :exec
 INSERT INTO contact_messages (name, company, email, message, lang, received_at) VALUES (?, ?, ?, ?, ?, ?);
 
+-- name: GetPublishedArticle :one
+SELECT a.de, a.en, u.display_name FROM articles a
+JOIN users u ON u.id = a.author_id
+WHERE a.id = ? AND a.status = 'published';
+
+-- name: ListArticleSummaries :many
+SELECT id, status,
+  CAST(json_extract(CASE WHEN @lang = 'en' AND en IS NOT NULL THEN en ELSE de END, '$.title') AS TEXT) AS title,
+  CAST(coalesce(json_extract(CASE WHEN @lang = 'en' AND en IS NOT NULL THEN en ELSE de END, '$.subtitle'), '') AS TEXT) AS subtitle
+FROM articles WHERE @editorial OR status = 'published'
+ORDER BY id DESC;
+
+-- name: GetEditorArticle :one
+SELECT a.*, u.email, u.display_name, u.active
+FROM articles a JOIN users u ON u.id = a.author_id WHERE a.id = ?;
+
+-- name: InsertArticle :one
+INSERT INTO articles (status, author_id, de, en) VALUES (?, ?, ?, ?) RETURNING id;
+
+-- name: UpdateArticle :exec
+UPDATE articles SET status = ?, author_id = ?, de = ?, en = ? WHERE id = ?;
+
+-- name: DeleteArticle :execrows
+DELETE FROM articles WHERE id = ?;
+
 -- name: ListContactMessages :many
 SELECT id, name, company, email, message, lang, received_at FROM contact_messages ORDER BY received_at DESC, id DESC;
 

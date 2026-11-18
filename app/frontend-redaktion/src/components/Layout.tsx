@@ -52,9 +52,10 @@ function Header({ me }: { me: Me }) {
         </a>
         <div className="nav-main">
           {can(me.roles, 'posts') && (
-            <NavLink className="nav-btn press" to="/" end>
-              Beiträge
-            </NavLink>
+            <>
+              <NavLink className="nav-btn press" to="/" end>Beiträge</NavLink>
+              <NavLink className="nav-btn press" to="/themenartikel">Themenartikel</NavLink>
+            </>
           )}
           {can(me.roles, 'insights') && (
             <>

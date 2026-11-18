@@ -219,6 +219,18 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (int64, 
 	return result.LastInsertId()
 }
 
+const deleteArticle = `-- name: DeleteArticle :execrows
+DELETE FROM articles WHERE id = ?
+`
+
+func (q *Queries) DeleteArticle(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteArticle, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteConsultationRequest = `-- name: DeleteConsultationRequest :execrows
 DELETE FROM consultation_requests WHERE id = ?
 `
@@ -360,6 +372,38 @@ func (q *Queries) DeleteUserSessions(ctx context.Context, userID int64) error {
 	return err
 }
 
+const getEditorArticle = `-- name: GetEditorArticle :one
+SELECT a.id, a.author_id, a.status, a.de, a.en, u.email, u.display_name, u.active
+FROM articles a JOIN users u ON u.id = a.author_id WHERE a.id = ?
+`
+
+type GetEditorArticleRow struct {
+	ID          int64
+	AuthorID    int64
+	Status      string
+	De          string
+	En          sql.NullString
+	Email       string
+	DisplayName string
+	Active      bool
+}
+
+func (q *Queries) GetEditorArticle(ctx context.Context, id int64) (GetEditorArticleRow, error) {
+	row := q.db.QueryRowContext(ctx, getEditorArticle, id)
+	var i GetEditorArticleRow
+	err := row.Scan(
+		&i.ID,
+		&i.AuthorID,
+		&i.Status,
+		&i.De,
+		&i.En,
+		&i.Email,
+		&i.DisplayName,
+		&i.Active,
+	)
+	return i, err
+}
+
 const getMedia = `-- name: GetMedia :one
 SELECT id, storage_key, mime_type, width, height FROM media WHERE id = ?
 `
@@ -468,6 +512,25 @@ func (q *Queries) GetPublicAuthor(ctx context.Context, id int64) (GetPublicAutho
 		&i.Width,
 		&i.Height,
 	)
+	return i, err
+}
+
+const getPublishedArticle = `-- name: GetPublishedArticle :one
+SELECT a.de, a.en, u.display_name FROM articles a
+JOIN users u ON u.id = a.author_id
+WHERE a.id = ? AND a.status = 'published'
+`
+
+type GetPublishedArticleRow struct {
+	De          string
+	En          sql.NullString
+	DisplayName string
+}
+
+func (q *Queries) GetPublishedArticle(ctx context.Context, id int64) (GetPublishedArticleRow, error) {
+	row := q.db.QueryRowContext(ctx, getPublishedArticle, id)
+	var i GetPublishedArticleRow
+	err := row.Scan(&i.De, &i.En, &i.DisplayName)
 	return i, err
 }
 
@@ -620,6 +683,29 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.AvatarMediaID,
 	)
 	return i, err
+}
+
+const insertArticle = `-- name: InsertArticle :one
+INSERT INTO articles (status, author_id, de, en) VALUES (?, ?, ?, ?) RETURNING id
+`
+
+type InsertArticleParams struct {
+	Status   string
+	AuthorID int64
+	De       string
+	En       sql.NullString
+}
+
+func (q *Queries) InsertArticle(ctx context.Context, arg InsertArticleParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, insertArticle,
+		arg.Status,
+		arg.AuthorID,
+		arg.De,
+		arg.En,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const insertContactMessage = `-- name: InsertContactMessage :exec
@@ -796,6 +882,54 @@ func (q *Queries) ListAllUserRoles(ctx context.Context) ([]UserRole, error) {
 	for rows.Next() {
 		var i UserRole
 		if err := rows.Scan(&i.UserID, &i.Role); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listArticleSummaries = `-- name: ListArticleSummaries :many
+SELECT id, status,
+  CAST(json_extract(CASE WHEN ?1 = 'en' AND en IS NOT NULL THEN en ELSE de END, '$.title') AS TEXT) AS title,
+  CAST(coalesce(json_extract(CASE WHEN ?1 = 'en' AND en IS NOT NULL THEN en ELSE de END, '$.subtitle'), '') AS TEXT) AS subtitle
+FROM articles WHERE ?2 OR status = 'published'
+ORDER BY id DESC
+`
+
+type ListArticleSummariesParams struct {
+	Lang      interface{}
+	Editorial interface{}
+}
+
+type ListArticleSummariesRow struct {
+	ID       int64
+	Status   string
+	Title    string
+	Subtitle string
+}
+
+func (q *Queries) ListArticleSummaries(ctx context.Context, arg ListArticleSummariesParams) ([]ListArticleSummariesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listArticleSummaries, arg.Lang, arg.Editorial)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListArticleSummariesRow{}
+	for rows.Next() {
+		var i ListArticleSummariesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.Title,
+			&i.Subtitle,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1740,6 +1874,29 @@ func (q *Queries) UnschedulePost(ctx context.Context, arg UnschedulePostParams) 
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const updateArticle = `-- name: UpdateArticle :exec
+UPDATE articles SET status = ?, author_id = ?, de = ?, en = ? WHERE id = ?
+`
+
+type UpdateArticleParams struct {
+	Status   string
+	AuthorID int64
+	De       string
+	En       sql.NullString
+	ID       int64
+}
+
+func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) error {
+	_, err := q.db.ExecContext(ctx, updateArticle,
+		arg.Status,
+		arg.AuthorID,
+		arg.De,
+		arg.En,
+		arg.ID,
+	)
+	return err
 }
 
 const updatePost = `-- name: UpdatePost :execrows

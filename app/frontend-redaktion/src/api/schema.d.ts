@@ -4,6 +4,94 @@
  */
 
 export interface paths {
+    "/api/admin/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Themenartikel der Redaktion */
+        get: operations["adminListArticles"];
+        put?: never;
+        /** Themenartikel anlegen */
+        post: operations["adminCreateArticle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/articles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Themenartikel bearbeiten */
+        get: operations["adminGetArticle"];
+        /** Inhalt und Veröffentlichungsstatus speichern */
+        put: operations["adminUpdateArticle"];
+        post?: never;
+        /** Themenartikel löschen */
+        delete: operations["adminDeleteArticle"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/articles/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Artikelbild hochladen */
+        put: operations["adminUploadArticleImage"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Veröffentlichte Themenartikel */
+        get: operations["listArticles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/articles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Veröffentlichten Themenartikel lesen */
+        get: operations["getArticle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/topics": {
         parameters: {
             query?: never;
@@ -705,6 +793,61 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ArticleEntry: {
+            title: string;
+            description?: string;
+        };
+        ArticleBlock: {
+            /** @enum {string} */
+            kind: "paragraph" | "h1" | "h2" | "h3" | "info" | "quote" | "image" | "ordered" | "unordered";
+            text?: string;
+            src?: string;
+            alt?: string;
+            caption?: string;
+            attribution?: string;
+            items?: components["schemas"]["ArticleEntry"][];
+        };
+        ArticleText: {
+            title: string;
+            subtitle?: string;
+            blocks: components["schemas"]["ArticleBlock"][];
+        };
+        ArticleInput: {
+            status: components["schemas"]["PostStatus"];
+            /** Format: int64 */
+            authorId?: number;
+            de: components["schemas"]["ArticleText"];
+            en?: components["schemas"]["ArticleText"];
+        };
+        EditorArticle: {
+            /** Format: int64 */
+            id: number;
+            status: components["schemas"]["PostStatus"];
+            /** Format: int64 */
+            authorId: number;
+            de: components["schemas"]["ArticleText"];
+            en?: components["schemas"]["ArticleText"];
+            authorLabel: string;
+            authorActive: boolean;
+        };
+        ArticleSummary: {
+            /** Format: int64 */
+            id: number;
+            title: string;
+            subtitle?: string;
+            status?: components["schemas"]["PostStatus"];
+        };
+        ArticleList: {
+            items: components["schemas"]["ArticleSummary"][];
+        };
+        PublishedArticle: {
+            lang: components["schemas"]["Lang"];
+            content: components["schemas"]["ArticleText"];
+            authorName?: string;
+        };
+        ArticleImage: {
+            src: string;
+        };
         /** @enum {string} */
         Lang: "de" | "en";
         Error: {
@@ -1230,6 +1373,220 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    adminListArticles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Themenartikel der Redaktion */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreateArticle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleInput"];
+            };
+        };
+        responses: {
+            /** @description Themenartikel anlegen */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditorArticle"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    adminGetArticle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Themenartikel bearbeiten */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditorArticle"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdateArticle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleInput"];
+            };
+        };
+        responses: {
+            /** @description Inhalt und Veröffentlichungsstatus speichern */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditorArticle"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    adminDeleteArticle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Themenartikel löschen */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUploadArticleImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Artikelbild hochladen */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleImage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    listArticles: {
+        parameters: {
+            query?: {
+                /** @description Gewünschte Sprache */
+                lang?: components["parameters"]["Lang"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Veröffentlichte Themenartikel */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    getArticle: {
+        parameters: {
+            query?: {
+                /** @description Gewünschte Sprache */
+                lang?: components["parameters"]["Lang"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Veröffentlichten Themenartikel lesen */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedArticle"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     listTopics: {
         parameters: {
             query?: {

@@ -1,0 +1,10 @@
+.managed-article { padding-block: 1.5rem 4rem; overflow-wrap: anywhere; }
+.managed-article :is(p, aside, blockquote, figcaption) { white-space: pre-line; }
+.managed-article h2 { font-size: 2rem; }
+.managed-article h3 { font-size: 1.55rem; }
+.managed-article h4 { font-size: 1.2rem; }
+.managed-article figure { margin: 2rem 0; }
+.managed-article img { display: block; max-width: 100%; height: auto; }
+.managed-article figcaption { margin-top: .5rem; color: var(--text-2); }
+.article-info { padding: 1rem 1.25rem; border-inline-start: .25rem solid var(--accent); background: var(--fill); }
+.article-quotation blockquote { margin: 0; font-size: 1.35em; }

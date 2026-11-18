@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { useTopics } from '../api/client';
+import { useArticles, useTopics } from '../api/client';
 import { AUDIT_TOPIC, auditPath } from '../lib/audit';
 import { LANGS, href, storeLang, switchLangPath, useLang, type Lang } from '../lib/lang';
 import { useTheme } from '../lib/theme';
@@ -27,7 +27,7 @@ export function Header() {
   // Selbsteinschätzung und Auswertung bleiben unter /themen/ai-audit und markieren ihn als aktiv.
   const auditRoot = auditPath(lang);
   const inAudit = pathname === auditRoot || pathname.startsWith(`${auditRoot}/`);
-  const inTopic = pathname.startsWith(`/${lang}/themen/`) && !inAudit;
+  const inTopic = (pathname.startsWith(`/${lang}/themen/`) && !inAudit) || pathname.startsWith(`/${lang}/themenartikel/`);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
@@ -134,6 +134,7 @@ export function BrandMark() {
 function TopicsMenu({ active }: { active: boolean }) {
   const { lang, t } = useLang();
   const { data: topics } = useTopics(lang);
+  const articles = useArticles(lang);
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -213,6 +214,13 @@ function TopicsMenu({ active }: { active: boolean }) {
               </li>
             );
           })}
+          {articles.data?.map(entry => <li key={entry.id}>
+            <Link className="menu-link" to={href(lang, '/themenartikel/' + entry.id)} onClick={() => setOpen(false)}>
+              <span><span className="menu-title">{entry.title}</span>
+                {entry.subtitle && <span className="menu-desc">{entry.subtitle}</span>}
+              </span>
+            </Link>
+          </li>)}
         </ul>
       </div>
     </div>

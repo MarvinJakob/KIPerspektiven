@@ -18,6 +18,191 @@ info:
 servers:
   - url: /
 paths:
+  /api/admin/articles:
+    get:
+      operationId: adminListArticles
+      summary: Themenartikel der Redaktion
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Themenartikel der Redaktion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: adminCreateArticle
+      summary: Themenartikel anlegen
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArticleInput'
+      responses:
+        '201':
+          description: Themenartikel anlegen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditorArticle'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/admin/articles/{id}:
+    get:
+      operationId: adminGetArticle
+      summary: Themenartikel bearbeiten
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Themenartikel bearbeiten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditorArticle'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: adminUpdateArticle
+      summary: Inhalt und Veröffentlichungsstatus speichern
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArticleInput'
+      responses:
+        '200':
+          description: Inhalt und Veröffentlichungsstatus speichern
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditorArticle'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+    delete:
+      operationId: adminDeleteArticle
+      summary: Themenartikel löschen
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '204':
+          description: Themenartikel löschen
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/admin/articles/media:
+    put:
+      operationId: adminUploadArticleImage
+      summary: Artikelbild hochladen
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Artikelbild hochladen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleImage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/articles:
+    get:
+      operationId: listArticles
+      summary: Veröffentlichte Themenartikel
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+      responses:
+        '200':
+          description: Veröffentlichte Themenartikel
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/articles/{id}:
+    get:
+      operationId: getArticle
+      summary: Veröffentlichten Themenartikel lesen
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/Lang'
+      responses:
+        '200':
+          description: Veröffentlichten Themenartikel lesen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishedArticle'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/topics:
     get:
       operationId: listTopics
@@ -1081,6 +1266,127 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
+    ArticleEntry:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          x-go-type-skip-optional-pointer: true
+    ArticleBlock:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum: [paragraph, h1, h2, h3, info, quote, image, ordered, unordered]
+        text:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        src:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        alt:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        caption:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        attribution:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArticleEntry'
+          x-go-type-skip-optional-pointer: true
+    ArticleText:
+      type: object
+      required: [title, blocks]
+      properties:
+        title:
+          type: string
+        subtitle:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArticleBlock'
+    ArticleInput:
+      type: object
+      required: [status, de]
+      properties:
+        status:
+          $ref: '#/components/schemas/PostStatus'
+        authorId:
+          type: integer
+          format: int64
+        de:
+          $ref: '#/components/schemas/ArticleText'
+        en:
+          $ref: '#/components/schemas/ArticleText'
+    EditorArticle:
+      type: object
+      required: [id, authorId, authorLabel, authorActive, de, status]
+      properties:
+        id:
+          type: integer
+          format: int64
+        status:
+          $ref: '#/components/schemas/PostStatus'
+        authorId:
+          type: integer
+          format: int64
+        de:
+          $ref: '#/components/schemas/ArticleText'
+        en:
+          $ref: '#/components/schemas/ArticleText'
+        authorLabel:
+          type: string
+        authorActive:
+          type: boolean
+    ArticleSummary:
+      type: object
+      required: [id, title]
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        subtitle:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        status:
+          $ref: '#/components/schemas/PostStatus'
+    ArticleList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArticleSummary'
+    PublishedArticle:
+      type: object
+      required: [lang, content]
+      properties:
+        lang:
+          $ref: '#/components/schemas/Lang'
+        content:
+          $ref: '#/components/schemas/ArticleText'
+        authorName:
+          type: string
+          x-go-type-skip-optional-pointer: true
+    ArticleImage:
+      type: object
+      required: [src]
+      properties:
+        src:
+          type: string
     Lang:
       type: string
       enum: [de, en]
