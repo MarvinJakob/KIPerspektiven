@@ -345,71 +345,85 @@ svg { display: block; }
 .landing .sources a, .topic-sources a { color: var(--accent); }
 
 /* ==========================================================================
-   Startseite nach mock/landing_v03/ (Ticket #101). Alles unter .home; die Farben kommen aus den Primitiven.
-   Der KI-Reifegrad-Banner bleibt auch dunkel auf --navy, damit seine hellen Akzente lesbar sind.
+   Startseite nach dem Home-Mock mock/home/ (Ticket #34): rein typografisch, ohne Bilder. Alles unter .home.
+   Große Hero-Schrift, Trennlinien, nummerierte Themenzeilen, deckende Kurzcheck-Fläche, kompakter Profilabschnitt.
    ========================================================================== */
-.home h2 { letter-spacing: -.04em; }
-.home .eyebrow { font-size: .6875rem; }
+.home h2 { letter-spacing: -.045em; }
 .home [tabindex="-1"] { scroll-margin-top: calc(var(--header-h) + 16px); }
+.home [tabindex="-1"]:focus:not(:focus-visible) { outline: none; }
 
-/* Hero: zentriert auf warmer Fläche. Der negative Abstand gleicht den Innenabstand von #main aus. */
-.home-hero { margin-top: -24px; background: var(--warm); }
-.home-hero-inner { padding-block: 52px 76px; text-align: center; }
-.home-hook { margin-bottom: 20px; font-size: 1.0625rem; color: var(--text-2); text-wrap: balance; }
-.home-title { font-size: clamp(3rem, 6.3vw, 5.75rem); line-height: 1.06; letter-spacing: -.055em; }
+/* Hero: der negative Abstand gleicht den Innenabstand von #main aus. */
+.home-hero { margin-top: -24px; padding-block: 80px 96px; background: var(--warm); }
+.home-title { margin-top: 28px; font-size: clamp(3rem, 9vw, 8rem); font-weight: 700; line-height: 1; letter-spacing: -.055em; overflow-wrap: break-word; }
 .home-title span { color: var(--accent); }
-.home-lead { max-width: 640px; margin: 26px auto 30px; font-size: 1.0625rem; line-height: 1.7; color: var(--text-2); }
-.home-actions { justify-content: center; gap: 8px 28px; }
+.home-hero-foot {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px 64px; align-items: end;
+  margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--border);
+}
+.home-lead { max-width: 480px; line-height: 1.75; color: var(--text-2); }
 
-/* Nummerierter Themenindex unter dem Hero */
-.topic-index { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding-block: 25px; border-top: 1px solid var(--border); }
-.topic-index a { display: flex; align-items: center; gap: 18px; min-height: 60px; padding: 0 28px; text-decoration: none; }
-.topic-index a:first-child { padding-left: 0; }
-.topic-index a + a { border-left: 1px solid var(--border); }
-.topic-index a:hover { color: var(--accent); }
-.topic-index a > span:not(.index-number) { font-size: .9375rem; font-weight: 650; line-height: 1.45; }
-.topic-index small { display: block; margin-top: 4px; font-size: .75rem; font-weight: 400; color: var(--text-2); }
-.index-number { align-self: flex-start; padding-top: 4px; font-size: .75rem; color: var(--accent); }
+.home-section { padding-block: 104px; }
+.home-section-title { margin-block: 14px 40px; font-size: clamp(2rem, 3.4vw, 3rem); line-height: 1.08; }
 
-.topics-intro { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px 48px; padding-block: 96px 8px; }
-.topics-intro h2 { font-size: clamp(2.3rem, 3.4vw, 3.1rem); line-height: 1.1; }
-.topics-intro .eyebrow { margin-bottom: 16px; }
-.topics-intro > p { margin-bottom: 12px; font-size: .9375rem; color: var(--text-2); }
+/* Themenliste: die ganze Zeile ist über den gestreckten Link klickbar. */
+.home-topics { list-style: none; margin: 0; padding: 0; }
+.home-topics li {
+  position: relative; display: grid; grid-template-columns: 96px minmax(0, 1fr) 56px; gap: 32px; align-items: center;
+  padding: 40px 24px; margin-inline: -24px; border-top: 1px solid var(--border);
+  transition: background-color var(--dur-fast) ease;
+}
+.home-topics li:last-child { border-bottom: 1px solid var(--border); }
+.home-topics li:hover, .home-topics li:focus-within { background: var(--soft); }
+.home-topics .topic-number { padding: 0; border: 0; font-size: 2.5rem; font-weight: 700; letter-spacing: -.05em; line-height: 1; color: var(--brand); font-variant-numeric: tabular-nums; }
+.home-topic-copy { display: grid; gap: 10px; max-width: 760px; min-width: 0; }
+.home-topic-kicker { font-size: .8125rem; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); }
+.home-topics h3 { font-size: clamp(1.35rem, 2.2vw, 1.75rem); font-weight: 650; line-height: 1.25; letter-spacing: -.025em; hyphens: auto; overflow-wrap: break-word; }
+.home-topic-link { text-decoration: none; color: inherit; border-radius: 4px; }
+.home-topic-link::after { content: ""; position: absolute; inset: 0; }
+.home-topic-copy > p:last-child { color: var(--text-2); }
+.home-topic-go {
+  display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--border); color: var(--text);
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease, transform var(--dur-fast) ease;
+}
+.home-topic-go svg { width: 20px; height: 20px; }
+.home-topics li:hover .home-topic-go, .home-topics li:focus-within .home-topic-go { background: var(--brand); border-color: var(--brand); color: var(--accent-text); transform: translateX(4px); }
 
-/* Themenabschnitte ohne Grafikspalten: begrenzte Lesebreite, jeder zweite Abschnitt auf weicher Fläche. */
-.editorial-section { padding-block: 70px; }
-.section-soft { background: var(--soft); }
-.editorial-inner, .home-profile-inner { max-width: 760px; }
-.editorial-copy { min-width: 0; }
-.topic-eyebrow { gap: 14px; margin-bottom: 20px; }
-.topic-eyebrow::before { display: none; }
-.topic-number { padding-right: 14px; border-right: 1px solid var(--border); }
-.editorial-copy h2 { font-size: clamp(1.85rem, 2.55vw, 2.5rem); line-height: 1.19; letter-spacing: -.035em; text-wrap: pretty; overflow-wrap: break-word; hyphens: auto; }
-.editorial-text { margin-block: 23px 24px; }
-.editorial-text p { font-size: .9375rem; line-height: 1.85; color: var(--text-2); }
-.editorial-text p + p { margin-top: 18px; }
-.editorial-text em { color: var(--text); }
-.article-link { padding-top: 10px; border-top: 1px solid var(--border); }
+/* KI Readiness · Kurzcheck: abgesetzte, deckende Fläche */
+.home-check-section { padding-top: 0; }
+.check { padding: 56px 56px 48px; border: 1px solid var(--border); border-radius: 32px; background-color: var(--soft); }
+.check-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+.check-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: .8125rem; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2); overflow-wrap: anywhere; }
+.check-count { color: var(--accent); font-variant-numeric: tabular-nums; }
+.check-question {
+  margin-top: 28px; max-width: 1040px; min-height: 2.16em;
+  font-size: clamp(2.1rem, 5vw, 4.5rem); font-weight: 700; line-height: 1.08; letter-spacing: -.05em; hyphens: auto; overflow-wrap: break-word;
+  transition: opacity .3s ease, transform .3s ease;
+}
+.check.is-switching .check-question { opacity: 0; transform: translateY(8px); }
+.check-hint { margin-top: 16px; color: var(--text-2); }
+.check-answers { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 36px; }
+.check-answer { min-width: 140px; min-height: 60px; font-size: 1.0625rem; background: var(--paper); color: var(--text); border: 1.5px solid var(--text); }
+.check-answer:hover { background: var(--text); color: var(--paper); }
+.check-skip {
+  min-height: 44px; padding: 0 8px; border: 0; border-radius: var(--radius-small); background: none; cursor: pointer;
+  font: inherit; font-size: .9375rem; font-weight: 600; color: var(--text-2); text-decoration: underline; text-underline-offset: 4px;
+}
+.check-skip:hover { color: var(--text); }
+.check-summary { margin-top: 16px; max-width: 640px; color: var(--text-2); font-size: 1.125rem; }
+.check-progress { list-style: none; margin: 48px 0 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.check-progress li { height: 6px; border-radius: var(--pill); background: var(--line); transition: background-color .3s ease; }
+.check-progress li.is-current { background: var(--muted); }
+.check-progress li.is-yes { background: var(--brand); }
+.check-progress li.is-no { background: var(--ink); }
+.check-progress li.is-skip { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 8px); }
+.check-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 40px; margin-top: 28px; }
+.check-feedback { max-width: 560px; min-height: 3.3em; display: flex; align-items: center; font-weight: 550; }
 
-/* KI-Reifegrad-Banner */
-.audit-banner { display: grid; grid-template-columns: 1fr .8fr; gap: 90px; align-items: center; margin-block: 38px 90px; padding: 58px 64px; border-radius: 32px; background: var(--navy); color: #fff; }
-.audit-banner .eyebrow { margin-bottom: 16px; color: #f39b56; }
-.audit-banner h2 { font-size: clamp(2rem, 3.4vw, 3rem); line-height: 1.1; }
-.audit-banner h2 > span { color: #f39b56; }
-.audit-banner p:not(.eyebrow) { margin-top: 22px; font-size: .9375rem; color: #bdcbd7; }
-.audit-banner .btn { margin-top: 24px; }
-.audit-steps ol { list-style: none; margin: 0; padding: 0; }
-.audit-steps li { display: flex; align-items: center; gap: 23px; padding: 22px 0; border-bottom: 1px solid #405367; }
-.audit-steps li > span { font-size: .75rem; color: #f39b56; }
-.audit-steps strong { font-size: 1.4375rem; font-weight: 500; letter-spacing: -.025em; }
-.audit-banner .audit-steps > p { font-size: .8125rem; }
-
-/* Profil-Teaser */
-.home-profile { padding-block: 56px; background: var(--warm); }
-.home-profile .eyebrow { margin-bottom: 10px; }
-.home-profile h2 { margin-bottom: 14px; font-size: 2rem; }
-.home-profile p:not(.eyebrow) { font-size: .9375rem; color: var(--text-2); }
-.home-profile .text-link { margin-top: 6px; }
+/* Über mich */
+.home-about { padding-top: 0; }
+.home-about-inner { display: grid; grid-template-columns: 200px minmax(0, 640px); gap: 32px; align-items: start; padding-top: 104px; border-top: 1px solid var(--border); }
+.home-about h2 { font-size: clamp(1.75rem, 2.6vw, 2.25rem); line-height: 1.1; }
+.home-about p:not(.eyebrow) { margin: 12px 0 8px; color: var(--text-2); }
 
 /* ==========================================================================
    Blog: Beitragslisten und Beitragsseite
@@ -903,45 +917,36 @@ svg { display: block; }
   .footer-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* Startseite ohne Grafiken (Ticket #118): Navigation und KI-Reifegrad-Banner an schmale Ansichten anpassen. */
-@media (max-width: 1180px) {
-  .topic-index a { gap: 12px; padding-inline: 20px; }
-  .audit-banner { gap: 50px; padding-inline: 44px; }
-}
+/* Startseite (Ticket #34): Bildschirmbreiten nach dem Home-Mock */
 @media (max-width: 850px) {
-  .home-hero-inner { padding-block: 38px 56px; }
-  .topic-index { padding-block: 18px; }
-  .topic-index small { display: none; }
-  .topic-index a > span:not(.index-number) { font-size: .8125rem; }
-  .topics-intro { padding-top: 70px; }
-  .editorial-copy h2 { font-size: 1.625rem; }
-  .editorial-text p { font-size: .875rem; }
-  .audit-banner { gap: 30px; margin-bottom: 70px; padding: 42px 30px; }
-  .audit-steps strong { font-size: 1.25rem; }
+  .home-hero { padding-block: 64px 72px; }
+  .home-hero-foot { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .home-section { padding-block: 72px; }
+  .home-about-inner { padding-top: 72px; }
+  .home-topics li { grid-template-columns: 64px minmax(0, 1fr) 48px; gap: 20px; }
+  .home-topics .topic-number { font-size: 2rem; }
+  .home-topic-go { width: 48px; height: 48px; }
+  .check { padding: 44px 32px 36px; border-radius: 24px; }
 }
 @media (max-width: 650px) {
-  .home-hero-inner { padding-block: 34px 44px; }
-  .home-hook { max-width: 290px; margin: 0 auto 22px; font-size: .9375rem; line-height: 1.6; }
-  .home-title { font-size: clamp(2.5rem, 11vw, 3.5rem); }
-  .home-lead { max-width: 340px; margin-block: 24px; font-size: .9375rem; }
-  .wide-break { display: none; }
-  .home-actions { flex-direction: column; gap: 4px; }
-  .topic-index { grid-template-columns: minmax(0, 1fr); padding-block: 10px; }
-  .topic-index a, .topic-index a:first-child { gap: 18px; min-height: 65px; padding: 13px 0; }
-  .topic-index a + a { border-left: 0; border-top: 1px solid var(--border); }
-  .topic-index small { display: block; }
-  .topics-intro { flex-direction: column; align-items: flex-start; padding-block: 56px 0; }
-  .topics-intro h2 { font-size: 2.25rem; }
-  .editorial-section { padding-block: 44px; }
-  .editorial-copy h2 { font-size: 1.75rem; }
-  .audit-banner { grid-template-columns: minmax(0, 1fr); gap: 26px; margin-block: 18px 56px; padding: 32px 24px; border-radius: 24px; }
-  .audit-banner h2 { font-size: 2.25rem; }
-  .audit-steps li { padding-block: 18px; }
+  .home-hero { padding-block: 48px 60px; }
+  .home-hero-foot { margin-top: 40px; padding-top: 24px; }
+  .home-section { padding-block: 60px; }
+  .home-section-title { margin-bottom: 28px; }
+  .home-topics li { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 28px 16px; margin-inline: -16px; }
+  .home-topics .topic-number { font-size: 1.5rem; }
+  .home-topic-go { display: none; }
+  .check { padding: 32px 20px 28px; }
+  .check-question { min-height: 3.24em; }
+  .check-answer { min-width: 0; flex: 1; }
+  .check-skip { width: 100%; text-align: left; }
+  .check-feedback { min-height: 0; }
+  .home-about-inner { grid-template-columns: minmax(0, 1fr); gap: 12px; padding-top: 60px; }
 }
 @media (max-width: 359px) {
-  .editorial-copy h2 { font-size: 1.625rem; }
-  .audit-banner { padding-inline: 20px; }
-  .audit-banner h2 { font-size: 1.875rem; }
+  .home-title { font-size: 2.6rem; }
+  .check { padding-inline: 16px; }
+  .check-question { font-size: 1.75rem; }
 }
 
 /* ==========================================================================
@@ -1037,6 +1042,7 @@ svg { display: block; }
    Systemeinstellungen und Fallbacks (stehen bewusst am Ende, DESIGN_CIMT.md, Abschnitte 5 und 7)
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
+  .check.is-switching .check-question { opacity: 1; transform: none; }
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
   .btn:hover, .post-row:hover, .press:active:not(:disabled) { transform: none; }
 }
@@ -1063,5 +1069,5 @@ svg { display: block; }
   .site-header { position: static; }
   .menu-toggle, .nav-actions, .lang-switch, .popover, .consent-backdrop { display: none !important; }
   .home-hero { margin-top: 0; }
-  .post-row, .audit-banner, .dim-acc-item, .choice-card { break-inside: avoid; }
+  .post-row, .check, .dim-acc-item, .choice-card { break-inside: avoid; }
 }

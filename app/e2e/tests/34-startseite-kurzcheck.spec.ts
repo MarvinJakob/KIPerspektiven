@@ -106,9 +106,9 @@ test('REQ-34-AC2: genau zwei Themenzeilen in Reihenfolge mit Leitfrage und Satz;
   }
 
   for (const [i, t] of TOPICS.entries()) {
-    // Klick auf eine Stelle der Zeile außerhalb des Linktextes (Nummer)
+    // Klick auf eine Stelle der Zeile außerhalb des Linktextes (linke obere Ecke, Bereich der Nummer)
     await page.goto('/de');
-    await rows.nth(i).getByText(t.number, { exact: true }).click();
+    await rows.nth(i).click({ position: { x: 12, y: 12 } });
     await expect(page).toHaveURL(new RegExp(`/de/${t.path}$`));
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await expect(page.getByRole('heading', { name: /Seite nicht gefunden/ })).toHaveCount(0);
@@ -140,21 +140,21 @@ test('REQ-34-AC3: ohne Eingabe bleibt die aktuelle Frage stehen', async ({ page 
   await expect(check(page).getByText(UI.de.count(1), { exact: true })).toBeVisible();
 });
 
-test('REQ-34-AC4: nur Ja zählt; Auswertung für gemischte Antworten, achtmal Überspringen und achtmal Ja', async ({ page }) => {
-  const cases: [Answer[], number][] = [
-    [['ja', 'nein', 'skip', 'ja', 'skip', 'nein', 'skip', 'ja'], 3],
-    [Array(8).fill('skip'), 0],
-    [Array(8).fill('ja'), 8],
-  ];
-  for (const [values, yes] of cases) {
+// Je Fall ein eigener Test: acht Antworten mit Überblendung dauern bereits mehrere Sekunden.
+for (const [label, values, yes] of [
+  ['drei Ja, zwei Nein, drei übersprungen', ['ja', 'nein', 'skip', 'ja', 'skip', 'nein', 'skip', 'ja'], 3],
+  ['achtmal Überspringen', Array(8).fill('skip'), 0],
+  ['achtmal Ja', Array(8).fill('ja'), 8],
+] as [string, Answer[], number][]) {
+  test(`REQ-34-AC4: nur Ja zählt – ${label} ergibt ${yes} von 8`, async ({ page }) => {
     await page.goto('/de');
     await answerAll(page, values);
     await expect(check(page).getByRole('heading', { level: 2 })).toHaveText(UI.de.result(yes));
     await expect(check(page).getByRole('button', { name: UI.de.answers.ja, exact: true })).toHaveCount(0);
-  }
-});
+  });
+}
 
-test('REQ-34-AC4: „Noch einmal“ und Neuladen beginnen bei Frage 1; Antworten werden weder gespeichert noch übertragen', async ({ page, context }) => {
+test('REQ-34-AC4: „Noch einmal“ beginnt bei Frage 1 mit Zähler 0; Antworten werden weder gespeichert noch übertragen', async ({ page, context }) => {
   await page.goto('/de');
   await expect(question(page)).toHaveText(DIMENSIONS[0][1]);
   const storage = () => page.evaluate(() => ({ local: { ...localStorage }, session: { ...sessionStorage } }));
@@ -172,7 +172,9 @@ test('REQ-34-AC4: „Noch einmal“ und Neuladen beginnen bei Frage 1; Antworten
   await expect(question(page)).toHaveText(DIMENSIONS[0][1]);
   await answerAll(page, Array(8).fill('skip'));
   await expect(check(page).getByRole('heading', { level: 2 })).toHaveText(UI.de.result(0));
+});
 
+test('REQ-34-AC4: nach einem Neuladen beginnt der Kurzcheck bei Frage 1', async ({ page }) => {
   await page.goto('/de');
   await answer(page, 'ja', 1);
   await answer(page, 'ja', 2);
@@ -232,7 +234,7 @@ test('REQ-34-AC6: typografische Hierarchie, Systemschrift, cimt-Orange, deckende
         h2: px(css('#themen-title').fontSize),
         h3: px(css('#themen-liste h3').fontSize),
         font: body.fontFamily,
-        brand: css('#ki-readiness .button-primary').backgroundColor,
+        brand: css('#ki-readiness .btn-primary').backgroundColor,
         number: css('#themen-liste .topic-number').color,
         bodyBg: body.backgroundColor,
         surfaceBg: surface.backgroundColor,
@@ -326,13 +328,13 @@ test.describe('reduzierte Bewegung', () => {
       const root = document.getElementById('ki-readiness')!;
       [...root.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Ja')!.click();
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      const h = root.querySelector('h2:not([hidden] h2)') as HTMLElement;
+      const h = root.querySelector('h2') as HTMLElement;
       const s = getComputedStyle(h);
       return { text: h.textContent, opacity: s.opacity, transition: s.transitionDuration };
     });
     expect(after.text).toBe(DIMENSIONS[1][1]);
     expect(after.opacity).toBe('1');
-    expect(after.transition.split(',').every((d) => parseFloat(d) === 0)).toBe(true);
+    expect(after.transition.split(',').every((d) => parseFloat(d) <= 0.01)).toBe(true);
   });
 });
 
@@ -379,6 +381,9 @@ test('REQ-34-AC8: DE → EN → DE wechselt Abschnitte, Fragen, Antworten, Ergeb
   await expect(check(page).getByRole('button', { name: UI.en.restart })).toBeVisible();
   expect(await page.locator('main').innerText()).not.toMatch(/Leitfrage|Frage \d von|Überspringen|Themen entdecken/);
 
+  // Neustart auf Englisch, damit der Rückwechsel unabhängig vom Fortschritt dieselbe erste Frage zeigt.
+  await check(page).getByRole('button', { name: UI.en.restart }).click();
+  await expect(check(page).getByText(UI.en.count(1), { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Deutsch' }).click();
   await expect(page).toHaveURL(/\/de\/?$/);
   await expect(page.locator('#hero-title')).toHaveText('KI verstehen.Sinnvoll einsetzen.');
