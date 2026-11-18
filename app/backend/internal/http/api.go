@@ -101,19 +101,34 @@ func (s *apiServer) ListPosts(ctx context.Context, req api.ListPostsRequestObjec
 		return api.ListPosts400JSONResponse{BadRequestJSONResponse: api.BadRequestJSONResponse{Message: msgBadLang}}, nil
 	}
 	lang := langOf(req.Params.Lang)
-	var (
-		posts []service.PostSummary
-		err   error
-	)
 	if req.Params.Featured != nil && *req.Params.Featured {
-		posts, err = s.svc.FeaturedPosts(ctx, lang)
-	} else {
-		posts, err = s.svc.Posts(ctx, lang)
+		posts, err := s.svc.FeaturedPosts(ctx, lang)
+		if err != nil {
+			return nil, err
+		}
+		return api.ListPosts200JSONResponse{Items: toSummaries(posts)}, nil
+	}
+	// Blogübersicht: portionsweise mit Fortsetzungsmarke (Ticket #75)
+	badCursor := api.ListPosts400JSONResponse{BadRequestJSONResponse: api.BadRequestJSONResponse{Message: "Ungültige Fortsetzung der Beitragsliste."}}
+	var cursor string
+	if req.Params.Cursor != nil {
+		if *req.Params.Cursor == "" {
+			return badCursor, nil // leerer Parameter ist ungültig, nicht „von vorn“
+		}
+		cursor = *req.Params.Cursor
+	}
+	page, err := s.svc.PostsPage(ctx, lang, cursor)
+	if errors.Is(err, service.ErrBadCursor) {
+		return badCursor, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	return api.ListPosts200JSONResponse{Items: toSummaries(posts)}, nil
+	out := api.ListPosts200JSONResponse{Items: toSummaries(page.Items)}
+	if page.NextCursor != "" {
+		out.NextCursor = &page.NextCursor
+	}
+	return out, nil
 }
 
 func (s *apiServer) GetPost(ctx context.Context, req api.GetPostRequestObject) (api.GetPostResponseObject, error) {

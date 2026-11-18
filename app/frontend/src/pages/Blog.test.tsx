@@ -150,8 +150,7 @@ describe.each(['de', 'en'] as const)('Blogübersicht %s', (lang) => {
     reachEnd();
     await until(() => expect(calls).toHaveLength(2));
     expect(cursorOf(calls[1])).toBe('c1');
-    const status = host.querySelector('[role="status"]');
-    expect(status?.textContent).toContain(T.loading);
+    await until(() => expect(host.querySelector('[role="status"]')?.textContent).toContain(T.loading));
     expect(links(), 'bisherige Beiträge bleiben während des Abrufs').toHaveLength(20);
 
     reachEnd();
@@ -249,8 +248,7 @@ describe.each(['de', 'en'] as const)('Blogübersicht %s', (lang) => {
     expect(document.activeElement).toBe(more);
     act(() => more.click());
     await until(() => expect(calls).toHaveLength(2));
-    const status = host.querySelector('[role="status"]')!;
-    expect(status.textContent).toContain(T.loading);
+    await until(() => expect(host.querySelector('[role="status"]')?.textContent).toContain(T.loading));
     expect(more.disabled || more.getAttribute('aria-disabled') === 'true', 'während des Abrufs deaktiviert').toBe(true);
     await act(async () => second.resolve({ status: 200, body: { items: range(45, 26), nextCursor: 'c2' } }));
     await until(() => expect(links()).toHaveLength(40));
