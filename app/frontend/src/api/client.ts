@@ -1,5 +1,5 @@
 import createClient from 'openapi-fetch';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type { components, paths } from './schema';
 import type { Lang } from '../lib/lang';
 
@@ -84,6 +84,19 @@ export const usePosts = (lang: Lang, featured = false) =>
     queryKey: ['posts', lang, featured],
     queryFn: () =>
       unwrap(client.GET('/api/posts', { params: { query: { lang, featured } } })).then((d) => d.items),
+  });
+
+/**
+ * Blogübersicht portionsweise (Ticket #75): Jede Seite enthält höchstens 20 Beiträge; `nextCursor` setzt
+ * die Liste fort. Ein erneuter Versuch nach einem Fehler fordert dieselbe Portion an.
+ */
+export const usePostFeed = (lang: Lang) =>
+  useInfiniteQuery({
+    queryKey: ['posts', lang, 'feed'],
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      unwrap(client.GET('/api/posts', { params: { query: pageParam ? { lang, cursor: pageParam } : { lang } } })),
+    getNextPageParam: (last) => last.nextCursor,
   });
 
 export const usePost = (slug: string, lang: Lang) =>
