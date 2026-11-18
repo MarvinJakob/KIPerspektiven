@@ -23,6 +23,12 @@ interface PageViews {
 }
 const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date());
 const pageViews = async (s: Session, period = '30d') => (await (await s.get(`/api/admin/statistics/page-views?period=${period}`)).json()) as PageViews;
+/** TT.MM.JJJJ des Berliner Kalendertags vor `daysAgo` Tagen. */
+const berlinDate = (daysAgo: number) => {
+  const [y, m, d] = today().split('-').map(Number);
+  return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
+    .format(new Date(Date.UTC(y, m - 1, d - daysAgo)));
+};
 const todayOf = (p: PageViews) => p.days.find((d) => d.date === today())!;
 
 async function visit(ctx: APIRequestContext, ip: string, path = '/de/blog') {
@@ -85,7 +91,7 @@ test('REQ-26-AC3: Navigation innerhalb der Webseite zählt nicht zusätzlich', a
 test.describe('Oberfläche', () => {
   test.use({ storageState: AUTH.editor });
 
-  test('REQ-26-AC2 REQ-26-AC3 REQ-26-AC6 REQ-26-AC8: Zeitraum, Kennzahlen, Tabelle und Ergebnisliste mit Seitennavigation', async ({ page, request, editor }) => {
+  test('REQ-26-AC2 REQ-26-AC3 REQ-26-AC6 REQ-26-AC8: Zeitraum, Kennzahlen, Tageswerte und Ergebnisliste mit Seitennavigation', async ({ page, request, editor }) => {
     // Genug gespeicherte Ergebnisse für eine zweite Seite (50 je Seite)
     const existing = ((await (await editor.get('/api/admin/statistics/readiness-results?period=30d')).json()) as { total: number }).total;
     for (let i = existing; i < 51; i++) await storeResult(request, 'de', () => 2);
@@ -99,10 +105,15 @@ test.describe('Oberfläche', () => {
     await expect(page.getByText(/unterscheidet IP-Adressen, keine Personen/)).toBeVisible();
     await expect(page.getByText(/Seitenwechsel innerhalb der geöffneten Webseite zählen nicht/)).toBeVisible();
     await expect(page.getByText(/Tage und Uhrzeiten gelten in deutscher Zeit/)).toBeVisible();
-    // Diagramm mit tabellarischen Werten
+    // Diagramm; die genauen Tageswerte stehen seit #65 in der Grafik statt in einer Tabelle (REQ-65-AC1).
     await expect(page.locator('figure svg[role="img"]')).toBeVisible();
-    const table = page.getByRole('table', { name: 'Seitenaufrufe je Tag, neueste zuerst' });
-    await expect(table.locator('tbody tr')).toHaveCount(30);
+    const days = page.getByRole('group', { name: /Tageswerte/ });
+    const status = page.locator('figure').getByRole('status');
+    await days.focus();
+    await page.keyboard.press('Home');
+    await expect(status).toContainText(berlinDate(29));
+    await page.keyboard.press('End');
+    await expect(status).toContainText(berlinDate(0));
 
     // Neuestes Ergebnis zuerst, mit Zeitpunkt, Sprache und Reifegraden, ohne Adressen
     const first = page.locator('.result-entry').first();
@@ -118,7 +129,9 @@ test.describe('Oberfläche', () => {
     await expect(page.locator('.results-range')).toContainText('Einträge 51–');
     await page.getByRole('radio', { name: 'Letzte 7 Tage' }).check();
     await expect(page.locator('.results-range')).toContainText('Einträge 1–50');
-    await expect(table.locator('tbody tr')).toHaveCount(7);
+    await days.focus();
+    await page.keyboard.press('Home');
+    await expect(status).toContainText(berlinDate(6));
     await page.getByRole('radio', { name: 'Gesamt' }).check();
     await expect(page.locator('.results-range')).toContainText('Einträge 1–50');
 
@@ -147,7 +160,7 @@ test.describe('Oberfläche', () => {
     await expect(alert).toBeVisible();
     fail = false;
     await alert.getByRole('button', { name: 'Erneut versuchen' }).click();
-    await expect(page.getByRole('table', { name: 'Seitenaufrufe je Tag, neueste zuerst' })).toBeVisible();
+    await expect(page.locator('figure svg[role="img"]')).toBeVisible();
   });
 
   test.describe('mobil', () => {
@@ -158,9 +171,12 @@ test.describe('Oberfläche', () => {
       await seven.focus();
       await page.keyboard.press('Space');
       await expect(seven).toBeChecked();
-      const table = page.getByRole('table', { name: 'Seitenaufrufe je Tag, neueste zuerst' });
-      await table.scrollIntoViewIfNeeded();
-      await expect(table.locator('tbody tr')).toHaveCount(7);
+      // Tageswerte per Antippen in der Grafik (REQ-65-AC3), neuester Tag am rechten Rand des Datenbereichs.
+      const chart = page.locator('figure svg[role="img"]');
+      await chart.scrollIntoViewIfNeeded();
+      const box = (await chart.boundingBox())!;
+      await page.touchscreen.tap(box.x + box.width - 13, box.y + 120);
+      await expect(page.getByRole('tooltip')).toContainText(berlinDate(0));
     });
   });
 });
