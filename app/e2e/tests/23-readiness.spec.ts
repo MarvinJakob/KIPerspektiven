@@ -141,7 +141,7 @@ test('REQ-23-AC6: ohne Einwilligung wird nichts übertragen', async ({ page }) =
   expect(calls).toHaveLength(0);
 });
 
-test('REQ-23-AC6: mit Einwilligung wird nur das vollständige Ergebnis gespeichert, aktualisiert und beim Widerruf gelöscht', async ({ page, editor }) => {
+test('REQ-23-AC6: mit Einwilligung wird nur das vollständige Ergebnis gespeichert, aktualisiert und beim Widerruf gelöscht', async ({ page, marketing }) => {
   const calls = track(page);
   const levels = [3, 1, 3, 1, 3, 1, 3, 3]; // Muster nur in diesem Test
   const start = Date.now() - 2_000;
@@ -153,7 +153,7 @@ test('REQ-23-AC6: mit Einwilligung wird nur das vollständige Ergebnis gespeiche
   expect(first.ratings).toEqual(slugs.map((s, i) => ({ dimension: s, level: levels[i] })));
 
   const mine = (r: Result) => Date.parse(r.submittedAt) >= start && r.ratings.map((x) => x.level).join() === levels.join();
-  await expect.poll(async () => (await results(editor)).filter(mine)).toHaveLength(1);
+  await expect.poll(async () => (await results(marketing)).filter(mine)).toHaveLength(1);
 
   // Änderung aktualisiert dasselbe Ergebnis
   await page.locator('table.result-table').getByRole('link').last().click();
@@ -162,15 +162,15 @@ test('REQ-23-AC6: mit Einwilligung wird nur das vollständige Ergebnis gespeiche
   await expect.poll(() => calls.length).toBe(2);
   expect(calls[1].postDataJSON().key).toBe(first.key);
   const changed = [...levels.slice(0, 7), 2];
-  await expect.poll(async () => (await results(editor)).filter((r) => r.ratings.map((x) => x.level).join() === changed.join() && Date.parse(r.submittedAt) >= start)).toHaveLength(1);
-  expect((await results(editor)).filter(mine)).toHaveLength(0);
+  await expect.poll(async () => (await results(marketing)).filter((r) => r.ratings.map((x) => x.level).join() === changed.join() && Date.parse(r.submittedAt) >= start)).toHaveLength(1);
+  expect((await results(marketing)).filter(mine)).toHaveLength(0);
 
   // Widerruf löscht
   await page.getByLabel('Ergebnis anonym für die Statistik speichern').uncheck();
   await expect(page.locator('.share-status')).toHaveText('Dein gespeichertes Ergebnis wurde gelöscht.');
   expect(calls[2].method()).toBe('DELETE');
   expect(calls[2].url()).toContain(first.key);
-  expect((await results(editor)).filter((r) => r.ratings.map((x) => x.level).join() === changed.join() && Date.parse(r.submittedAt) >= start)).toHaveLength(0);
+  expect((await results(marketing)).filter((r) => r.ratings.map((x) => x.level).join() === changed.join() && Date.parse(r.submittedAt) >= start)).toHaveLength(0);
 });
 
 test('REQ-23-AC6: das Backend nimmt nur vollständige Ergebnisse an', async ({ request }) => {

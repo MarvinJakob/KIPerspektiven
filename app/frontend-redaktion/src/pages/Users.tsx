@@ -49,6 +49,9 @@ function UserTable({ users, onNotice }: { users: User[]; onNotice: (s: string) =
   const setActive = useSetUserActive();
   const setRoles = useSetUserRoles();
   const [error, setError] = useState('');
+  // Gewählte Rollen erscheinen sofort; nach der Antwort gilt wieder der gespeicherte Stand (bei Fehlern der alte).
+  const [pending, setPending] = useState<Record<number, Role[]>>({});
+  const rolesOf = (u: User) => pending[u.id] ?? u.roles;
 
   const toggle = (u: User) => {
     setError('');
@@ -70,16 +73,23 @@ function UserTable({ users, onNotice }: { users: User[]; onNotice: (s: string) =
   const changeRole = (u: User, role: Role, on: boolean) => {
     setError('');
     onNotice('');
-    const roles = on ? [...u.roles, role] : u.roles.filter((r) => r !== role);
+    const current = rolesOf(u);
+    const roles = on ? [...current, role] : current.filter((r) => r !== role);
     if (roles.length === 0) {
       setError(`${u.email} braucht mindestens eine Rolle.`);
       return;
     }
+    setPending((p) => ({ ...p, [u.id]: roles }));
     setRoles.mutate(
       { id: u.id, roles },
       {
         onSuccess: (r) => onNotice(`Rollen von ${r.email} gespeichert.`),
         onError: (e) => setError(failure(e, 'Die Rollen konnten gerade nicht geändert werden.')),
+        onSettled: () =>
+          setPending((p) => {
+            const { [u.id]: _done, ...rest } = p;
+            return rest;
+          }),
       },
     );
   };
@@ -120,7 +130,7 @@ function UserTable({ users, onNotice }: { users: User[]; onNotice: (s: string) =
                         <label className="check" key={role}>
                           <input
                             type="checkbox"
-                            checked={u.roles.includes(role)}
+                            checked={rolesOf(u).includes(role)}
                             // Einem Admin-Konto lässt sich die Admin-Rolle nicht entziehen (REQ-64-AC3).
                             disabled={setRoles.isPending || (role === 'admin' && isAdmin)}
                             onChange={(e) => changeRole(u, role, e.target.checked)}

@@ -30,7 +30,7 @@ test('REQ-28-AC7: die Kontenliste gibt keine Passwörter aus', async ({ admin })
 });
 
 test('REQ-28-AC3: ungültige oder belegte Adresse und zu kurzes Passwort legen kein Konto an', async ({ admin }) => {
-  const before = (await users(admin)).length;
+  const before = await users(admin);
   const cases: [unknown, number][] = [
     [{ email: 'keine-adresse', password: PASSWORD, roles: ['editor'] }, 422],
     [{ email: ACCOUNTS.editor.email.toUpperCase(), password: PASSWORD, roles: ['editor'] }, 409],
@@ -41,7 +41,12 @@ test('REQ-28-AC3: ungültige oder belegte Adresse und zu kurzes Passwort legen k
     expect(res.status(), JSON.stringify(data)).toBe(status);
     expect(((await res.json()) as { message: string }).message.length).toBeGreaterThan(0);
   }
-  expect((await users(admin)).length).toBe(before);
+  // Parallel laufende Tests legen eigene Konten an; geprüft werden die Adressen dieses Tests.
+  const after = await users(admin);
+  for (const [data] of cases) {
+    const e = String((data as { email: string }).email).trim().toLowerCase();
+    expect(after.filter((u) => u.email === e).length, e).toBe(before.filter((u) => u.email === e).length);
+  }
 });
 
 test('REQ-28-AC4 REQ-28-AC5: Deaktivieren beendet Sitzungen und sperrt die Anmeldung, Reaktivieren gibt sie wieder frei', async ({ admin, login }) => {
