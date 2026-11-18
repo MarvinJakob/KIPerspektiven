@@ -21,7 +21,8 @@ test('REQ-19-AC1: Artikel mit Hero, Autor, Stand und Lesezeit in beiden Sprachen
 
 test('REQ-19-AC2: Abschnitte folgen der Vorlage', async ({ page }) => {
   await page.goto(PATH('de'));
-  const ids = ['moderne-softwareentwicklung', 'der-weg', 'drei-teams', 'release-gate', 'meinung', 'more-title'];
+  const ids = ['moderne-softwareentwicklung', 'der-weg', 'drei-teams', 'release-gate', 'meinung'];
+  // Der Abschnitt „Mehr Themen.“ (more-title) entfällt mit #37; der Beitrag endet mit „meinung“.
   const positions = await Promise.all(ids.map((id) => page.locator(`#${id}`).evaluate((el) => el.getBoundingClientRect().top + scrollY)));
   expect([...positions].sort((a, b) => a - b)).toEqual(positions);
   await expect(page.locator('#moderne-softwareentwicklung')).toHaveText('Moderne Softwareentwicklung');
@@ -65,7 +66,8 @@ test('REQ-19-AC4: Vibe-Coding-, Kontakt- und Themenverweise führen zu vorhanden
     }
   }
   await page.goto(PATH('de'));
-  await page.getByRole('link', { name: 'Alle Themen' }).click();
+  // Seit #37 ohne „Alle Themen“ am Beitragsende: Der Themenverweis im Brotkrumenpfad führt zur Themenübersicht.
+  await page.locator('.article-crumbs').getByRole('link', { name: 'Themen', exact: true }).click();
   await expect(page).toHaveURL(/\/de#themen$/);
   await expect(page.locator('#themen')).toBeInViewport();
 });
