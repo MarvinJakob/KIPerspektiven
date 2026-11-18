@@ -972,9 +972,7 @@ svg { display: block; }
 .article-body p { font-size: 1.0625rem; line-height: 1.85; hyphens: auto; }
 .article-body p + p { margin-top: 20px; }
 .article-body .article-lead { font-size: 1.1875rem; line-height: 1.75; }
-.article-figure { margin: 48px -120px; }
-.article-figure a { display: block; padding: 28px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); cursor: zoom-in; transition: border-color .2s; }
-.article-figure a:hover { border-color: var(--brand); }
+.article-figure { margin: 48px 0; padding: 28px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .article-figure img { display: block; width: 100%; height: auto; }
 
 .related-link { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 20px; margin-block: 28px; padding: 20px 24px; background: var(--soft); border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: var(--radius-small); text-decoration: none; transition: border-color .2s; }
@@ -1008,9 +1006,6 @@ svg { display: block; }
 .more-link svg { width: 16px; height: 16px; }
 .all-topics { margin-top: 24px; }
 
-@media (max-width: 1100px) {
-  .article-figure { margin-inline: 0; }
-}
 @media (max-width: 850px) {
   .article-hero { padding-bottom: 56px; }
   .article-layout { padding-block: 56px 72px; }
@@ -1030,11 +1025,10 @@ svg { display: block; }
   .article-body > .opinion { grid-template-columns: 1fr; padding: 26px 22px; }
   .opinion-button { width: 100%; }
   .more-grid { grid-template-columns: 1fr; }
-  .article-figure { margin-block: 36px; }
-  .article-figure a { padding: 12px; border-radius: var(--radius-small); }
+  .article-figure { margin-block: 36px; padding: 12px; border-radius: var(--radius-small); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .related-link, .more-card, .article-figure a { transition: none; }
+  .related-link, .more-card { transition: none; }
   .more-card:hover, .opinion-button:hover { transform: none; }
 }
 
