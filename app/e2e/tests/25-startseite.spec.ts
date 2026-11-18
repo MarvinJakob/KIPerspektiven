@@ -1,7 +1,7 @@
 import { expect, expectNoHorizontalScroll, test } from '../support/fixtures';
 
 // Anforderung #25: Home Page als Einstieg in Themen und Angebote nutzen.
-// Seit #34 folgt die Startseite dem Home-Mock (Hero, zwei Themenzeilen, Kurzcheck, Über mich). Themenindex,
+// Seit #34 folgt die Startseite dem Home-Mock (Hero, zwei Themenzeilen, Kurzcheck; „Über mich“ seit #47 entfernt). Themenindex,
 // ausführliche Themenabschnitte, Readiness-Banner und die Hero-Verweise auf News und KI verstehen
 // (REQ-25-AC1 bis AC3, AC5 sowie die Absätze aus AC4) sind dadurch abgelöst; ihre Nachfolger prüft
 // 34-startseite-kurzcheck.spec.ts. Weiterhin gültig bleiben die folgenden Zusicherungen.
