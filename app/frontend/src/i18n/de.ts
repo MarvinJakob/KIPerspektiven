@@ -182,15 +182,16 @@ export const de = {
     revoke:
       'Du kannst deine Auswahl jederzeit über „Cookie-Einstellungen“ im Footer ändern. Ein Widerruf wirkt ab dem Klick und entfernt unsere gespeicherten Einträge. Es erfolgt keine Übermittlung in Drittländer.',
     details: 'Mehr in der Datenschutzerklärung',
-    none: 'Keine Cookies speichern',
-    necessary: 'Nur notwendige Cookies',
+    none: 'Nur für diesen Besuch',
+    necessary: 'Sprache und Darstellung merken',
     all: 'Alle Cookies akzeptieren',
     saved: {
-      none: 'Gewählt: Keine Cookies. Es wird nichts gespeichert.',
-      necessary: 'Gewählt: Nur notwendige Cookies. Gespeichert für höchstens 180 Tage.',
+      none: 'Gewählt: Nur für diesen Besuch. Die Website übernimmt deine Sprache und Darstellung beim nächsten Besuch nicht.',
+      necessary:
+        'Gewählt: Sprache und Darstellung merken. Die Website merkt sich deine Sprache und Darstellung in diesem Browser für spätere Besuche.',
       all: 'Gewählt: Alle Cookies. Gespeichert für höchstens 180 Tage.',
     },
-    noneHint: 'Die Auswahl gilt nur, bis die Seite vollständig neu geladen wird. Danach kann sie erneut nötig sein.',
+    noneHint: 'Diese Wahl gilt nur, bis die Seite vollständig neu geladen wird. Danach kannst du sie hier erneut treffen.',
     sessionHint: 'Du bist in der Redaktion angemeldet. Diese Anmeldung bleibt bestehen.',
     sessionLink: 'Zur Redaktion, um dich abzumelden',
     close: 'Schließen',
