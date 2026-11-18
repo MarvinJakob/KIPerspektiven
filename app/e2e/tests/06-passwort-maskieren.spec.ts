@@ -215,7 +215,8 @@ test('REQ-6-AC6: leeres Feld bleibt leer; Validierungsfehler und Eingaben bleibe
 async function expectOperable(page: Page) {
   const { password, reveal } = form(page);
   for (const el of [password, reveal]) {
-    await el.scrollIntoViewIfNeeded();
+    // In die Fenstermitte scrollen: Die Höhe der Kontentabelle darüber hängt von parallel angelegten Konten ab (#40).
+    await el.evaluate((node) => node.scrollIntoView({ block: 'center', behavior: 'instant' }));
     await expect(el).toBeInViewport({ ratio: 1 });
     const hit = await el.evaluate((node) => {
       const r = node.getBoundingClientRect();
