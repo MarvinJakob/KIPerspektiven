@@ -767,17 +767,38 @@ svg { display: block; }
 /* ==========================================================================
    Footer und Cookie-Dialog
    ========================================================================== */
-.site-footer { margin-top: 104px; padding-block: 48px 28px; border-top: 1px solid var(--border); background: var(--bg); }
-.footer-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, .8fr); gap: 40px; }
-.footer-brand { display: flex; align-items: center; gap: 12px; font-size: 1rem; font-weight: 700; letter-spacing: -.025em; }
+/* Variante „Kompakt mit Themen“ (Ticket #54, mock/footer/index.html): Marke und Kurztext links,
+   Themen rechts; darunter nach einer Trennlinie Jahr und Marke sowie die Seitenlinks. */
+.site-footer { margin-top: 104px; padding-top: 32px; border-top: 1px solid var(--border); background: var(--bg); }
+.footer-main { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(0, 1.85fr); gap: 20px 32px; align-items: start; }
+.footer-identity { display: grid; justify-items: start; gap: 4px; }
+.footer-brand { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; color: var(--text); font-size: 1rem; font-weight: 700; letter-spacing: -.025em; text-decoration: none; }
 .footer-brand .brand-mark { font-size: 36px; }
-.footer-note { margin-top: 12px; max-width: 360px; font-size: .875rem; color: var(--text-2); }
-.footer-head { margin-bottom: 12px; font-size: .75rem; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
-.footer-links { list-style: none; padding: 0; display: grid; gap: 2px; font-size: .9375rem; }
-.footer-links a, .link-button { display: inline-flex; align-items: center; min-height: 36px; color: var(--text-2); text-decoration: none; }
-.footer-links a:hover, .link-button:hover { color: var(--text); text-decoration: underline; }
-.link-button { padding: 0; border: 0; background: none; font: inherit; cursor: pointer; text-align: left; }
-.footer-bottom { margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: .8125rem; color: var(--text-2); }
+.footer-brand:hover { color: var(--accent); }
+.footer-note { max-width: 420px; font-size: .8125rem; color: var(--text-2); }
+.footer-topics { padding-top: 6px; }
+.footer-head { margin-bottom: 8px; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.footer-links { list-style: none; padding: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 20px; }
+.footer-links a, .footer-links .link-button {
+  display: inline-flex; align-items: center; min-height: 36px; color: inherit;
+  text-decoration: underline; text-underline-offset: .21em; text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+}
+.footer-links a:hover, .footer-links .link-button:hover { color: var(--accent); text-decoration-color: currentColor; }
+.footer-topics .footer-links { column-gap: 28px; font-size: 1rem; font-weight: 600; color: var(--text); }
+.link-button { padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+.footer-bottom {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 24px;
+  margin-top: 28px; padding-block: 10px 14px; border-top: 1px solid var(--border); font-size: .8125rem; color: var(--text-2);
+}
+.footer-bottom .footer-links { justify-content: flex-end; }
+/* Schmal: Marke, Themen und untere Zeile untereinander; Links mit 44 px Trefferfläche. */
+@media (max-width: 650px) {
+  .footer-main, .footer-bottom { grid-template-columns: minmax(0, 1fr); }
+  .footer-topics { padding-top: 0; }
+  .footer-topics .footer-links { display: grid; }
+  .footer-bottom .footer-links { justify-content: flex-start; }
+  .footer-links a, .footer-links .link-button { min-height: 44px; }
+}
 
 /* Modal-Abdunklung, die Dialogfläche selbst bleibt opak. */
 .consent-backdrop {
@@ -830,8 +851,6 @@ svg { display: block; }
   .profile-offer { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .profile-facts > div { padding-inline: 20px; }
   .profile-facts dt { font-size: 1.25rem; }
-  .footer-grid { grid-template-columns: 1fr 1fr; }
-  .footer-grid > :first-child { grid-column: 1 / -1; }
 }
 @media (max-width: 650px) {
   :root { --header-h: 88px; }
@@ -914,7 +933,6 @@ svg { display: block; }
   .page-title { font-size: 1.875rem; }
   .landing h2 { font-size: 1.75rem; }
   .btn { max-width: 100%; padding-inline: 18px; }
-  .footer-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Startseite (Ticket #34): Bildschirmbreiten nach dem Home-Mock */

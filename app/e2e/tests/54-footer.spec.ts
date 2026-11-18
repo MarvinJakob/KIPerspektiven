@@ -245,6 +245,8 @@ test.describe('1260 px', () => {
         expect(await contrastOf(el), `${theme}: Kontrast „${name}“ mind. 4,5:1`).toBeGreaterThanOrEqual(4.5);
       }
       const focusables = [...texts.slice(0, 1), ...texts.slice(5)];
+      // Nach dem Mausklick auf den Umschalter wieder in die Tastaturbedienung wechseln.
+      await page.keyboard.press('Tab');
       for (const [name, el] of focusables) {
         await expectVisibleKeyboardFocus(page, el);
         expect(await contrastOf(el, 'outlineColor'), `${theme}: Fokusmarkierung „${name}“ mind. 3:1`).toBeGreaterThanOrEqual(3);
