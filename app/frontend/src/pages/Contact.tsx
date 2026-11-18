@@ -2,10 +2,11 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { ApiError, sendContactMessage } from '../api/client';
 import { href, useLang } from '../lib/lang';
+import { MESSAGE_MAX, pasteTruncated, remainingChars, showCounter } from '../lib/messageLength';
 import { useHead, usePageFocus } from '../lib/page';
 
 // Höchstlängen wie im Backend (service.MaxContact*, service.MaxEmailLength) und in api/openapi.yaml.
-const MAX = { name: 200, company: 200, email: 254, message: 5000 } as const;
+const MAX = { name: 200, company: 200, email: 254, message: MESSAGE_MAX } as const;
 
 // Grobe Prüfung vor dem Senden wie beim Beratungsangebot: genau ein @, keine Leerzeichen und ein Punkt in der
 // Domain. Maßgeblich ist die strengere Prüfung im Backend; lehnt es die Angaben ab (422), erscheint der Hinweis
@@ -56,6 +57,10 @@ export function Contact() {
     message: useRef<HTMLTextAreaElement>(null),
   };
   const done = useRef<HTMLHeadingElement>(null);
+  // Anforderung #77: Hinweis, wenn eingefügter Text an der Grenze gekürzt wurde. Er bleibt stehen, bis der
+  // Inhalt anders als durch dieses Einfügen geändert wird. `pasting` markiert die Änderung durch das Einfügen.
+  const [truncated, setTruncated] = useState(false);
+  const pasting = useRef(false);
 
   // Nach dem Absenden steht der Fokus auf der Bestätigung, damit auch Screenreader sie sofort vorlesen.
   useEffect(() => {
@@ -104,11 +109,16 @@ export function Contact() {
 
   const update = (field: Field, value: string) => {
     setValues((v) => ({ ...v, [field]: value }));
+    if (field === 'message') {
+      if (pasting.current) pasting.current = false;
+      else setTruncated(false);
+    }
     if (problems[field]) setProblems(({ [field]: _removed, ...rest }) => rest);
   };
 
   const another = () => {
     setValues(EMPTY);
+    setTruncated(false);
     setSentTo(null);
     requestAnimationFrame(() => refs.name.current?.focus());
   };
@@ -125,6 +135,22 @@ export function Contact() {
       'aria-describedby': problem ? `${id}-${field}-fehler` : undefined,
     };
   };
+
+  // Vor dem Einfügen prüfen, ob der Text hineinpasst. So erscheint der Hinweis auch, wenn das volle Feld gar
+  // nichts mehr annimmt und daher keine Änderung folgt. Die Markierung gilt nur für dieses Einfügen.
+  const onPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    setTruncated(pasteTruncated(el.value, el.selectionStart, el.selectionEnd, e.clipboardData.getData('text/plain')));
+    pasting.current = true;
+    setTimeout(() => (pasting.current = false));
+  };
+
+  const counterVisible = showCounter(values.message);
+  const messageProps = fieldProps('message');
+  const messageDescribedBy =
+    [counterVisible && `${id}-message-rest`, truncated && `${id}-message-gekuerzt`, messageProps['aria-describedby']]
+      .filter(Boolean)
+      .join(' ') || undefined;
 
   const error = (field: Field) =>
     problems[field] && (
@@ -176,7 +202,23 @@ export function Contact() {
             </div>
             <div className="contact-field">
               <label htmlFor={`${id}-message`}>{t('contact.message')}</label>
-              <textarea ref={refs.message} rows={8} required {...fieldProps('message')} />
+              <textarea
+                ref={refs.message}
+                rows={8}
+                required
+                {...messageProps}
+                aria-describedby={messageDescribedBy}
+                onPaste={onPaste}
+              />
+              {counterVisible && (
+                <p className="contact-counter" id={`${id}-message-rest`}>
+                  {t('contact.remaining', { count: remainingChars(values.message) })}
+                </p>
+              )}
+              {/* Live-Region steht dauerhaft im DOM, damit Screenreader den Hinweis beim Einfügen ausgeben. */}
+              <p className="contact-truncated" id={`${id}-message-gekuerzt`} role="status">
+                {truncated ? t('contact.truncated') : ''}
+              </p>
               {error('message')}
             </div>
             <p className="contact-hint">
