@@ -39,6 +39,10 @@ Geprüfter Stand: `main` @ `bb33462`.
 
 ## Freigabe
 
-Ausstehend. Nach der Freigabe trägt der Bearbeiter Datum, Link zum Freigabekommentar im Ticket und die
-SHA-256-Werte der freigegebenen Fassungen (Zeilenenden LF) in `frontend/src/content/legal/datenschutz.freigabe.json`
-ein. Der Unit-Test `REQ-74-AC4` stellt sicher, dass genau diese Fassungen ausgeliefert werden.
+Freigegeben am 18. November 2026 durch die verantwortliche Stelle (Marvin Jakob), Nachweis:
+[Freigabekommentar in #74](https://github.com/MarvinJakob/KIPerspektiven/issues/74#issuecomment-6984305594).
+Freigegebene Revision: Commit `902f942`, SHA-256 (Zeilenenden LF) DE
+`be7d5c7d59fa85ee3d41f31878dc217f7d48883842788cb2da8d4011078279ee`, EN
+`8dd5e7f7857c47ba3edf3c4ed9eaa2dac87697ee3206adccbf31ac2598663671`. Die Werte stehen in
+`frontend/src/content/legal/datenschutz.freigabe.json`; der Unit-Test `REQ-74-AC4` stellt sicher, dass genau
+diese Fassungen ausgeliefert werden. Jede spätere Textänderung braucht eine neue Freigabe.
