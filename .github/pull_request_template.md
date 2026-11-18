@@ -1,7 +1,11 @@
 ## Änderung
 
-<!-- Welches Problem wird gelöst, wie verhält sich die Anwendung danach? -->
+<!-- Beschreibe das gelöste Problem und das beobachtbare Ergebnis. -->
+
+Refs #<Ticket>
 
 ## Prüfung
 
-<!-- Relevante lokale Prüfungen ergänzen. GitHub Actions führt den Build aus. -->
+- Betroffene Kriterien-IDs: …
+- Spezifikation und Kriteriennachweis im Anforderungsticket: …
+- Ausgeführte Prüfungen und Ergebnis: …

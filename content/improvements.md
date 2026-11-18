@@ -1,133 +1,49 @@
-# Verbesserungsvorschläge zur Usability
+# KI Perspektiven – Verbesserungsvorschläge
 
-**Grundlage:** Nutzertest der Website „KI Perspektiven“ am 14.11.2026. Getestet wurde der Stand `origin/main` (Commit `60a6caa`) lokal mit Testdaten (`DEV_SEED=true`).
+Grundlage ist der lokale Entwicklungsstand `cb9a70a` vom 18. November 2026 mit Testbeiträgen. Startseite, Blog, Kontakt, „KI verstehen“ und KI Readiness wurden in Edge bei 1.280 und 390 Pixeln Breite geöffnet. Weitere Vorschläge stützen sich auf die Artikel, Komponenten und den lokalen Produktionsbuild.
 
-**Geprüft:**
+## 20 Vorschläge für Inhalt, Qualität und Betrieb
 
-- 16 Seiten in Desktop-Ansicht (1280 px) und Mobilansicht (390 px)
-- Selbsteinschätzung bis zur Auswertung
-- Menü, Dark Mode, Cookie-Dialog und Sprachwechsel
+1. **Datenschutzerklärung vervollständigen.** Unter „Datenschutz“ stehen „Platzhalter“ und „[Name, Anschrift, Kontakt]“. Betreiberangaben und tatsächliche Datenverarbeitung für Kontakt, Beratung und Statistik in DE und EN prüfen und die freigegebene Fassung veröffentlichen.
+2. **„KI verstehen“ ins Englische übertragen.** Unter `/en/ki-verstehen` bleiben Seitentitel, Überschrift und Artikel deutsch. Auch Bildbeschreibungen und Suchvorschau übersetzen, damit die englische Seite eigenständig lesbar ist.
+3. **Den Prozessbericht zeitlich einordnen.** „KI in der Softwareentwicklung“ beschreibt drei Teams. Einen datierten Nachtrag zum heutigen Ablauf mit einem verantwortlichen Agenten ergänzen. So bleiben die damalige Erfahrung und die aktuelle Arbeitsweise nachvollziehbar.
+4. **Den Startseitentext lektorieren.** Im Abschnitt zu Guardrails „die kontrolle“ korrigieren und den Satz „Die Verantwortung für das Ergebnis bleibt bei uns aber …“ gliedern. Die Korrekturen in Textvorlage und Veröffentlichung abgleichen.
+5. **Den Themenindex mit dem Inhalt abgleichen.** Der Index auf der Startseite enthält nur „Softwareentwicklung“, während der Abschnitt auch „Vibe Coding“ anbietet. Beide Artikel mit ihrem konkreten Schwerpunkt direkt im Index verzeichnen.
+6. **Den Grundlagenartikel mit den Einsatzfeldern verbinden.** Nach der Erklärung von Sprachmodellen auf „Wofür KI heute eingesetzt wird“ verweisen. Dort können Leser die Erklärung an sieben dokumentierten Aufgaben überprüfen.
+7. **Kennzahlen vergleichbar machen.** Bei den 26, 57 und 32,3 Prozent unter „KI-Einsatzfelder“ jeweils Grundgesamtheit und Erhebungszeitraum nennen. So lässt sich etwa der Wert für Einzelpersonen von der KI-Nutzung in Unternehmen unterscheiden.
+8. **Beispiele genauer belegen.** Für „Auffälligkeiten entdecken“ einen konkreten dokumentierten Fall der Betrugserkennung direkt am Beispiel verlinken. Leser können dann nachvollziehen, welche Auffälligkeit tatsächlich gefunden wurde.
+9. **Die fünf Engineering-Disziplinen an einem Fall erklären.** In „KI verstehen“ ein Beispiel wie die Bearbeitung einer Supportanfrage durch alle fünf Abschnitte führen. Je Disziplin zeigen, welche Entscheidung sie verändert.
+10. **Beim Vibe-Coding-Beispiel das Ergebnis zeigen.** Die vorhandene User Story um einen beobachteten Fehlversuch und ein erfülltes Abnahmekriterium ergänzen. Damit wird nachvollziehbar, wie sich die Qualität der erzeugten Lösung prüfen lässt.
+11. **Reifegrade mit Arbeitsbeispielen kalibrieren.** Für „Strategie und Wirtschaftlichkeit“ denselben KI-Piloten auf allen drei Stufen beschreiben. Der Unterschied wird an Entscheidungen und Nachweisen im Betrieb greifbar.
+12. **Die Readiness-Auswertung an einem Muster erläutern.** Unter der fachlichen Einordnung ein ausdrücklich fiktives Profil mit ungleichen Stufen besprechen. So wird verständlich, wann eine niedrige Stufe für ein Unternehmen ausreichen kann.
+13. **Beratungsergebnisse greifbar machen.** Bei den Angeboten im Profil je einen anonymisierten Beispielausschnitt zeigen, etwa eine priorisierte Liste von Anwendungsfällen. Interessenten sehen, was sie nach einem Workshop in der Hand haben.
+14. **Profil und Fachartikel verbinden.** Aussagen zur Erfahrung mit Agenten auf der Profilseite direkt mit dem eigenen Prozessbericht belegen. Interessenten können Arbeitsweise und Beratungsaussagen miteinander abgleichen.
+15. **Beiträge redaktionell zuordnen.** In der Blog-Detailansicht neben Datum und Lesezeit den verantwortlichen Autor nennen und, sofern vorhanden, zum Profil verlinken. So ist erkennbar, wer die Einschätzung vertritt.
+16. **Überarbeitete Beiträge kennzeichnen.** Neben dem Veröffentlichungsdatum den letzten fachlichen Änderungsstand samt kurzem Änderungshinweis ausgeben. Leser erkennen, ob neue Erkenntnisse in einen älteren Beitrag eingeflossen sind.
+17. **Verwandte Artikel breiter auswählen.** Die Beitragsseite nutzt nur das erste zugeordnete Thema für Empfehlungen. Überschneidungen über alle Themen berücksichtigen, damit ein passender Beitrag zum zweiten Thema ebenfalls gefunden wird.
+18. **Den Blog in Portionen ausliefern.** Die Übersicht lädt die gesamte veröffentlichte Liste. Eine feste Seitengröße mit stabiler Sortierung nach Datum und ID einführen, damit auch ein größerer Bestand zügig lädt.
+19. **Das Startpaket verkleinern.** Der lokale Build erzeugt für die öffentliche Seite rund 745 kB JavaScript vor Kompression. Markdown-Darstellung und Readiness-Auswertung erst beim jeweiligen Seitenaufruf laden und die übertragene Größe für einen ersten Startseitenbesuch vergleichen.
+20. **Quellenlinks regelmäßig prüfen.** Bei den vorhandenen Belegen tote Ziele und unerwartete Weiterleitungen regelmäßig an die Redaktion melden. So bleibt der Weg von einer fachlichen Aussage zur Originalquelle nutzbar.
 
-Neue Funktionen stehen in [new_functions.md](new_functions.md).
+## 20 Vorschläge für Usability und UX-Design
 
-## Was bereits gut funktioniert
-
-- Klares, ruhiges Design und kurze Ladezeiten (lokal 0,7 bis 1,2 s je Seite)
-- Keine JavaScript-Fehler, keine defekten internen Links und kein seitliches Scrollen auf Mobilgeräten
-- Gute Grundlagen der Barrierefreiheit:
-  - Sprunglink zum Inhalt, ARIA-Beschriftungen und Kennzeichnung der aktiven Seite
-  - Alternativtexte für alle Bilder
-  - Textalternative zum Netzdiagramm
-- Gut bedienbares mobiles Menü, funktionierender Dark Mode und Cookie-Dialog
-- Fehlt eine englische Fassung, zeigt die Seite den deutschen Text mit einem Hinweis.
-
-## Vorschläge nach Priorität
-
-### 1. Einheitliche Begriffe und Ansprache
-
-**Befund:**
-
-- Dieselbe Funktion trägt verschiedene Namen:
-  - „KI Readiness“ in der Navigation
-  - „KI Reifegrad einschätzen“ auf der Startseite
-  - „Zum KI-Audit“ im Banner
-  - „AI Audit“ in einem Blogbeitrag
-  - `/themen/ai-audit` als URL
-- Die Startseite verlinkt „News“, die Navigation nennt denselben Bereich „Blog“.
-- Die Startseite spricht mit „du“ an. Themenseiten, Selbsteinschätzung, Footer und Cookie-Hinweis verwenden „Sie“.
-
-**Vorschlag:**
-
-- Einen Namen festlegen, z. B. „KI Readiness“, und ihn überall verwenden.
-- Die URL anpassen und die alte URL weiterleiten.
-- Eine einheitliche Anredeform für die gesamte Website wählen.
-
-### 2. Startseite mit klarem Einstieg
-
-**Befund:**
-
-- Der Einstiegsbereich bietet vier gleichrangige Buttons: „Themen entdecken“, „News“, „KI Reifegrad einschätzen“ und „Über mich“. Auf Mobilgeräten stehen sie als lange Liste untereinander.
-- Drei Themen-Teaser mit je rund 250 Wörtern stehen vor dem Link „Zum Artikel“.
-- Die Seite ist auf dem Desktop etwa 5.300 px lang, auf Mobilgeräten etwa 6.900 px.
-- Aktuelle Blogbeiträge erscheinen nicht.
-
-**Vorschlag:**
-
-- Einen Haupt-Button festlegen, z. B. „Selbsteinschätzung starten“, und höchstens einen zweiten Button anbieten.
-- Die Teaser auf zwei bis drei Sätze kürzen.
-- Einen Bereich „Neueste Beiträge“ ergänzen.
-
-### 3. Lange Themenseiten besser erschließen
-
-**Befund:**
-
-- Die Seiten sind auf Mobilgeräten sehr lang:
-  - „Modelle und Kosten“: rund 1.500 Wörter, etwa 12.800 px
-  - „Softwareentwicklung“: etwa 12.000 px
-  - Übersicht „KI Readiness“: etwa 8.700 px
-- Es fehlen Inhaltsverzeichnis, Lesezeit und eine Schaltfläche „Nach oben“.
-- Auf der Übersicht „KI Readiness“ erscheint „Selbsteinschätzung starten“ erst nach einer langen Einleitung.
-
-**Vorschlag:**
-
-- Ein Inhaltsverzeichnis mit Sprungmarken, die Lesezeit und eine Schaltfläche „Nach oben“ ergänzen.
-- „Selbsteinschätzung starten“ zusätzlich direkt unter dem ersten Absatz anbieten.
-
-### 4. Selbsteinschätzung
-
-**Befund:**
-
-- Die Auswahl liegt nur im Arbeitsspeicher. Nach dem Neuladen springt der Fortschritt aller acht Dimensionen auf „0 von 8“ zurück.
-- Fehlende Dimensionen meldet die Selbsteinschätzung erst im letzten Schritt.
-- Die Einwilligung zur anonymen Statistik erscheint im letzten Schritt und erneut in der Auswertung. Laut Text wird „beim Anzeigen der Auswertung“ gespeichert; der Zeitpunkt bleibt für Nutzer unklar.
-- Screenreader lesen die Schrittnummer doppelt vor („1 1.“).
-
-**Vorschlag:**
-
-- Den Fortschritt sichern, siehe [new_functions.md](new_functions.md).
-- Fehlende Dimensionen schon in der Fortschrittsanzeige kennzeichnen.
-- Die Einwilligung nur an einer Stelle abfragen und den Speicherzeitpunkt klar benennen.
-- Die doppelte Nummerierung entfernen.
-
-### 5. Auswertung mit nächstem Schritt
-
-**Befund:**
-
-- Die Auswertung zeigt nur ein Netzdiagramm und eine Tabelle mit „Ändern“-Links. Danach folgen ein allgemeiner Text und „Zur Übersicht“.
-- Es gibt weder Empfehlungen noch eine Kontaktmöglichkeit, obwohl das Profil passende Beratungsangebote enthält.
-
-**Vorschlag:**
-
-- Mindestens auf die passenden Beratungsangebote und den Kontakt verlinken.
-- Die vollständige Erweiterung steht in [new_functions.md](new_functions.md).
-
-### 6. Navigation und Footer
-
-**Befund:**
-
-- Das Menü „Themen“ zeigt drei Themen; „KI Readiness“ steht als eigener Menüpunkt daneben.
-- Im Footer wirkt die Themenliste ungeordnet und enthält den langen Titel „Modelle und Kosten: Wie finde ich das beste Preis-/Leistungsverhältnis?“.
-- Die Seite „KI-Einsatzfelder“ (`/de/ki-einsatzfelder`) ist nur über die Sitemap oder die direkte URL erreichbar. Laut `app/README.md` verlinkt die Startseite sie mit „Zur ausführlichen Einordnung“. Die aktuelle Startseite enthält diesen Link nicht mehr; die Konstante `AI_USES_PATH` wird nicht verwendet.
-
-**Vorschlag:**
-
-- In Menü und Footer Kurztitel verwenden und überall dieselbe Reihenfolge einhalten.
-- „KI-Einsatzfelder“ wieder verlinken oder die Seite entfernen und die README anpassen.
-
-### 7. Texte und Details
-
-**Befund:**
-
-- Aus der Textvorlage übernommene Fehler sind sichtbar, z. B. „kontrolle“, „uns aber wir“ und ein fehlender Punkt nach „übernehmen“. Laut `app/README.md` ist das Absicht, wirkt aber unprofessionell.
-- Die Meta-Beschreibung der Seite „Softwareentwicklung“ enthält Backticks (`` `AGENTS.md` ``).
-- Auf Mobilgeräten sind die Klickflächen sehr klein:
-  - Fußnoten-Links [n]: 19 × 22 px
-  - Quellenverweise auf „KI-Einsatzfelder“: 10 × 15 px
-
-  Damit liegen sie unter der empfohlenen Mindestgröße von 24 × 24 px. Für Links im Fließtext ist das zulässig, größere Klickflächen erleichtern aber die Bedienung.
-
-**Vorschlag:**
-
-- Die Tippfehler korrigieren.
-- Formatierungszeichen aus Meta-Beschreibungen entfernen.
-- Die Klickflächen der Fußnoten-Links vergrößern, z. B. mit Innenabstand.
+1. **„News“ in „Blog“ umbenennen.** Auf der Startseite „Zum Blog“ verwenden. Kopfzeile, Link und Zielüberschrift bezeichnen dann dasselbe Angebot.
+2. **Den Einstieg auf Mobilgeräten entzerren.** Von den fünf Aktionen unter der Hauptüberschrift die beiden Besucherziele „Themen entdecken“ und „KI-Reifegrad einschätzen“ zusammen hervorheben. Die übrigen Links in Navigation und passenden Inhaltsabschnitten zugänglich halten.
+3. **Den Readiness-Einstieg einheitlich benennen.** Den Bannerlink „Zum KI-Audit“ in „Zur Selbsteinschätzung“ ändern. So ist vor dem Klick klar, dass Besucher die Bewertung selbst durchführen.
+4. **Den Lesepfad auf der Startseite abkürzen.** Den Link zum Softwareartikel bereits nach der Leitfrage anbieten und am Abschnittsende wiederholen. Eilige Leser erreichen den Artikel vor den zwölf einleitenden Absätzen.
+5. **Abschnittslinks teilbar machen.** Beim Klick auf einen Perspektiven-Link in „Vibe Coding“ den Abschnitt in die URL übernehmen und den vorhandenen Tastaturfokus erhalten. Eine kopierte Adresse öffnet dann die besprochene Stelle.
+6. **„KI verstehen“ mit einem Inhaltsverzeichnis erschließen.** Der Hauptinhalt war bei 390 Pixeln Breite rund 7.700 Pixel lang. Unter der Überschrift Sprunglinks etwa zu „Vom Sprachmodell zum Agenten“ und zu den fünf Disziplinen anbieten.
+7. **Nach einem Quellenaufruf zur Lesestelle zurückführen.** In „KI-Einsatzfelder“ bei der angesprungenen Quelle einen Rücksprung zum zuletzt benutzten Beleg anbieten. Bei mehrfach zitierter Quelle landet man so wieder am richtigen Beispiel.
+8. **Prozessgrafiken direkt im Artikel vergrößern.** Die Grafik als beschriftete, per Tastatur bedienbare Großansicht öffnen. Beim Schließen mit Escape oder „Schließen“ den Fokus auf die Ausgangsgrafik zurücksetzen.
+9. **Die Lesezeit vor dem Öffnen zeigen.** Den vorhandenen Minutenwert eines Blogbeitrags auch beim Datum in der Übersicht anzeigen. So lässt sich ein Beitrag für eine kurze Lesepause auswählen.
+10. **Auf der 404-Seite konkrete Auswege anbieten.** Neben „Startseite“ zu „Blog“ und „KI Readiness“ verlinken. Wer einem alten Artikellink folgt, kann direkt im passenden Bereich weitersuchen.
+11. **Die Readiness-Schrittliste mobil einklappen.** Beim ersten Schritt lag die Auswahl bei 390 Pixeln Breite rund 1.800 Pixel unter dem oberen Rand. Zuerst aktuellen Schritt und Fortschritt zeigen, die vollständige Liste auf Wunsch öffnen.
+12. **Den Aufwand vor dem Start sichtbar machen.** Direkt beim ersten Startknopf die Anzahl der Dimensionen, die drei Wahlmöglichkeiten je Dimension und den Verlust der Auswahl beim Neuladen nennen. Besucher können entscheiden, ob sie jetzt beginnen.
+13. **Prüffragen auf Wunsch aufklappen.** Bei der Reifegradwahl zunächst alle drei Stufennamen und Kurzbeschreibungen zeigen. Die zugehörigen Fragen je Stufe aufklappbar halten, damit sich die Alternativen auf kleinen Displays leichter vergleichen lassen.
+14. **Die ganze Reifegradbeschreibung auswählbar machen.** Zum Auswählen auch den Beschreibungstext der Karte als Klickfläche nutzen. Auswahlmarkierung und Tastaturbedienung bleiben dabei eindeutig.
+15. **Nach einer Korrektur direkt zur Auswertung führen.** Wer in der Ergebnistabelle „Ändern“ wählt, erhält nach der Auswahl „Zurück zur Auswertung“. Die korrigierte Tabellenzeile wieder fokussieren, damit der Vergleich weitergehen kann.
+16. **Werte im Netzdiagramm per Antippen und Tastatur öffnen.** Der Tooltip reagiert auf den Mauszeiger. Achsenpunkte auch per Fokus und Touch mit Dimensionsname und Stufe beschriften, besonders in der schmalen Ansicht mit nummerierten Achsen.
+17. **Bei langen Kontaktnachrichten die Restlänge zeigen.** Nahe der Grenze von 5.000 Zeichen einen Zähler am Textfeld einblenden. Wer längeren Text einfügt, erkennt, ob die ganze Nachricht hineinpasst.
+18. **Formularfehler bis zur Korrektur sichtbar halten.** Der E-Mail-Fehler verschwindet schon mit dem nächsten Tastendruck. Nach dem ersten Sendeversuch erneut prüfen und den Hinweis erst bei plausibler Adresse entfernen.
+19. **Kontakt aus einem Beratungsangebot ermöglichen.** Unter jedem Angebot „Zu diesem Angebot anfragen“ zum vorhandenen Kontaktformular setzen und den Angebotsnamen als bearbeitbaren Bezug übernehmen. Das spart Scrollen und erneutes Erklären.
+20. **Die Speicherwahl verständlich beschriften.** Im Cookie-Dialog die konkrete Wirkung in den Schaltflächen nennen, etwa „Sprache und Darstellung merken“ und „Nur für diesen Besuch“. Damit ist auch ohne Kenntnis von Browser-Speichern klar, was beim nächsten Besuch passiert.

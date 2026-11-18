@@ -4,81 +4,32 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from '
 import { join, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { api, pages, repository, command, issueLabels } from './github.mjs';
-import { reconcile, followUpTickets, followUpPR, reviewedLabel } from './reconcile.mjs';
-import { featureEvidence } from './feature-links.mjs';
 
-// Anweisung, die der Agent für diese Aufgabe zusätzlich zu AGENTS.md liest.
-// review: Anforderungs-Review durch Team 4 ohne eigenen Branch (AGENTS_REVIEWER.md, Phase 0).
-const guides = { spec: 'AGENTS_ANALYST.md', verify: 'AGENTS_TESTER.md', fix: 'AGENTS_FIXER.md', maint: 'AGENTS.md', review: 'AGENTS_REVIEWER.md' };
-const reviewStatuses = ['Review', 'In review', 'Merge Gate'];
-const activeStatuses = ['In Progress', 'In progress', 'In Arbeit'];
+const availableStatuses = new Set(['Backlog', 'Spezifiziert', 'Bug offen']);
 
 export function candidates(issues, pulls, board) {
-  issues = [...issues];
-  const statuses = new Map(board.filter((i) => i.repository?.nameWithOwner === repository).map((i) => [i.number, i.status]));
-  const tickets = followUpTickets(issues);
-  const waiting = new Set(tickets.keys());
-  return issues.filter((i) => !i.pull_request && i.state === 'open').flatMap((issue) => {
+  const statuses = new Map(board.filter(i => i.repository?.nameWithOwner === repository && i.issueState === 'OPEN')
+    .map(i => [i.number, i.status]));
+  return issues.filter(issue => {
     const labels = issueLabels(issue);
-    const status = statuses.get(issue.number) ?? '';
-    const answered = ['In Progress', 'In progress', 'In Arbeit'].includes(status);
-    if (labels.has('in-progress') || labels.has('waiting-for-test') || (labels.has('blocked') && !answered)) return [];
-    const pr = pulls.find((p) => p.state === 'open' && new RegExp(`^(spec|verify|fix)/${issue.number}$|^codex/maint-${issue.number}$`).test(p.head.ref));
-    let team, stage;
-    if (labels.has('release-blocker') && ['bug', 'feature', 'test-defect'].some((name) => labels.has(name))) { team = 'fix'; stage = 0; }
-    else if (labels.has('maintenance') && labels.has('maintenance-approved')) { team = 'maint'; stage = 1; }
-    else if (labels.has('test-defect')) { team = 'fix'; stage = 2; }
-    else if (labels.has('requirement') && labels.has('specified')) { team = 'verify'; stage = 3; }
-    else if (labels.has('bug') || labels.has('feature')) { team = 'fix'; stage = 4; }
-    else if (labels.has('needs-analysis') || (!labels.has('maintenance') && ['Neu', 'Ready', 'Todo'].includes(status))) { team = 'spec'; stage = 5; }
-    else return [];
-    if (status === 'Blocked') return [];
-    // Anforderung mit offenen Folgetickets wartet in Merge Gate. Erst wenn jedes Folgeticket einen offenen
-    // PR fix/<n> hat und im Board in Review / Merge Gate steht, prüft Team 4 die Anforderung auf
-    // Vollständigkeit, einmal je Merker. Ein freigegebener Zwischenstand von Team 2 (In Arbeit) bleibt
-    // wie bisher wiederaufnehmbar.
-    if (team === 'verify' && !pr && waiting.has(issue.number) && !activeStatuses.includes(status)) {
-      const open = tickets.get(issue.number);
-      const prs = open.map((ticket) => followUpPR(ticket, pulls));
-      const ready = open.every((ticket, i) => prs[i] && reviewStatuses.includes(statuses.get(ticket.number) ?? ''));
-      if (!ready || labels.has(reviewedLabel)) return [];
-      return [{ number: issue.number, team: 'review', guide: guides.review, stage, phase: 0, status,
-        followUps: open.map((ticket) => ticket.number), prs: prs.map((p) => p.number),
-        updated: issue.updated_at, title: issue.title }];
-    }
-    if (pr &&['Review', 'In review', 'Merge Gate', 'In Progress', 'In progress', 'In Arbeit'].includes(status)) {
-      team = pr.head.ref.startsWith('codex/maint-') ? 'maint' : pr.head.ref.split('/')[0];
-    }
-    const phase = ['Review', 'In review', 'Merge Gate'].includes(status) ? 0
-      : ['In Progress', 'In progress', 'In Arbeit'].includes(status) ? 1 : 2;
-    // A feature stays in the gate while its own fixes are processed as separate Team-3 tickets.
-    if (phase === 0 && pr?.head.ref === `fix/${issue.number}`) {
-      // Closed/completed alone is insufficient: every linked bug needs a merged fix.
-      // Incomplete evidence holds only this feature; independent work remains eligible.
-      try { featureEvidence(issue.number, issues, pulls); } catch { return []; }
-    }
-    // Neuer Test einer Anforderung erst, wenn ihre Bug- und Testdefekt-Tickets geschlossen sind.
-    if (team === 'verify' && phase === 2 && waiting.has(issue.number)) return [];
-    // Review (phase 0) und Release-Nacharbeit gehören zur Rolle Reviewer. Baseline-PRs von Team 2
-    // brauchen kein Review: Ein dort wartender PR wird von einem Tester fortgesetzt.
-    const guide = (phase === 0 && team !== 'verify') || labels.has('release-failure') || labels.has('release-review') ? 'AGENTS_REVIEWER.md' : guides[team];
-    return [{ number: issue.number, team, guide, stage, phase, status, pr: pr?.number,
-      updated: issue.updated_at, title: issue.title }];
-  }).sort((a, b) => Number(b.stage === 0) - Number(a.stage === 0) || a.phase - b.phase || a.stage - b.stage || a.number - b.number);
+    if (issue.pull_request || issue.state !== 'open' || issue.assignees?.length || !availableStatuses.has(statuses.get(issue.number))) return false;
+    if (['in-progress','blocked','waiting-for-test'].some(label => labels.has(label))) return false;
+    if (labels.has('maintenance') && !labels.has('maintenance-approved')) return false;
+    const branch = new RegExp('^(?:codex/(?:maint-)?' + issue.number + '(?:-|$)|(?:spec|verify|fix)/' + issue.number + '$)');
+    return !pulls.some(pr => branch.test(pr.head.ref));
+  }).map(issue => ({
+    number: issue.number, title: issue.title, status: statuses.get(issue.number),
+    blocker: issueLabels(issue).has('release-blocker'), updated: issue.updated_at,
+  })).sort((a,b) => Number(b.blocker) - Number(a.blocker) || a.number - b.number);
 }
 
 export function snapshot() {
-  const issues = pages(`repos/${repository}/issues?state=all&per_page=100`);
-  const pulls = pages(`repos/${repository}/pulls?state=all&per_page=100`);
+  const issues = pages('repos/' + repository + '/issues?state=open&per_page=100');
+  const pulls = pages('repos/' + repository + '/pulls?state=open&per_page=100');
   const board = JSON.parse(command(process.execPath, ['tools/board.mjs', 'list']));
-  const runs = api(`repos/${repository}/actions/workflows/release.yml/runs?branch=main&per_page=5`).workflow_runs;
   const queue = candidates(issues, pulls, board);
-  const signal = createHash('sha256').update(JSON.stringify({
-    issues: issues.map((i) => [i.number, i.updated_at, i.labels.map((l) => l.name)]),
-    pulls: pulls.map((p) => [p.number, p.updated_at, p.head.sha]), board,
-    runs: runs.map((r) => [r.id, r.status, r.conclusion]),
-  })).digest('hex');
-  return { queue, signal };
+  const signal = createHash('sha256').update(JSON.stringify(queue)).digest('hex');
+  return {queue, signal};
 }
 
 async function main() {
@@ -112,7 +63,6 @@ async function main() {
         console.log('Neuer Prozessstand verfügbar; Bootstrap erneut starten.');
         process.exitCode = 75; break;
       }
-      reconcile({ apply: true, board: true });
       const state = snapshot();
       if (state.queue.length && state.signal !== last) {
         console.log(`Starte work für ${state.queue.length} mögliche Aufgaben.`);
@@ -125,7 +75,7 @@ async function main() {
         const result = await new Promise((resolve, reject) => {
           child = spawn(program, args, { cwd: process.cwd(), env: childEnv, windowsHide: true, stdio: ['pipe', 'inherit', 'inherit'] });
           child.on('error', reject); child.on('exit', (code) => resolve(code));
-          child.stdin.end('work\n\nVerwende die AGENTS.md dieses aktuellen, unveränderlichen Prozess-Checkouts und die dort genannte Datei deiner Rolle (AGENTS_ANALYST.md, AGENTS_TESTER.md, AGENTS_FIXER.md oder AGENTS_REVIEWER.md). Bearbeite genau eine passende Aufgabe einschließlich Übergabe bzw. Abschluss und ende danach. Verwende einen eigenen Aufgaben-Worktree; ändere diesen Prozess-Checkout nicht. Ein Reviewer muss eine andere Sitzung sein. GitHub-Secrets bleiben ausschließlich in Actions.\n');
+          child.stdin.end(`Bearbeite Ticket #${state.queue[0].number} nach AGENTS.md. Prüfe die Belegung, verwende einen eigenen Worktree und begleite Umsetzung und zugehörige Fehlerbehebung bis zum erfolgreichen Produktionsnachweis.\n`);
         });
         if (result !== 0) throw new Error(`Worker endete mit ${result}; Diagnose erforderlich, kein automatisches Überspringen.`);
         // Retry only on new evidence, not in a busy loop when every claim is occupied.
