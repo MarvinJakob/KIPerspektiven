@@ -1,4 +1,4 @@
-import { ACCOUNTS, AUTH, expect, fullText, pngImage, test, uid, type EditorPost } from '../support/fixtures';
+import { ACCOUNTS, AUTH, expect, expectNoHorizontalScroll, fullText, pngImage, test, uid, type EditorPost } from '../support/fixtures';
 
 // Anforderung #21: Blogbeiträge im geschützten Redaktionssystem verwalten.
 
@@ -128,6 +128,22 @@ test.describe('angemeldet in der Oberfläche', () => {
   test.describe('mobil', () => {
     test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
 
+    test('REQ-21-AC8: veröffentlichter Beitrag mit Titelbild passt auf 375 px ohne horizontalen Bildlauf (Bug #33)', async ({ page, posts, editor }) => {
+      const tag = uid();
+      const post = await posts.create({ texts: [fullText('de', tag)] });
+      expect((await editor.upload(`/api/admin/posts/${post.id}/cover`, { name: 'c.png', mimeType: 'image/png', buffer: pngImage(64, 48) })).status()).toBe(200);
+      expect((await editor.send('PUT', `/api/admin/posts/${post.id}`, { featured: false, topics: [], slug: post.slug, texts: [{ ...fullText('de', tag), coverAlt: 'Bild' }] })).status()).toBe(200);
+      await posts.publish(post.id);
+
+      await page.goto(`/redaktion/beitraege/${post.id}`);
+      await expect(page.getByRole('button', { name: 'Veröffentlichung zurücknehmen' })).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      for (const el of [page.getByRole('button', { name: 'Veröffentlichung zurücknehmen' }), page.getByRole('button', { name: 'Bild entfernen' })]) {
+        const box = (await el.boundingBox())!;
+        expect(box.x + box.width).toBeLessThanOrEqual(375);
+      }
+    });
+
     test('REQ-21-AC8: Beitrag auf 375 px nur mit der Tastatur anlegen, speichern und alle Aktionen erreichen', async ({ page, editor }) => {
       const title = `Mobil ${uid()}`;
       await page.goto('/redaktion');
@@ -145,6 +161,7 @@ test.describe('angemeldet in der Oberfläche', () => {
           await expect(el).toBeInViewport();
           await expect(el).toBeEnabled();
         }
+        await expectNoHorizontalScroll(page); // Bug #33
       } finally {
         await editor.send('DELETE', `/api/admin/posts/${id}`);
       }

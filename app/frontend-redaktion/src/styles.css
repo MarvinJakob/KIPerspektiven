@@ -229,7 +229,7 @@ svg { display: block; }
 .badge-inactive { background: var(--danger-bg); color: var(--danger); }
 
 /* Formulare */
-.field { display: grid; gap: 6px; margin-top: 16px; }
+.field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 16px; }
 .field label, .field legend { font-size: .8125rem; font-weight: 650; color: var(--text-2); }
 .field input, .field textarea, .field select {
   min-height: 48px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--border-strong);
@@ -239,6 +239,14 @@ svg { display: block; }
 .field input:focus-visible, .field textarea:focus-visible, .field select:focus-visible { outline-offset: 1px; }
 .field [aria-invalid="true"] { border-color: var(--danger); }
 .field-hint { font-size: .8125rem; color: var(--text-2); }
+/* Passwortfeld mit Icon zum Anzeigen beim Gedrückthalten (Ticket #6) */
+.password-input { position: relative; display: grid; }
+.password-input input { width: 100%; box-sizing: border-box; padding-right: 52px; }
+.password-reveal {
+  position: absolute; top: 50%; right: 2px; transform: translateY(-50%); color: var(--text-2);
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.password-reveal:focus-visible { outline-offset: -3px; }
 .form-error { min-height: 1.4em; margin-top: 12px; color: var(--danger); font-size: .875rem; font-weight: 600; }
 .form-error:empty { min-height: 0; margin: 0; }
 .form-ok { margin-top: 12px; color: var(--ok); font-size: .875rem; font-weight: 600; }
@@ -253,7 +261,8 @@ svg { display: block; }
 .login-card h1 { font-size: 1.75rem; font-weight: 740; }
 
 /* Tabellen */
-.table-wrap { margin-top: 24px; overflow-x: auto; border-radius: var(--radius-l); background: var(--surface); box-shadow: var(--shadow-card); }
+/* position: relative hält absolut positionierte Inhalte (.visually-hidden) im Bildlaufbereich (Ticket #6, AC7) */
+.table-wrap { position: relative; margin-top: 24px; overflow-x: auto; border-radius: var(--radius-l); background: var(--surface); box-shadow: var(--shadow-card); }
 .table { width: 100%; border-collapse: collapse; font-size: .9375rem; }
 .table th, .table td { padding: 14px 18px; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--border); }
 .table th { font-size: .8125rem; font-weight: 650; color: var(--text-2); }
@@ -275,11 +284,14 @@ svg { display: block; }
 .schedule-choice legend { padding: 0 6px; font-weight: 650; }
 /* Titelbild (Ticket #25): feste Maße aus width/height, damit beim Laden nichts springt */
 .cover-preview { display: block; width: 100%; max-width: 640px; height: auto; margin-top: 16px; border-radius: var(--radius-m); background: var(--fill); }
+/* Eingaben mit eigener Mindestbreite (Datei, Datum) dürfen schmaler werden als ihr Inhalt (Bug #33). */
+input, textarea, select { min-width: 0; max-width: 100%; }
 input[type="file"] { padding: 10px; }
 .back { margin-top: 8px; }
 .back a { color: var(--text-2); font-weight: 600; text-decoration: none; }
 .back a:hover { color: var(--text); text-decoration: underline; }
-.editor { display: grid; gap: 0; padding-bottom: 24px; }
+/* minmax(0, 1fr): Die Spalte folgt der Seitenbreite statt der Mindestbreite ihres Inhalts (Bug #33). */
+.editor { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding-bottom: 24px; }
 .lang-tabs { display: flex; gap: 4px; padding: 4px; width: fit-content; border-radius: var(--radius-pill); background: var(--fill); }
 .lang-tabs .nav-btn { height: 40px; }
 .lang-tabs .nav-btn[aria-pressed="true"] { background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.12); }

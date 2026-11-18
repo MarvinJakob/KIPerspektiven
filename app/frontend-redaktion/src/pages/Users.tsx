@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { ApiError, useMe } from '../api/client';
 import { useCreateUser, useSetUserActive, useUsers, type User } from '../api/users';
 import { Loading, Page } from '../components/Layout';
+import { PasswordInput } from '../components/PasswordInput';
 import { formatDate } from '../components/PostParts';
 
 const MIN_PASSWORD = 10;
@@ -168,11 +169,9 @@ function NewUserForm({ onNotice }: { onNotice: (s: string) => void }) {
         </div>
         <div className="field">
           <label htmlFor={ids.password}>Startpasswort</label>
-          <input
+          <PasswordInput
             id={ids.password}
-            type="text"
             autoComplete="new-password"
-            spellCheck={false}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             aria-describedby={`${ids.hint}${error ? ` ${ids.error}` : ''}`}
