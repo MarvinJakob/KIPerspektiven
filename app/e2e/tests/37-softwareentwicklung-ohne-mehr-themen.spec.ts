@@ -45,13 +45,17 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 
         // Nach dem Meinungsabschnitt folgt im Hauptinhalt kein weiterer Inhalt.
         expect((await afterOpinion(page)).text, 'Inhalt nach dem Meinungsabschnitt').toBe('');
 
-        // Keine leere Fläche: Zwischen Meinungsabschnitt und Seitenfuß bleibt nur der Abschlussabstand des Artikels
-        // (96 px Desktop, 72 px mobil). Der entfernte Abschnitt war mehrere hundert Pixel hoch.
+        // Keine leere Fläche: Nach dem Meinungsabschnitt bleibt im Hauptinhalt nur der Abschlussabstand des Artikels
+        // (96 px Desktop, 72 px mobil); der entfernte Abschnitt war mehrere hundert Pixel hoch. Danach folgt der
+        // Seitenfuß mit seinem seitenweit üblichen Außenabstand, ohne zusätzliche Fläche dazwischen.
         const opinionBottom = await opinion.evaluate((el) => el.getBoundingClientRect().bottom + scrollY);
-        const footerTop = await page.locator('footer').evaluate((el) => el.getBoundingClientRect().top + scrollY);
         const mainBottom = await main.evaluate((el) => el.getBoundingClientRect().bottom + scrollY);
-        expect(footerTop - opinionBottom, 'Abstand Meinungsabschnitt → Seitenfuß').toBeLessThanOrEqual(120);
+        const footer = await page.locator('footer').evaluate((el) => ({
+          top: el.getBoundingClientRect().top + scrollY,
+          margin: parseFloat(getComputedStyle(el).marginTop),
+        }));
         expect(mainBottom - opinionBottom, 'Abstand Meinungsabschnitt → Ende des Hauptinhalts').toBeLessThanOrEqual(120);
+        expect(footer.top - mainBottom, 'Abstand Hauptinhalt → Seitenfuß = regulärer Fußabstand').toBeCloseTo(footer.margin, 0);
       });
 
       test(`REQ-37-AC2: am Seitenabschluss keine Themenkarten, kein „${r.all}“ und keine Ersatzverweise, auch per Tab (${lang}, ${viewport.width} px)`, async ({ page }) => {
