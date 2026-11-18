@@ -23,7 +23,7 @@ export const CONSENT_KEY = 'ki-perspektiven.consent';
 export const CONSENT_MAX_AGE_DAYS = 180;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Eigene Speicherschlüssel, die bei „Keine Cookies“ entfernt werden. */
+/** Eigene Speicherschlüssel, die bei „Nur für diesen Besuch“ (Modus none) entfernt werden. */
 export const PREFERENCE_KEYS = ['ki-perspektiven.lang', 'ki-perspektiven.theme'] as const;
 
 /** Optionale Zwecke (Analyse, Marketing, Drittanbieter). Leer, solange keine eingesetzt werden. */
@@ -67,7 +67,7 @@ export function getConsent(): ConsentRecord | null {
   return memory;
 }
 
-/** Nur bei ausdrücklichem „Keine Cookies“ werden Sprache und Darstellung nicht gespeichert. */
+/** Nur bei ausdrücklichem „Nur für diesen Besuch“ (Modus none) werden Sprache und Darstellung nicht gespeichert. */
 export const canPersistPreferences = () => getConsent()?.mode !== 'none';
 
 export function removePreferences() {
