@@ -10,7 +10,7 @@ Germany
 Phone: [+49 175 1964719](tel:+491751964719)\
 Email: [mail@marvinjakob.de](mailto:mail@marvinjakob.de)
 
-You can reach us at these contact details for all questions and requests regarding data protection. We have not appointed a data protection officer because there is no obligation to do so.
+You can reach us at these contact details for all questions and requests regarding data protection.
 
 ## In short
 
@@ -53,7 +53,7 @@ You can send us a message via the contact page. The page only sends your details
 
 We use your details solely to handle your message and reply to you. The message is kept in the database on our server and is visible only to signed-in editorial accounts. It is not passed on to third parties. We reply by email to the address you provided.
 
-We delete your message once your request has been fully dealt with, unless statutory retention obligations apply. On request, we delete it earlier at any time.
+We delete your message no later than six months after receipt. On request, we delete it earlier at any time.
 
 To prevent large numbers of messages from being submitted, the server accepts at most 100 messages per hour per IP address. For this it keeps the IP address in memory for at most one hour; it is not stored and not linked to the message.
 
@@ -95,7 +95,7 @@ The legal basis for sending the result is your consent (§ 25(1) TDDDG). You can
 
 ## Recipients and transfers
 
-Only we, with a signed-in editorial account, have access to messages, consultation requests and statistics. Hetzner operates the server as a processor. We do not pass data on to any other recipients, do not sell data and do not transfer data to countries outside the European Union or the European Economic Area. No automated decision-making, including profiling, takes place.
+Only the operator, Marvin Jakob, has access to messages, consultation requests and statistics, using his editorial account. Hetzner operates the server as a processor. We do not pass data on to any other recipients, do not sell data and do not transfer data to countries outside the European Union or the European Economic Area. No automated decision-making, including profiling, takes place.
 
 ## Your rights
 

@@ -10,7 +10,7 @@ Deutschland
 Telefon: [+49 175 1964719](tel:+491751964719)\
 E-Mail: [mail@marvinjakob.de](mailto:mail@marvinjakob.de)
 
-Für alle Fragen und Anliegen zum Datenschutz erreichst du uns über diese Kontaktdaten. Einen Datenschutzbeauftragten haben wir nicht benannt, weil dafür keine Pflicht besteht.
+Für alle Fragen und Anliegen zum Datenschutz erreichst du uns über diese Kontaktdaten.
 
 ## Kurz gesagt
 
@@ -53,7 +53,7 @@ Wir speichern nur, was für eine von dir gewählte Funktion unbedingt erforderli
 
 Wir nutzen deine Angaben ausschließlich, um deine Nachricht zu bearbeiten und dir zu antworten. Die Nachricht liegt in der Datenbank auf unserem Server und ist nur für angemeldete Konten der Redaktion sichtbar. Sie wird nicht an Dritte weitergegeben. Die Antwort schreiben wir per E-Mail an die angegebene Adresse.
 
-Wir löschen deine Nachricht, sobald dein Anliegen abschließend bearbeitet ist und keine gesetzlichen Aufbewahrungspflichten entgegenstehen. Auf Wunsch löschen wir sie jederzeit vorher.
+Wir löschen deine Nachricht spätestens sechs Monate nach Eingang. Auf Wunsch löschen wir sie jederzeit vorher.
 
 Zum Schutz vor massenhaft eingelieferten Nachrichten nimmt der Server je IP-Adresse höchstens 100 Nachrichten pro Stunde an. Dafür hält er die IP-Adresse höchstens eine Stunde im Arbeitsspeicher; sie wird nicht gespeichert und nicht mit der Nachricht verknüpft.
 
@@ -95,7 +95,7 @@ Rechtsgrundlage für die Übertragung ist deine Einwilligung (§ 25 Abs. 1 TDDDG
 
 ## Empfänger und Übermittlung
 
-Zugriff auf Nachrichten, Beratungsanfragen und Statistik haben nur wir mit einem angemeldeten Redaktionskonto. Hetzner betreibt als Auftragsverarbeiter den Server. Wir geben keine Daten an weitere Empfänger weiter, verkaufen keine Daten und übermitteln keine Daten in Länder außerhalb der Europäischen Union oder des Europäischen Wirtschaftsraums. Eine automatisierte Entscheidungsfindung einschließlich Profiling findet nicht statt.
+Zugriff auf Nachrichten, Beratungsanfragen und Statistik hat nur der Betreiber Marvin Jakob mit seinem Redaktionskonto. Hetzner betreibt als Auftragsverarbeiter den Server. Wir geben keine Daten an weitere Empfänger weiter, verkaufen keine Daten und übermitteln keine Daten in Länder außerhalb der Europäischen Union oder des Europäischen Wirtschaftsraums. Eine automatisierte Entscheidungsfindung einschließlich Profiling findet nicht statt.
 
 ## Deine Rechte
 

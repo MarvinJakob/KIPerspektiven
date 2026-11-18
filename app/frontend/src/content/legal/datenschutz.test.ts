@@ -48,6 +48,7 @@ const SOLL = {
     rightsHeading: 'Deine Rechte',
     contactFields: ['Name', 'Unternehmen (freiwillig)', 'E-Mail-Adresse', 'Nachricht', 'Sprache der Seite', 'Zeitpunkt'],
     contactLimit: '100 Nachrichten pro Stunde',
+    contactRetention: 'spätestens sechs Monate nach Eingang',
     consultLimit: 'fünf Anfragen pro Stunde',
     noIpStored: 'keine IP-Adresse',
     supervisor: 'Der Hessische Beauftragte für Datenschutz und Informationsfreiheit',
@@ -72,6 +73,7 @@ const SOLL = {
     rightsHeading: 'Your rights',
     contactFields: ['name', 'company (optional)', 'email address', 'message', 'language of the page', 'time'],
     contactLimit: '100 messages per hour',
+    contactRetention: 'no later than six months after receipt',
     consultLimit: 'five requests per hour',
     noIpStored: 'no IP address',
     supervisor: 'Der Hessische Beauftragte für Datenschutz und Informationsfreiheit',
@@ -132,7 +134,7 @@ describe.each(LANGS)('Datenschutzerklärung (%s)', (lang) => {
     expect(text).toContain(soll.contactLimit);
     expect(text).toMatch(/Art\. 6 Abs\. 1 lit\. [bf] DSGVO|Art\. 6\(1\)\([bf]\) GDPR/);
     expect(text).toMatch(/Redaktion|editorial/);
-    expect(text).toMatch(/lösch|delete/i);
+    expect(text, 'Löschfrist laut Entscheidung vom 18.11.2026').toContain(soll.contactRetention);
   });
 
   it('REQ-74-AC2: Beratungsanfrage getrennt vom Kontaktformular, mit Löschung nach Terminabstimmung', () => {
