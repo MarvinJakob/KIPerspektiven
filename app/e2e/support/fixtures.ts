@@ -187,8 +187,16 @@ export function pngImage(width = 16, height = 12, rgb: [number, number, number] 
 
 /** Kein horizontaler Seitenbildlauf (AC zu Desktop 1280 px und Mobil 375 px). */
 export async function expectNoHorizontalScroll(page: Page) {
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  expect(overflow, 'Seite ist breiter als das Fenster').toBeLessThanOrEqual(0);
+  const { overflow, culprits } = await page.evaluate(() => {
+    const w = document.documentElement.clientWidth;
+    // Tiefste Elemente, die rechts herausragen, als Hinweis auf die Ursache
+    const culprits = [...document.querySelectorAll('body *')]
+      .filter((e) => e.getBoundingClientRect().right > w + 0.5 && ![...e.children].some((k) => k.getBoundingClientRect().right > w + 0.5))
+      .slice(0, 5)
+      .map((e) => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}.${String(e.className).replace(/\s+/g, '.')} (rechts ${Math.round(e.getBoundingClientRect().right)} px)`);
+    return { overflow: document.documentElement.scrollWidth - w, culprits };
+  });
+  expect(overflow, `Seite ist breiter als das Fenster: ${culprits.join(', ')}`).toBeLessThanOrEqual(0);
 }
 
 /** Fokus per Tastatur auf ein Element setzen und prüfen, dass er sichtbar markiert ist. */
