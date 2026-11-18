@@ -112,6 +112,29 @@ type Session struct {
 	CreatedAt string
 }
 
+type SocialConnection struct {
+	Platform       string
+	Enabled        bool
+	PreferredLang  string
+	MemberID       string
+	MemberName     string
+	AccessToken    string
+	TokenExpiresAt sql.NullString
+	ConnectedAt    sql.NullString
+	UpdatedAt      string
+}
+
+type SocialShare struct {
+	PostID    int64
+	Platform  string
+	Status    string
+	Lang      string
+	PostUrn   string
+	Message   string
+	CreatedAt string
+	UpdatedAt string
+}
+
 type Topic struct {
 	ID        int64
 	Slug      string

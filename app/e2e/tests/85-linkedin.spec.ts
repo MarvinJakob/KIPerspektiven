@@ -7,7 +7,8 @@ import { AUTH, expect, fullText, test, uid, type Session } from '../support/fixt
 // Datei laufen deshalb nacheinander. Andere Specs, die währenddessen veröffentlichen, erzeugen höchstens zusätzliche
 // Posts im Testdouble; die Prüfungen hier zählen nur Posts mit eigener Kennung.
 
-const STUB = process.env.E2E_LINKEDIN_URL ?? 'http://127.0.0.1:8091';
+// Port wie in playwright.config.ts; das Merge Gate verwendet den Standard 8091 (.github/workflows/tests.yml).
+const STUB = `http://127.0.0.1:${process.env.E2E_LINKEDIN_PORT ?? 8091}`;
 const STUB_TOKEN = 'e2e-linkedin-geheimes-token';
 const SETTINGS = '/redaktion/einstellungen/social-media/linkedin';
 const API = '/api/admin/social/linkedin';
@@ -75,21 +76,21 @@ test.describe('Einstellungen', () => {
     expect((await (await admin.get(API)).json()).enabled).toBe(false);
 
     await page.goto(SETTINGS);
-    await expect(page.getByText('Nicht verbunden')).toBeVisible();
+    await expect(page.getByText('Nicht verbunden', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Automatisch auf LinkedIn teilen')).toBeDisabled();
     await expect(page.getByText(/kein LinkedIn-Profil verbunden/)).toBeVisible();
 
     await stubMode(request, { authorize: 'deny' });
     await page.getByRole('button', { name: 'Mit LinkedIn verbinden' }).click();
-    await expect(page.getByRole('alert')).toContainText(/nicht verbunden|abgebrochen/i);
-    await expect(page.getByText('Nicht verbunden')).toBeVisible();
+    await expect(page.getByRole('alert')).toContainText(/abgebrochen/i);
+    await expect(page.getByText('Nicht verbunden', { exact: true })).toBeVisible();
     expect((await (await admin.get(API)).json()).connected).toBe(false);
     await stubMode(request, { authorize: 'ok' });
 
     // Manipulierter Rückruf mit fremdem state
     await page.goto(`${API}/callback?code=e2e-code&state=gefaelscht`);
-    await expect(page).toHaveURL(new RegExp(`${SETTINGS}\\?`));
-    await expect(page.getByRole('alert')).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(SETTINGS));
+    await expect(page.getByRole('alert')).toContainText(/ungültig/);
     expect((await (await admin.get(API)).json()).connected).toBe(false);
   });
 

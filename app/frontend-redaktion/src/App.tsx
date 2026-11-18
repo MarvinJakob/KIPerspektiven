@@ -10,6 +10,7 @@ import { NotFound } from './pages/NotFound';
 import { PostsPage } from './pages/Posts';
 import { ArticlesPage, ArticleEditorPage } from './pages/Articles';
 import { ProfilePage } from './pages/Profile';
+import { LinkedInSettingsPage, SettingsPage, SocialMediaPage } from './pages/SocialMedia';
 import { StatisticsPage } from './pages/Statistics';
 import { UsersPage } from './pages/Users';
 
@@ -30,6 +31,9 @@ export const routes: RouteObject[] = [
       { path: 'beratungsanfragen', element: <RequireRole can="insights"><ConsultationRequestsPage /></RequireRole> },
       { path: 'nachrichten', element: <RequireRole can="insights"><ContactMessagesPage /></RequireRole> },
       { path: 'benutzer', element: <RequireRole can="users"><UsersPage /></RequireRole> },
+      { path: 'einstellungen', element: <RequireRole can="settings"><SettingsPage /></RequireRole> },
+      { path: 'einstellungen/social-media', element: <RequireRole can="settings"><SocialMediaPage /></RequireRole> },
+      { path: 'einstellungen/social-media/linkedin', element: <RequireRole can="settings"><LinkedInSettingsPage /></RequireRole> },
       { path: 'profil', element: <ProfilePage /> },
       { path: '*', element: <NotFound /> },
     ],

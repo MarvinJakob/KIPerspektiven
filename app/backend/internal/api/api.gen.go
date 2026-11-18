@@ -133,6 +133,33 @@ func (e Lang) Valid() bool {
 	}
 }
 
+// Defines values for LinkedInShareState.
+const (
+	Failed    LinkedInShareState = "failed"
+	Pending   LinkedInShareState = "pending"
+	Sending   LinkedInShareState = "sending"
+	Succeeded LinkedInShareState = "succeeded"
+	Unknown   LinkedInShareState = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the LinkedInShareState enum.
+func (e LinkedInShareState) Valid() bool {
+	switch e {
+	case Failed:
+		return true
+	case Pending:
+		return true
+	case Sending:
+		return true
+	case Succeeded:
+		return true
+	case Unknown:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PostStatus.
 const (
 	Draft     PostStatus = "draft"
@@ -437,6 +464,9 @@ type EditorPost struct {
 	Featured bool   `json:"featured"`
 	Id       int64  `json:"id"`
 
+	// Linkedin LinkedIn-Status eines Beitrags (Ticket
+	Linkedin *LinkedInShare `json:"linkedin,omitempty"`
+
 	// PublishedAt Erste Veröffentlichung
 	PublishedAt *time.Time `json:"publishedAt,omitempty"`
 
@@ -509,6 +539,52 @@ type Image struct {
 
 // Lang defines model for Lang.
 type Lang string
+
+// LinkedInAuthorization defines model for LinkedInAuthorization.
+type LinkedInAuthorization struct {
+	AuthorizationUrl string `json:"authorizationUrl"`
+}
+
+// LinkedInSettings Einstellungen unter „Einstellungen → Social Media → LinkedIn“ (Ticket
+type LinkedInSettings struct {
+	// AppConfigured LINKEDIN_CLIENT_ID und LINKEDIN_CLIENT_SECRET sind auf dem Server gesetzt
+	AppConfigured bool       `json:"appConfigured"`
+	Connected     bool       `json:"connected"`
+	ConnectedAt   *time.Time `json:"connectedAt,omitempty"`
+	Enabled       bool       `json:"enabled"`
+
+	// Expired Die Autorisierung des verbundenen Profils ist abgelaufen
+	Expired       bool       `json:"expired"`
+	ExpiresAt     *time.Time `json:"expiresAt,omitempty"`
+	PreferredLang Lang       `json:"preferredLang"`
+
+	// ProfileName Name des verbundenen LinkedIn-Profils (Ziel)
+	ProfileName *string `json:"profileName,omitempty"`
+}
+
+// LinkedInSettingsUpdate defines model for LinkedInSettingsUpdate.
+type LinkedInSettingsUpdate struct {
+	Enabled       bool `json:"enabled"`
+	PreferredLang Lang `json:"preferredLang"`
+}
+
+// LinkedInShare LinkedIn-Status eines Beitrags (Ticket
+type LinkedInShare struct {
+	Lang *Lang `json:"lang,omitempty"`
+
+	// Message Hinweis bei `failed` oder `unknown`
+	Message *string `json:"message,omitempty"`
+
+	// PostUrl Link zum LinkedIn-Post bei `succeeded`
+	PostUrl *string `json:"postUrl,omitempty"`
+
+	// State `failed`: eindeutig abgelehnt, wiederholbar. `unknown`: Ausgang unklar, nicht wiederholbar.
+	State     LinkedInShareState `json:"state"`
+	UpdatedAt time.Time          `json:"updatedAt"`
+}
+
+// LinkedInShareState `failed`: eindeutig abgelehnt, wiederholbar. `unknown`: Ausgang unklar, nicht wiederholbar.
+type LinkedInShareState string
 
 // LoginRequest defines model for LoginRequest.
 type LoginRequest struct {
@@ -861,6 +937,13 @@ type AdminSetPostCoverMultipartBody struct {
 	File openapi_types.File `json:"file"`
 }
 
+// AdminLinkedInCallbackParams defines parameters for AdminLinkedInCallback.
+type AdminLinkedInCallbackParams struct {
+	Code  *string `form:"code,omitempty" json:"code,omitempty"`
+	State *string `form:"state,omitempty" json:"state,omitempty"`
+	Error *string `form:"error,omitempty" json:"error,omitempty"`
+}
+
 // AdminGetPageViewsParams defines parameters for AdminGetPageViews.
 type AdminGetPageViewsParams struct {
 	// Period Zeitraum der Statistik, ohne Angabe die letzten 30 Tage
@@ -963,6 +1046,9 @@ type AdminSetPostCoverMultipartRequestBody AdminSetPostCoverMultipartBody
 // AdminSchedulePostJSONRequestBody defines body for AdminSchedulePost for application/json ContentType.
 type AdminSchedulePostJSONRequestBody = ScheduleInput
 
+// AdminUpdateLinkedInSettingsJSONRequestBody defines body for AdminUpdateLinkedInSettings for application/json ContentType.
+type AdminUpdateLinkedInSettingsJSONRequestBody = LinkedInSettingsUpdate
+
 // AdminCreateUserJSONRequestBody defines body for AdminCreateUser for application/json ContentType.
 type AdminCreateUserJSONRequestBody = NewUser
 
@@ -1049,6 +1135,9 @@ type ServerInterface interface {
 	// AdminSetPostCover Titelbild hochladen oder ersetzen
 	// (PUT /api/admin/posts/{id}/cover)
 	AdminSetPostCover(w http.ResponseWriter, r *http.Request, id Id)
+	// AdminRetryLinkedInShare Abgelehnten LinkedIn-Versand wiederholen (Ticket
+	// (POST /api/admin/posts/{id}/linkedin/retry)
+	AdminRetryLinkedInShare(w http.ResponseWriter, r *http.Request, id Id)
 	// AdminPublishPost Veröffentlichen
 	// (POST /api/admin/posts/{id}/publish)
 	AdminPublishPost(w http.ResponseWriter, r *http.Request, id Id)
@@ -1061,6 +1150,21 @@ type ServerInterface interface {
 	// AdminUnpublishPost Veröffentlichung zurücknehmen
 	// (POST /api/admin/posts/{id}/unpublish)
 	AdminUnpublishPost(w http.ResponseWriter, r *http.Request, id Id)
+	// AdminGetLinkedInSettings LinkedIn-Einstellungen lesen (Ticket
+	// (GET /api/admin/social/linkedin)
+	AdminGetLinkedInSettings(w http.ResponseWriter, r *http.Request)
+	// AdminUpdateLinkedInSettings Automatisches Teilen schalten und bevorzugte Sprache setzen (nur Admin)
+	// (PUT /api/admin/social/linkedin)
+	AdminUpdateLinkedInSettings(w http.ResponseWriter, r *http.Request)
+	// AdminAuthorizeLinkedIn OAuth-Autorisierung bei LinkedIn beginnen (nur Admin)
+	// (POST /api/admin/social/linkedin/authorize)
+	AdminAuthorizeLinkedIn(w http.ResponseWriter, r *http.Request)
+	// AdminLinkedInCallback Rückruf von LinkedIn nach der Autorisierung (nur Admin)
+	// (GET /api/admin/social/linkedin/callback)
+	AdminLinkedInCallback(w http.ResponseWriter, r *http.Request, params AdminLinkedInCallbackParams)
+	// AdminDisconnectLinkedIn LinkedIn-Verbindung trennen (nur Admin)
+	// (DELETE /api/admin/social/linkedin/connection)
+	AdminDisconnectLinkedIn(w http.ResponseWriter, r *http.Request)
 	// AdminGetPageViews Seitenaufrufe je Tag im gewählten Zeitraum
 	// (GET /api/admin/statistics/page-views)
 	AdminGetPageViews(w http.ResponseWriter, r *http.Request, params AdminGetPageViewsParams)
@@ -1545,6 +1649,32 @@ func (siw *ServerInterfaceWrapper) AdminSetPostCover(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
+// AdminRetryLinkedInShare operation middleware
+func (siw *ServerInterfaceWrapper) AdminRetryLinkedInShare(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminRetryLinkedInShare(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // AdminPublishPost operation middleware
 func (siw *ServerInterfaceWrapper) AdminPublishPost(w http.ResponseWriter, r *http.Request) {
 
@@ -1640,6 +1770,121 @@ func (siw *ServerInterfaceWrapper) AdminUnpublishPost(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AdminUnpublishPost(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminGetLinkedInSettings operation middleware
+func (siw *ServerInterfaceWrapper) AdminGetLinkedInSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminGetLinkedInSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminUpdateLinkedInSettings operation middleware
+func (siw *ServerInterfaceWrapper) AdminUpdateLinkedInSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminUpdateLinkedInSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminAuthorizeLinkedIn operation middleware
+func (siw *ServerInterfaceWrapper) AdminAuthorizeLinkedIn(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminAuthorizeLinkedIn(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminLinkedInCallback operation middleware
+func (siw *ServerInterfaceWrapper) AdminLinkedInCallback(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AdminLinkedInCallbackParams
+
+	// ------------- Optional query parameter "code" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "code", r.URL.Query(), &params.Code, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "code"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "error" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "error", r.URL.Query(), &params.Error, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "error"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "error", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminLinkedInCallback(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminDisconnectLinkedIn operation middleware
+func (siw *ServerInterfaceWrapper) AdminDisconnectLinkedIn(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminDisconnectLinkedIn(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2444,6 +2689,12 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/admin/posts/{id}/cover", wrapper.AdminSetPostCover)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/admin/posts/{id}/author", wrapper.AdminSetPostAuthor)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/admin/posts/{id}/publish", wrapper.AdminPublishPost)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/admin/posts/{id}/linkedin/retry", wrapper.AdminRetryLinkedInShare)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/admin/social/linkedin", wrapper.AdminGetLinkedInSettings)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/admin/social/linkedin", wrapper.AdminUpdateLinkedInSettings)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/admin/social/linkedin/authorize", wrapper.AdminAuthorizeLinkedIn)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/admin/social/linkedin/callback", wrapper.AdminLinkedInCallback)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/admin/social/linkedin/connection", wrapper.AdminDisconnectLinkedIn)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/admin/posts/{id}/schedule", wrapper.AdminUnschedulePost)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/admin/posts/{id}/schedule", wrapper.AdminSchedulePost)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/admin/posts/{id}/unpublish", wrapper.AdminUnpublishPost)
@@ -3817,6 +4068,84 @@ func (response AdminSetPostCover422JSONResponse) VisitAdminSetPostCoverResponse(
 	return err
 }
 
+type AdminRetryLinkedInShareRequestObject struct {
+	Id Id `json:"id"`
+}
+
+type AdminRetryLinkedInShareResponseObject interface {
+	VisitAdminRetryLinkedInShareResponse(w http.ResponseWriter) error
+}
+
+type AdminRetryLinkedInShare200JSONResponse EditorPost
+
+func (response AdminRetryLinkedInShare200JSONResponse) VisitAdminRetryLinkedInShareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminRetryLinkedInShare401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response AdminRetryLinkedInShare401JSONResponse) VisitAdminRetryLinkedInShareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminRetryLinkedInShare403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response AdminRetryLinkedInShare403JSONResponse) VisitAdminRetryLinkedInShareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminRetryLinkedInShare404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response AdminRetryLinkedInShare404JSONResponse) VisitAdminRetryLinkedInShareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminRetryLinkedInShare422JSONResponse struct{ UnprocessableJSONResponse }
+
+func (response AdminRetryLinkedInShare422JSONResponse) VisitAdminRetryLinkedInShareResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type AdminPublishPostRequestObject struct {
 	Id Id `json:"id"`
 }
@@ -4112,6 +4441,289 @@ func (response AdminUnpublishPost404JSONResponse) VisitAdminUnpublishPostRespons
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminGetLinkedInSettingsRequestObject struct {
+}
+
+type AdminGetLinkedInSettingsResponseObject interface {
+	VisitAdminGetLinkedInSettingsResponse(w http.ResponseWriter) error
+}
+
+type AdminGetLinkedInSettings200JSONResponse LinkedInSettings
+
+func (response AdminGetLinkedInSettings200JSONResponse) VisitAdminGetLinkedInSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminGetLinkedInSettings401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response AdminGetLinkedInSettings401JSONResponse) VisitAdminGetLinkedInSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminGetLinkedInSettings403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response AdminGetLinkedInSettings403JSONResponse) VisitAdminGetLinkedInSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminUpdateLinkedInSettingsRequestObject struct {
+	Body *AdminUpdateLinkedInSettingsJSONRequestBody
+}
+
+type AdminUpdateLinkedInSettingsResponseObject interface {
+	VisitAdminUpdateLinkedInSettingsResponse(w http.ResponseWriter) error
+}
+
+type AdminUpdateLinkedInSettings200JSONResponse LinkedInSettings
+
+func (response AdminUpdateLinkedInSettings200JSONResponse) VisitAdminUpdateLinkedInSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminUpdateLinkedInSettings400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response AdminUpdateLinkedInSettings400JSONResponse) VisitAdminUpdateLinkedInSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminUpdateLinkedInSettings401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response AdminUpdateLinkedInSettings401JSONResponse) VisitAdminUpdateLinkedInSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminUpdateLinkedInSettings403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response AdminUpdateLinkedInSettings403JSONResponse) VisitAdminUpdateLinkedInSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminUpdateLinkedInSettings422JSONResponse struct{ UnprocessableJSONResponse }
+
+func (response AdminUpdateLinkedInSettings422JSONResponse) VisitAdminUpdateLinkedInSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminAuthorizeLinkedInRequestObject struct {
+}
+
+type AdminAuthorizeLinkedInResponseObject interface {
+	VisitAdminAuthorizeLinkedInResponse(w http.ResponseWriter) error
+}
+
+type AdminAuthorizeLinkedIn200JSONResponse LinkedInAuthorization
+
+func (response AdminAuthorizeLinkedIn200JSONResponse) VisitAdminAuthorizeLinkedInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminAuthorizeLinkedIn401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response AdminAuthorizeLinkedIn401JSONResponse) VisitAdminAuthorizeLinkedInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminAuthorizeLinkedIn403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response AdminAuthorizeLinkedIn403JSONResponse) VisitAdminAuthorizeLinkedInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminAuthorizeLinkedIn422JSONResponse struct{ UnprocessableJSONResponse }
+
+func (response AdminAuthorizeLinkedIn422JSONResponse) VisitAdminAuthorizeLinkedInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminLinkedInCallbackRequestObject struct {
+	Params AdminLinkedInCallbackParams
+}
+
+type AdminLinkedInCallbackResponseObject interface {
+	VisitAdminLinkedInCallbackResponse(w http.ResponseWriter) error
+}
+
+type AdminLinkedInCallback303ResponseHeaders struct {
+	Location string
+}
+
+type AdminLinkedInCallback303Response struct {
+	Headers AdminLinkedInCallback303ResponseHeaders
+}
+
+func (response AdminLinkedInCallback303Response) VisitAdminLinkedInCallbackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
+	w.WriteHeader(303)
+	return nil
+}
+
+type AdminLinkedInCallback401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response AdminLinkedInCallback401JSONResponse) VisitAdminLinkedInCallbackResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminLinkedInCallback403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response AdminLinkedInCallback403JSONResponse) VisitAdminLinkedInCallbackResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminDisconnectLinkedInRequestObject struct {
+}
+
+type AdminDisconnectLinkedInResponseObject interface {
+	VisitAdminDisconnectLinkedInResponse(w http.ResponseWriter) error
+}
+
+type AdminDisconnectLinkedIn204Response struct {
+}
+
+func (response AdminDisconnectLinkedIn204Response) VisitAdminDisconnectLinkedInResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type AdminDisconnectLinkedIn401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response AdminDisconnectLinkedIn401JSONResponse) VisitAdminDisconnectLinkedInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminDisconnectLinkedIn403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response AdminDisconnectLinkedIn403JSONResponse) VisitAdminDisconnectLinkedInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -5647,6 +6259,9 @@ type StrictServerInterface interface {
 	// AdminSetPostCover Titelbild hochladen oder ersetzen
 	// (PUT /api/admin/posts/{id}/cover)
 	AdminSetPostCover(ctx context.Context, request AdminSetPostCoverRequestObject) (AdminSetPostCoverResponseObject, error)
+	// AdminRetryLinkedInShare Abgelehnten LinkedIn-Versand wiederholen (Ticket
+	// (POST /api/admin/posts/{id}/linkedin/retry)
+	AdminRetryLinkedInShare(ctx context.Context, request AdminRetryLinkedInShareRequestObject) (AdminRetryLinkedInShareResponseObject, error)
 	// AdminPublishPost Veröffentlichen
 	// (POST /api/admin/posts/{id}/publish)
 	AdminPublishPost(ctx context.Context, request AdminPublishPostRequestObject) (AdminPublishPostResponseObject, error)
@@ -5659,6 +6274,21 @@ type StrictServerInterface interface {
 	// AdminUnpublishPost Veröffentlichung zurücknehmen
 	// (POST /api/admin/posts/{id}/unpublish)
 	AdminUnpublishPost(ctx context.Context, request AdminUnpublishPostRequestObject) (AdminUnpublishPostResponseObject, error)
+	// AdminGetLinkedInSettings LinkedIn-Einstellungen lesen (Ticket
+	// (GET /api/admin/social/linkedin)
+	AdminGetLinkedInSettings(ctx context.Context, request AdminGetLinkedInSettingsRequestObject) (AdminGetLinkedInSettingsResponseObject, error)
+	// AdminUpdateLinkedInSettings Automatisches Teilen schalten und bevorzugte Sprache setzen (nur Admin)
+	// (PUT /api/admin/social/linkedin)
+	AdminUpdateLinkedInSettings(ctx context.Context, request AdminUpdateLinkedInSettingsRequestObject) (AdminUpdateLinkedInSettingsResponseObject, error)
+	// AdminAuthorizeLinkedIn OAuth-Autorisierung bei LinkedIn beginnen (nur Admin)
+	// (POST /api/admin/social/linkedin/authorize)
+	AdminAuthorizeLinkedIn(ctx context.Context, request AdminAuthorizeLinkedInRequestObject) (AdminAuthorizeLinkedInResponseObject, error)
+	// AdminLinkedInCallback Rückruf von LinkedIn nach der Autorisierung (nur Admin)
+	// (GET /api/admin/social/linkedin/callback)
+	AdminLinkedInCallback(ctx context.Context, request AdminLinkedInCallbackRequestObject) (AdminLinkedInCallbackResponseObject, error)
+	// AdminDisconnectLinkedIn LinkedIn-Verbindung trennen (nur Admin)
+	// (DELETE /api/admin/social/linkedin/connection)
+	AdminDisconnectLinkedIn(ctx context.Context, request AdminDisconnectLinkedInRequestObject) (AdminDisconnectLinkedInResponseObject, error)
 	// AdminGetPageViews Seitenaufrufe je Tag im gewählten Zeitraum
 	// (GET /api/admin/statistics/page-views)
 	AdminGetPageViews(ctx context.Context, request AdminGetPageViewsRequestObject) (AdminGetPageViewsResponseObject, error)
@@ -6302,6 +6932,32 @@ func (sh *strictHandler) AdminSetPostCover(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// AdminRetryLinkedInShare operation middleware
+func (sh *strictHandler) AdminRetryLinkedInShare(w http.ResponseWriter, r *http.Request, id Id) {
+	var request AdminRetryLinkedInShareRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AdminRetryLinkedInShare(ctx, request.(AdminRetryLinkedInShareRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdminRetryLinkedInShare")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AdminRetryLinkedInShareResponseObject); ok {
+		if err := validResponse.VisitAdminRetryLinkedInShareResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // AdminPublishPost operation middleware
 func (sh *strictHandler) AdminPublishPost(w http.ResponseWriter, r *http.Request, id Id) {
 	var request AdminPublishPostRequestObject
@@ -6406,6 +7062,135 @@ func (sh *strictHandler) AdminUnpublishPost(w http.ResponseWriter, r *http.Reque
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(AdminUnpublishPostResponseObject); ok {
 		if err := validResponse.VisitAdminUnpublishPostResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AdminGetLinkedInSettings operation middleware
+func (sh *strictHandler) AdminGetLinkedInSettings(w http.ResponseWriter, r *http.Request) {
+	var request AdminGetLinkedInSettingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AdminGetLinkedInSettings(ctx, request.(AdminGetLinkedInSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdminGetLinkedInSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AdminGetLinkedInSettingsResponseObject); ok {
+		if err := validResponse.VisitAdminGetLinkedInSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AdminUpdateLinkedInSettings operation middleware
+func (sh *strictHandler) AdminUpdateLinkedInSettings(w http.ResponseWriter, r *http.Request) {
+	var request AdminUpdateLinkedInSettingsRequestObject
+
+	var body AdminUpdateLinkedInSettingsJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AdminUpdateLinkedInSettings(ctx, request.(AdminUpdateLinkedInSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdminUpdateLinkedInSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AdminUpdateLinkedInSettingsResponseObject); ok {
+		if err := validResponse.VisitAdminUpdateLinkedInSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AdminAuthorizeLinkedIn operation middleware
+func (sh *strictHandler) AdminAuthorizeLinkedIn(w http.ResponseWriter, r *http.Request) {
+	var request AdminAuthorizeLinkedInRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AdminAuthorizeLinkedIn(ctx, request.(AdminAuthorizeLinkedInRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdminAuthorizeLinkedIn")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AdminAuthorizeLinkedInResponseObject); ok {
+		if err := validResponse.VisitAdminAuthorizeLinkedInResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AdminLinkedInCallback operation middleware
+func (sh *strictHandler) AdminLinkedInCallback(w http.ResponseWriter, r *http.Request, params AdminLinkedInCallbackParams) {
+	var request AdminLinkedInCallbackRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AdminLinkedInCallback(ctx, request.(AdminLinkedInCallbackRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdminLinkedInCallback")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AdminLinkedInCallbackResponseObject); ok {
+		if err := validResponse.VisitAdminLinkedInCallbackResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AdminDisconnectLinkedIn operation middleware
+func (sh *strictHandler) AdminDisconnectLinkedIn(w http.ResponseWriter, r *http.Request) {
+	var request AdminDisconnectLinkedInRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AdminDisconnectLinkedIn(ctx, request.(AdminDisconnectLinkedInRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdminDisconnectLinkedIn")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AdminDisconnectLinkedInResponseObject); ok {
+		if err := validResponse.VisitAdminDisconnectLinkedInResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

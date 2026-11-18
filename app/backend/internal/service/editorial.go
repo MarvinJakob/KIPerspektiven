@@ -74,6 +74,7 @@ type EditorPost struct {
 	ScheduledAt *time.Time // geplante Veröffentlichung (Ticket #23), nur bei Entwürfen
 	Cover       *Cover     // Titelbild (Ticket #25)
 	AuthorID    *int64     // Autor (Ticket #64), nil bei „Kein Autor“
+	LinkedIn    *Share     // LinkedIn-Status (Ticket #85), nil wenn der Beitrag nicht geteilt wird
 	UpdatedAt   time.Time
 }
 
@@ -106,6 +107,34 @@ type Editorial struct {
 	db  *sql.DB
 	q   *store.Queries
 	now func() time.Time
+
+	// firstPublication läuft in der Transaktion einer Erstveröffentlichung (Ticket #85), published nach deren Commit.
+	firstPublication FirstPublicationHook
+	published        func()
+}
+
+// FirstPublicationHook wird in der Transaktion aufgerufen, in der ein nie veröffentlichter Beitrag erstmals
+// veröffentlicht wird (Ticket #85). Ein Fehler verhindert die Veröffentlichung.
+type FirstPublicationHook func(ctx context.Context, q *store.Queries, postID int64) error
+
+// SetFirstPublicationHook registriert den Aufruf bei Erstveröffentlichungen, etwa das Teilen auf LinkedIn.
+func (e *Editorial) SetFirstPublicationHook(h FirstPublicationHook) { e.firstPublication = h }
+
+// OnPublished registriert einen Aufruf nach jeder erfolgreichen Erstveröffentlichung (nach dem Commit).
+func (e *Editorial) OnPublished(f func()) { e.published = f }
+
+// firstPublished meldet die Erstveröffentlichung an den Hook (in der Transaktion).
+func (e *Editorial) firstPublished(ctx context.Context, q *store.Queries, id int64) error {
+	if e.firstPublication == nil {
+		return nil
+	}
+	return e.firstPublication(ctx, q, id)
+}
+
+func (e *Editorial) notifyPublished() {
+	if e.published != nil {
+		e.published()
+	}
 }
 
 func NewEditorial(db *sql.DB) *Editorial {
@@ -199,11 +228,15 @@ func (e *Editorial) load(ctx context.Context, q *store.Queries, id int64) (Edito
 			}
 		}
 	}
+	share, err := loadShare(ctx, q, id)
+	if err != nil {
+		return EditorPost{}, err
+	}
 	return EditorPost{
 		ID: row.ID, Slug: row.Slug, Status: Status(row.Status), Featured: row.Featured,
 		Topics: orEmpty(topics[id]), Texts: texts, Cover: cover,
 		PublishedAt: optTime(row.PublishedAt), ScheduledAt: optTime(row.ScheduledAt), UpdatedAt: parseTime(row.UpdatedAt),
-		AuthorID: optID(row.AuthorID),
+		AuthorID: optID(row.AuthorID), LinkedIn: share,
 	}, nil
 }
 
@@ -330,22 +363,44 @@ func (e *Editorial) write(ctx context.Context, id int64, in PostInput) (EditorPo
 }
 
 // Publish veröffentlicht einen Beitrag. Titel, Kurztext und Beitragstext müssen in jeder vorhandenen
-// Sprache gefüllt sein (Anforderung 5). Das erste Veröffentlichungsdatum bleibt erhalten.
+// Sprache gefüllt sein (Anforderung 5). Das erste Veröffentlichungsdatum bleibt erhalten. War der Beitrag noch
+// nie veröffentlicht, läuft in derselben Transaktion der Hook der Erstveröffentlichung (Ticket #85).
 func (e *Editorial) Publish(ctx context.Context, id int64) (EditorPost, error) {
-	p, err := e.Post(ctx, id)
+	tx, err := e.db.BeginTx(ctx, nil)
+	if err != nil {
+		return EditorPost{}, err
+	}
+	defer tx.Rollback()
+	q := e.q.WithTx(tx)
+	p, err := e.load(ctx, q, id)
 	if err != nil {
 		return EditorPost{}, err
 	}
 	if err := publishable(p.Texts, p.Cover != nil); err != nil {
 		return EditorPost{}, err
 	}
+	first := p.Status == StatusDraft && p.PublishedAt == nil
 	now := formatTime(e.now())
-	if _, err := e.q.PublishPost(ctx, store.PublishPostParams{
+	if _, err := q.PublishPost(ctx, store.PublishPostParams{
 		PublishedAt: sql.NullString{String: now, Valid: true}, UpdatedAt: now, ID: id,
 	}); err != nil {
 		return EditorPost{}, err
 	}
-	return e.Post(ctx, id)
+	if first {
+		if err := e.firstPublished(ctx, q, id); err != nil {
+			return EditorPost{}, err
+		}
+	}
+	if p, err = e.load(ctx, q, id); err != nil {
+		return EditorPost{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return EditorPost{}, err
+	}
+	if first {
+		e.notifyPublished()
+	}
+	return p, nil
 }
 
 // Unpublish nimmt die Veröffentlichung zurück. Der Beitrag ist danach wieder ein Entwurf und
@@ -434,17 +489,52 @@ func (e *Editorial) PublishDue(ctx context.Context) (published, skipped []int64,
 			}
 			continue
 		}
-		n, err := e.q.PublishScheduledPost(ctx, store.PublishScheduledPostParams{
-			UpdatedAt: formatTime(now), ID: d.ID, Now: sql.NullString{String: formatTime(now), Valid: true},
-		})
+		first, err := e.publishScheduled(ctx, d.ID, p.PublishedAt == nil, now)
 		if err != nil {
 			return published, skipped, err
 		}
-		if n > 0 {
+		if first != nil {
 			published = append(published, d.ID)
+			if *first {
+				e.notifyPublished()
+			}
 		}
 	}
 	return published, skipped, nil
+}
+
+// publishScheduled veröffentlicht einen fälligen Beitrag in einer Transaktion. Liefert nil, wenn der Termin
+// inzwischen nicht mehr fällig war, sonst ob es eine Erstveröffentlichung war (Ticket #85).
+func (e *Editorial) publishScheduled(ctx context.Context, id int64, neverPublished bool, now time.Time) (*bool, error) {
+	tx, err := e.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	q := e.q.WithTx(tx)
+	cur, err := q.GetPostByID(ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	first := neverPublished && !cur.PublishedAt.Valid
+	n, err := q.PublishScheduledPost(ctx, store.PublishScheduledPostParams{
+		UpdatedAt: formatTime(now), ID: id, Now: sql.NullString{String: formatTime(now), Valid: true},
+	})
+	if err != nil || n == 0 {
+		return nil, err
+	}
+	if first {
+		if err := e.firstPublished(ctx, q, id); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return &first, nil
 }
 
 // SetCover macht ein gespeichertes Bild zum Titelbild (Ticket #25). Ein vorhandenes Titelbild wird

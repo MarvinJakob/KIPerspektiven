@@ -27,6 +27,8 @@ type Config struct {
 	Statistics    *service.Statistics    // Seitenaufrufe und Ergebnisse der Selbsteinschätzung (Ticket #130)
 	Consultations *service.Consultations // Anfragen für ein Beratungsgespräch (Ticket #136)
 	Contact       *service.Contact       // Nachrichten der Kontaktseite (Anforderung #4)
+	Social        *service.Social        // Teilen auf LinkedIn (Ticket #85)
+	LinkedIn      LinkedInOAuth          // OAuth-Verbindung zu LinkedIn (Ticket #85)
 	Site          *web.Site
 	EditorialSite *web.Editorial
 	MediaPath     string // optional: liefert /media/* lokal aus (in Produktion übernimmt das Caddy)
@@ -58,6 +60,9 @@ func newAPIServer(cfg Config) *apiServer {
 		stats:         cfg.Statistics,
 		consultations: cfg.Consultations,
 		contact:       cfg.Contact,
+		social:        cfg.Social,
+		linkedin:      cfg.LinkedIn,
+		oauth:         newOAuthStates(oauthStateTTL),
 		media:         cfg.Media,
 		secureCookies: cfg.SecureCookies,
 		log:           cfg.Log,
