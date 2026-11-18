@@ -29,6 +29,8 @@ export const softwareDevelopmentImages: Record<Lang, { process: string; release:
 /**
  * Themenseite Softwareentwicklung nach mock/software_development (#7): Hero mit Breadcrumb, Autor, Stand und
  * Lesezeit → Artikel mit beiden Grafiken → Meinungsaufruf. Ohne Verweise auf weitere Themen am Beitragsende (#37).
+ * #57: Auf dem Desktop nutzen die Abschnitte den Inhaltsrahmen von „Vibe Coding“ mit Titelspalte links und Lesespalte
+ * rechts; die Grafiken bleiben in der Lesespalte (#41). Schmale Ansichten zeigen alles einspaltig in Dokumentreihenfolge.
  */
 export function SoftwareDevelopment({ titleRef }: { titleRef: Ref<HTMLHeadingElement> }) {
   const { lang } = useLang();
@@ -59,36 +61,46 @@ export function SoftwareDevelopment({ titleRef }: { titleRef: Ref<HTMLHeadingEle
 
       <div className="container article-layout">
         <article className="article-body">
-          <section aria-labelledby="moderne-softwareentwicklung">
-            <h2 id="moderne-softwareentwicklung">{c.modernTitle}</h2>
-            <p className="article-lead">{c.modern[0]}</p>
-            <Link className="related-link" to={href(lang, VIBE_CODING_PATH)}>
-              <span className="related-label">{c.relatedLabel}</span>
-              <span className="related-title">{c.relatedTitle}</span>
-              <Icon name="arrowRight" />
-            </Link>
-            <p>{c.modern[1]}</p>
+          <section className="article-split" aria-labelledby="moderne-softwareentwicklung">
+            <div className="article-split-head">
+              <h2 id="moderne-softwareentwicklung">{c.modernTitle}</h2>
+            </div>
+            <div className="article-split-body">
+              <p className="article-lead">{c.modern[0]}</p>
+              <Link className="related-link" to={href(lang, VIBE_CODING_PATH)}>
+                <span className="related-label">{c.relatedLabel}</span>
+                <span className="related-title">{c.relatedTitle}</span>
+                <Icon name="arrowRight" />
+              </Link>
+              <p>{c.modern[1]}</p>
+            </div>
           </section>
 
-          <section aria-labelledby="der-weg">
-            <h2 id="der-weg" className="quote-heading">
-              <span className="quote-mark" aria-hidden="true">“</span>
-              {c.wayTitle}
-              <small>{c.wayAuthor}</small>
-            </h2>
-            <p>{c.way}</p>
+          <section className="article-split" aria-labelledby="der-weg">
+            <div className="article-split-head">
+              <h2 id="der-weg" className="quote-heading">
+                <span className="quote-mark" aria-hidden="true">“</span>
+                {c.wayTitle}
+                <small>{c.wayAuthor}</small>
+              </h2>
+            </div>
+            <div className="article-split-body">
+              <p>{c.way}</p>
+            </div>
           </section>
 
-          <Diagram src={images.process} {...c.processFigure} width={1602} height={833} />
-
-          <section id="drei-teams" aria-label={c.teamsLabel}>
-            <p>{c.teams}</p>
+          <section className="article-split" id="drei-teams" aria-label={c.teamsLabel}>
+            <div className="article-split-body">
+              <Diagram src={images.process} {...c.processFigure} width={1602} height={833} />
+              <p>{c.teams}</p>
+            </div>
           </section>
 
-          <Diagram src={images.release} {...c.releaseFigure} width={1521} height={576} />
-
-          <section id="release-gate" aria-label={c.releaseLabel}>
-            <p>{c.release}</p>
+          <section className="article-split" id="release-gate" aria-label={c.releaseLabel}>
+            <div className="article-split-body">
+              <Diagram src={images.release} {...c.releaseFigure} width={1521} height={576} />
+              <p>{c.release}</p>
+            </div>
           </section>
 
           <section className="opinion" id="meinung" aria-labelledby="opinion-title">
