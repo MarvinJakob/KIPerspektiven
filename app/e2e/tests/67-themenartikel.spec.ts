@@ -86,6 +86,25 @@ test('REQ-67-AC5–AC9/AC11/AC12: Inhalt und Sprachfassung bleiben erhalten, öf
   } finally { await editor.send('DELETE', path); }
 });
 
+test('REQ-67-AC6: JPEG bis einschließlich 5 MiB und WebP werden als abrufbares Bild gespeichert', async ({page,editor}) => {
+  const limit = 5 * 1024 * 1024;
+  const url = api + '/media';
+  for (const mimeType of ['image/jpeg', 'image/webp']) {
+    const encoded = await page.evaluate(type => document.createElement('canvas').toDataURL(type), mimeType);
+    expect(encoded.startsWith('data:' + mimeType + ';base64,')).toBe(true);
+    const image = Buffer.from(encoded.split(',')[1], 'base64');
+    const buffer = mimeType === 'image/jpeg' ? Buffer.concat([image, Buffer.alloc(limit - image.length)]) : image;
+    const upload = await editor.upload(url, { name:'grafik', mimeType, buffer });
+    expect(upload.status(), await upload.text()).toBe(200);
+    const saved = await editor.get((await upload.json()).src);
+    expect(saved.ok()).toBe(true);
+    expect(saved.headers()['content-type']).toMatch(/^image\//);
+  }
+  const oversized = await editor.upload(url, { name:'groß.png', mimeType:'image/png', buffer:Buffer.alloc(limit + 1) });
+  expect(oversized.status()).toBe(422);
+  expect((await oversized.json()).message).toContain('5 MB');
+});
+
 test('REQ-67-AC10: direkte Aktionen ohne Sitzung gesperrt', async ({ request }) => {
   for (const [method, path] of [['GET',api],['GET',api+'/1'],['POST',api],['PUT',api+'/1'],['DELETE',api+'/1'],['PUT',api+'/media'],['GET','/api/admin/authors']]) {
     expect((await request.fetch(path,{method})).status(), method+' '+path).toBe(401);
