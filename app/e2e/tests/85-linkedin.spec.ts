@@ -98,17 +98,23 @@ test.describe('Einstellungen', () => {
     test(`REQ-85-AC1 AC3: per Tastatur verbinden, einschalten und Sprache wählen bei ${width}px`, async ({ admin, page }) => {
       expect((await admin.send('DELETE', `${API}/connection`)).status()).toBe(204);
       await page.setViewportSize({ width, height: 800 });
+      // Jede Seite setzt nach dem Wechsel den Fokus auf ihre Überschrift (components/Layout.tsx, Page). Erst danach
+      // weiter per Tastatur, sonst entzieht dieser Effekt dem gerade fokussierten Link den Fokus (Befund im CI-Lauf
+      // 44387722921 bei 375 px).
+      const keyboardTo = async (link: ReturnType<Page['getByRole']>, heading: string, url: RegExp) => {
+        await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+        await link.focus();
+        await expect(link).toBeFocused();
+        await page.keyboard.press('Enter');
+        await expect(page).toHaveURL(url);
+        await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+      };
       await page.goto('/redaktion/benutzer');
       const nav = page.getByRole('navigation', { name: 'Redaktion' });
-      await nav.getByRole('link', { name: 'Einstellungen' }).focus();
-      await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(/\/redaktion\/einstellungen$/);
-      await page.getByRole('link', { name: 'Social Media' }).focus();
-      await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(/\/einstellungen\/social-media$/);
-      await page.getByRole('link', { name: /LinkedIn/ }).focus();
-      await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(new RegExp(`${SETTINGS}$`));
+      await keyboardTo(nav.getByRole('link', { name: 'Einstellungen' }), 'Einstellungen', /\/redaktion\/einstellungen$/);
+      await keyboardTo(page.getByRole('link', { name: 'Social Media' }), 'Social Media', /\/einstellungen\/social-media$/);
+      await keyboardTo(page.getByRole('link', { name: /LinkedIn/ }), 'LinkedIn', new RegExp(`${SETTINGS}$`));
+      await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
 
       await page.getByRole('button', { name: 'Mit LinkedIn verbinden' }).focus();
       await page.keyboard.press('Enter');
