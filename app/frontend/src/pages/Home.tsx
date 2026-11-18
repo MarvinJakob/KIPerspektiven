@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { Icon } from '../components/Icon';
 import { home, type CheckAnswer } from '../i18n/home';
-import { profile } from '../i18n/profile';
 import { auditPath } from '../lib/audit';
 import { jumpTo, prefersReducedMotion } from '../lib/jump';
 import { href, useLang } from '../lib/lang';
@@ -18,13 +17,13 @@ const number = (i: number) => String(i + 1).padStart(2, '0');
 
 /**
  * Startseite nach dem Home-Mock mock/home/ (Ticket #34): typografischer Hero, zwei nummerierte Themenzeilen,
- * KI-Readiness-Kurzcheck (Variante 7) und ein kompakter Abschnitt „Über mich“. Ohne Bilder und Illustrationen.
+ * KI-Readiness-Kurzcheck (Variante 7) als letzter Abschnitt. Den Profilteaser „Über mich“ hat #47 entfernt; das Profil
+ * bleibt über die Hauptnavigation erreichbar. Ohne Bilder und Illustrationen.
  * Sprunglinks nutzen jumpTo: Sie scrollen zur Überschrift und setzen dort den Fokus, ohne die URL zu ändern.
  */
 export function Home() {
   const { lang } = useLang();
   const c = home[lang];
-  const p = profile[lang];
   const h1 = usePageFocus<HTMLHeadingElement>();
   useHead(c.title, c.description);
 
@@ -86,22 +85,6 @@ export function Home() {
       <section className="home-section home-check-section" id="ki-readiness" aria-label={c.check.label}>
         <div className="container">
           <ReadinessCheck />
-        </div>
-      </section>
-
-      <section className="home-section home-about" id="ueber-mich" aria-labelledby="about-title">
-        <div className="container home-about-inner">
-          <p className="eyebrow">{c.aboutEyebrow}</p>
-          <div>
-            <h2 id="about-title">{c.aboutName}</h2>
-            <p>
-              {p.role}. {p.headline} {p.headlineAccent}
-            </p>
-            <Link className="text-link" to={href(lang, '/profil')}>
-              {c.aboutLink}
-              <Icon name="arrowRight" />
-            </Link>
-          </div>
         </div>
       </section>
     </div>
