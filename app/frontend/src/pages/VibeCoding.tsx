@@ -66,7 +66,7 @@ export function VibeCoding({ titleRef }: { titleRef: Ref<HTMLHeadingElement> }) 
             <div className="vc-body">
               <p>{p.body}</p>
               {p.id === 'harness' && (
-                <Diagram src={harness} alt={c.harnessDiagram.alt} open={c.harnessDiagram.open} width={1685} height={542} />
+                <Diagram src={harness} alt={c.harnessDiagram.alt} width={1685} height={542} />
               )}
               <Example id={`vc-${p.id}-example`} label={i === 0 ? c.example : c.formLabel} text={p.example} />
               <p>{p.closing}</p>
