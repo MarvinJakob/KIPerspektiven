@@ -29,7 +29,8 @@ test('REQ-19-AC2: Abschnitte folgen der Vorlage', async ({ page }) => {
   await expect(page.locator('#opinion-title')).toBeVisible();
 });
 
-test('REQ-19-AC3: Prozess- und Release-Gate-Grafik sprachpassend mit Alternativtext und Link zur Originalgröße', async ({ page, request }) => {
+// Seit #41 ohne Link zur Originalgröße (REQ-41-AC1/AC4); geprüft wird die ausgelieferte Bilddatei.
+test('REQ-19-AC3: Prozess- und Release-Gate-Grafik sprachpassend mit Alternativtext', async ({ page, request }) => {
   const sources: Record<string, string[]> = {};
   for (const lang of ['de', 'en'] as const) {
     await page.goto(PATH(lang));
@@ -39,10 +40,7 @@ test('REQ-19-AC3: Prozess- und Release-Gate-Grafik sprachpassend mit Alternativt
       await img.scrollIntoViewIfNeeded();
       await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
       expect((await img.getAttribute('alt'))!.length).toBeGreaterThan(40);
-      const link = img.locator('xpath=ancestor::a[1]');
-      await expect(link).toHaveAttribute('target', '_blank');
-      const href = (await link.getAttribute('href'))!;
-      expect(href).toBe(await img.getAttribute('src'));
+      const href = (await img.getAttribute('src'))!;
       expect((await request.get(href)).status()).toBe(200);
       sources[lang].push(href);
     }
