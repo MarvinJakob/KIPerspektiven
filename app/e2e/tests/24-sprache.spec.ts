@@ -66,7 +66,7 @@ test('REQ-24-AC3: erste unterstützte Browsersprache, sonst Deutsch', async ({ p
 
 test('REQ-24-AC3 REQ-24-AC4: mit Einwilligung gilt die gespeicherte Wahl beim Einstieg über /', async ({ page }) => {
   await page.goto('/de');
-  await chooseCookies(page, 'Nur notwendige Cookies');
+  await chooseCookies(page, 'Sprache und Darstellung merken');
   await page.getByRole('button', { name: 'English' }).click();
   await expect(page).toHaveURL(/\/en\/?$/);
   expect(await page.evaluate((k) => localStorage.getItem(k), LANG_KEY)).toBe('en');
@@ -76,7 +76,7 @@ test('REQ-24-AC3 REQ-24-AC4: mit Einwilligung gilt die gespeicherte Wahl beim Ei
 
 test('REQ-24-AC4: ohne Einwilligung wird keine dauerhafte Sprachwahl gespeichert', async ({ page }) => {
   await page.goto('/de');
-  await chooseCookies(page, 'Keine Cookies speichern');
+  await chooseCookies(page, 'Nur für diesen Besuch');
   await page.getByRole('button', { name: 'English' }).click();
   await expect(page).toHaveURL(/\/en\/?$/);
   expect(await page.evaluate((k) => localStorage.getItem(k), LANG_KEY)).toBeNull();

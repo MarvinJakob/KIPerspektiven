@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { hasOptionalPurposes, setConsent, useConsent, type ConsentMode } from '../lib/consent';
 import { href, useLang } from '../lib/lang';
+import { consentStatus, storageOptions } from './consentTexts';
 
 /** Prüft, ob eine Redaktionssitzung besteht. Die Sitzung wird dabei nicht verändert. */
 async function hasEditorialSession(): Promise<boolean> {
@@ -62,11 +63,7 @@ export function CookieSettings() {
     }
   };
 
-  const options: { mode: ConsentMode; label: string }[] = [
-    { mode: 'none', label: t('cookies.none') },
-    { mode: 'necessary', label: t('cookies.necessary') },
-  ];
-  if (hasOptionalPurposes()) options.push({ mode: 'all', label: t('cookies.all') });
+  const options = storageOptions(t, hasOptionalPurposes());
 
   return (
     <>
@@ -114,10 +111,7 @@ export function CookieSettings() {
             </div>
             <div aria-live="polite">
               {consent && (
-                <p className="consent-status">
-                  {t(`cookies.saved.${consent.mode}`)}
-                  {consent.mode === 'none' && ` ${t('cookies.noneHint')}`}
-                </p>
+                <p className="consent-status">{consentStatus(t, consent.mode)}</p>
               )}
               {consent?.mode === 'none' && session && (
                 <p className="consent-status">

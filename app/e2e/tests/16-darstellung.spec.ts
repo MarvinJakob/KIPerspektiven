@@ -6,7 +6,7 @@ import { expect, expectNoHorizontalScroll, expectVisibleKeyboardFocus, test } fr
 const THEME_KEY = 'ki-perspektiven.theme';
 const storedTheme = (page: Page) => page.evaluate((k) => localStorage.getItem(k), THEME_KEY);
 
-async function chooseCookies(page: Page, option: 'Nur notwendige Cookies' | 'Keine Cookies speichern') {
+async function chooseCookies(page: Page, option: 'Sprache und Darstellung merken' | 'Nur für diesen Besuch') {
   await page.getByRole('button', { name: 'Cookie-Einstellungen' }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: option }).click();
@@ -68,7 +68,7 @@ test('REQ-16-AC2: Umschalten in der Redaktion wechselt die Darstellung und erhä
 
 test('REQ-16-AC3: mit Einwilligung gilt die Wahl nach Neuladen und in der Redaktion', async ({ page }) => {
   await page.goto('/de');
-  await chooseCookies(page, 'Nur notwendige Cookies');
+  await chooseCookies(page, 'Sprache und Darstellung merken');
   await page.getByRole('button', { name: 'Dunkle Darstellung' }).click();
   await expect.poll(() => storedTheme(page)).toBe('dark');
 
@@ -83,7 +83,7 @@ test('REQ-16-AC4: ohne Einwilligung wechselt die Darstellung, wird aber nicht da
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/de');
-  await chooseCookies(page, 'Keine Cookies speichern');
+  await chooseCookies(page, 'Nur für diesen Besuch');
   await page.getByRole('button', { name: 'Dunkle Darstellung' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(await storedTheme(page)).toBeNull();
