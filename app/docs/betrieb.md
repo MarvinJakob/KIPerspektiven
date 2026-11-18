@@ -30,6 +30,7 @@ Die Datei `/opt/ki-web/.env` (Rechte `600`) enthält die Werte für den Betrieb.
 | `REGISTRY` | `ghcr.io/marvinjakob` | Präfix des Image-Namens |
 | `VERSION` | z. B. `a1b2c3d` | Laufende Version, setzt `deploy.sh` |
 | `PREVIOUS_VERSION` | z. B. `9d034c1` | Vorherige Version für den Rollback, setzt `deploy.sh` |
+| `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | aus der LinkedIn-App | Automatisches Teilen neuer Beiträge auf LinkedIn (Ticket #85). Ohne Werte lässt sich das Teilen nicht einschalten. Siehe [LinkedIn-Verbindung](#linkedin-verbindung). |
 | `REQUIRE_LOGIN` | `false` | Optionaler Zugangsschutz für die ganze Webseite (Ticket #49). Seit Ticket #108 ist die Webseite öffentlich; `true` nur für eine geschlossene Vorschau setzen. |
 
 `DEV_SEED` wird im Betrieb nie gesetzt. `compose.yaml` setzt die Variable nicht, deshalb landen keine Testbeiträge und keine Testkonten in der Produktivdatenbank.
@@ -138,6 +139,19 @@ app/deploy/deploy.sh switch VERSION
 3. Ist eine Migration nicht additiv oder startet die alte Version nach dem Rollback nicht, die Kopie wie unter [Sicherung und Wiederherstellung](#sicherung-und-wiederherstellung) einspielen. Änderungen seit dem Release gehen dabei verloren.
 
 **Rollback hinter Ticket #64 (Migration `00020`):** Versionen vor #64 kennen nur die Spalte `users.role` (`admin` oder `editor`) und ignorieren `user_roles`. Reine Marketing-Konten stehen dort als `editor` und erhielten nach einem solchen Rollback Redakteursrechte (Beiträge, Statistik, Nachrichten, Beratungsanfragen). Vor einem Rollback auf eine Version vor #64 deshalb alle Konten mit ausschließlich der Rolle Marketing in der Benutzerverwaltung deaktivieren und nach dem erneuten Update wieder aktivieren. Konten, die eine alte Version anlegt, behalten nach dem Update ihre Rolle aus `users.role`.
+
+## LinkedIn-Verbindung
+
+Seit Ticket #85 teilt die Anwendung neue News- und Blogbeiträge bei ihrer ersten Veröffentlichung automatisch auf dem verbundenen persönlichen LinkedIn-Profil (Titel und Link). Dafür ist einmalig eine LinkedIn-App nötig:
+
+1. Im [LinkedIn Developer Portal](https://www.linkedin.com/developers/apps) eine App anlegen und die Produkte **Share on LinkedIn** und **Sign In with LinkedIn using OpenID Connect** hinzufügen.
+2. Unter *Auth* als Redirect-URL `https://<DOMAIN>/api/admin/social/linkedin/callback` eintragen.
+3. Client-ID und Client-Secret als `LINKEDIN_CLIENT_ID` und `LINKEDIN_CLIENT_SECRET` in `/opt/ki-web/.env` eintragen und die Anwendung neu starten (`docker compose up -d backend`).
+4. Als Admin unter *Redaktion → Einstellungen → Social Media → LinkedIn* „Mit LinkedIn verbinden“, danach „Automatisch auf LinkedIn teilen“ einschalten und speichern.
+
+Die Autorisierung gilt 60 Tage; LinkedIn vergibt für „Share on LinkedIn“ keine Refresh-Tokens. Die Einstellungsseite zeigt das Ablaufdatum. Nach Ablauf schlagen Versände mit einem Hinweis am Beitrag fehl, bis ein Admin neu verbindet; danach lässt sich der Versand am Beitrag wiederholen. Das Zugriffstoken liegt in SQLite (`social_connections`) und gehört damit wie die Datenbank zu den schützenswerten Sicherungen; es erscheint nie in API-Antworten oder Protokollen. „Verbindung trennen“ löscht es.
+
+Ein Versand ohne eindeutige Antwort (Timeout, Verbindungsabbruch, 5xx, Neustart währenddessen) wird als „Ausgang unklar“ markiert und nicht wiederholt, damit kein doppelter Post entsteht. Die Redaktion prüft dann das Profil und teilt bei Bedarf selbst. Das Protokoll enthält `linkedin-posts gesendet` bzw. `linkedin-posts senden` mit Fehlern ohne Inhalte.
 
 ## Healthcheck und Status
 
