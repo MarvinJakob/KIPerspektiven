@@ -41,7 +41,6 @@ const UI = {
     start: 'Selbsteinschätzung starten',
     topics: 'Themen entdecken',
     check: 'KI Readiness einschätzen',
-    about: 'Mehr über mich',
   },
   en: {
     answers: { ja: 'Yes', nein: 'No', skip: 'Skip' },
@@ -51,7 +50,6 @@ const UI = {
     start: 'Start self-assessment',
     topics: 'Explore topics',
     check: 'Assess your AI readiness',
-    about: 'More about me',
   },
 } as const;
 
@@ -183,7 +181,7 @@ test('REQ-34-AC4: nach einem Neuladen beginnt der Kurzcheck bei Frage 1', async 
   await expect(question(page)).toHaveText(DIMENSIONS[0][1]);
 });
 
-test('REQ-34-AC5: „Selbsteinschätzung starten“ bei Frage 1, während des Checks und im Ergebnis; Über mich mit Profillink; keine Mock-Hinweise', async ({ page }) => {
+test('REQ-34-AC5: „Selbsteinschätzung starten“ bei Frage 1, während des Checks und im Ergebnis; keine Mock-Hinweise (Profilteaser entfällt seit #47)', async ({ page }) => {
   const start = () => check(page).getByRole('link', { name: UI.de.start });
   const opensAudit = async () => {
     await start().click();
@@ -200,16 +198,6 @@ test('REQ-34-AC5: „Selbsteinschätzung starten“ bei Frage 1, während des Ch
   await page.goto('/de');
   await answerAll(page, Array(8).fill('nein'));
   await opensAudit();
-
-  await page.goto('/de');
-  const about = page.locator('#ueber-mich');
-  await expect(about.getByText('Über mich', { exact: true })).toBeVisible();
-  await expect(about.getByRole('heading', { name: 'Marvin Jakob' })).toBeVisible();
-  await expect(about).toContainText('Creative IT Specialist');
-  // Profilseite öffnet sich ohne Anmeldung
-  await about.getByRole('link', { name: UI.de.about }).click();
-  await expect(page).toHaveURL(/\/de\/profil$/);
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
   await page.goto('/de');
   const text = await page.locator('body').innerText();
@@ -271,7 +259,6 @@ for (const width of [1440, 768, 390, 320]) {
         check(page).getByRole('button', { name: 'Nein', exact: true }),
         check(page).getByRole('button', { name: 'Überspringen' }),
         check(page).getByRole('link', { name: UI.de.start }),
-        page.locator('#ueber-mich').getByRole('link', { name: UI.de.about }),
       ];
       for (const t of targets) {
         await t.scrollIntoViewIfNeeded();
@@ -297,7 +284,6 @@ test('REQ-34-AC7: sichtbarer Tastaturfokus; Fokus folgt der nächsten Frage und 
   await expectVisibleKeyboardFocus(page, skip);
   for (const link of await topicList(page).getByRole('link').all()) await expectVisibleKeyboardFocus(page, link);
   await expectVisibleKeyboardFocus(page, check(page).getByRole('link', { name: UI.de.start }));
-  await expectVisibleKeyboardFocus(page, page.locator('#ueber-mich').getByRole('link', { name: UI.de.about }));
 
   for (let i = 0; i < 8; i++) {
     const button = check(page).getByRole('button', { name: ['Ja', 'Nein', 'Überspringen'][i % 3], exact: true });
@@ -373,8 +359,6 @@ test('REQ-34-AC8: DE → EN → DE wechselt Abschnitte, Fragen, Antworten, Ergeb
   await expect(check(page).getByText('Strategy and economic viability', { exact: true })).toBeVisible();
   await expect(question(page)).toHaveText('Do we know what we use AI for and whether it pays off?');
   await expect(check(page).getByRole('link', { name: UI.en.start })).toHaveAttribute('href', '/en/themen/ai-audit');
-  await expect(page.locator('#ueber-mich').getByRole('link', { name: UI.en.about })).toHaveAttribute('href', '/en/profil');
-  await expect(page.locator('#ueber-mich').getByText('About me', { exact: true })).toBeVisible();
 
   await answerAll(page, ['ja', 'nein', 'skip', 'ja', 'skip', 'nein', 'skip', 'ja'], 'en');
   await expect(check(page).getByRole('heading', { level: 2 })).toHaveText(UI.en.result(3));

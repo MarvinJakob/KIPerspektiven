@@ -418,12 +418,8 @@ svg { display: block; }
 .check-progress li.is-skip { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 8px); }
 .check-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 40px; margin-top: 28px; }
 .check-feedback { max-width: 560px; min-height: 3.3em; display: flex; align-items: center; font-weight: 550; }
-
-/* Über mich */
-.home-about { padding-top: 0; }
-.home-about-inner { display: grid; grid-template-columns: 200px minmax(0, 640px); gap: 32px; align-items: start; padding-top: 104px; border-top: 1px solid var(--border); }
-.home-about h2 { font-size: clamp(1.75rem, 2.6vw, 2.25rem); line-height: 1.1; }
-.home-about p:not(.eyebrow) { margin: 12px 0 8px; color: var(--text-2); }
+/* Der Kurzcheck schließt die Startseite ab (#47): Abstand zum Footer allein über dessen margin-top. */
+.home > .home-section:last-child { padding-bottom: 0; }
 
 /* ==========================================================================
    Blog: Beitragslisten und Beitragsseite
@@ -922,7 +918,6 @@ svg { display: block; }
   .home-hero { padding-block: 64px 72px; }
   .home-hero-foot { grid-template-columns: minmax(0, 1fr); align-items: start; }
   .home-section { padding-block: 72px; }
-  .home-about-inner { padding-top: 72px; }
   .home-topics li { grid-template-columns: 64px minmax(0, 1fr) 48px; gap: 20px; }
   .home-topics .topic-number { font-size: 2rem; }
   .home-topic-go { width: 48px; height: 48px; }
@@ -941,7 +936,6 @@ svg { display: block; }
   .check-answer { min-width: 0; flex: 1; }
   .check-skip { width: 100%; text-align: left; }
   .check-feedback { min-height: 0; }
-  .home-about-inner { grid-template-columns: minmax(0, 1fr); gap: 12px; padding-top: 60px; }
 }
 @media (max-width: 359px) {
   .home-title { font-size: 2.6rem; }
