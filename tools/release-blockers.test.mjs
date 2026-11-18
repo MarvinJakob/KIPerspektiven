@@ -57,11 +57,13 @@ test('REQ-45-AC1: Freigabe über HTTP mit offenen, behobenen und erneut geöffne
 });
 
 test('REQ-45-AC2: Unit- und Fidelity-Prüfungen sind vor Installation verpflichtend', () => {
-  const workflow = readFileSync(new URL('../.github/workflows/merge-gate.yml',import.meta.url),'utf8');
-  assert.match(workflow,/node --test/);
-  const dockerfile = readFileSync(new URL('../app/Dockerfile',import.meta.url),'utf8');
-  assert.match(dockerfile,/^RUN CGO_ENABLED=0 go test \.\/\.\.\.$/m);
-  assert.match(workflow,/npx playwright test/);
+  // Seit #55 (REQ-55-AC4): Unit- und Fidelity-Suiten laufen als Jobs in tests.yml; das Release Gate installiert erst danach.
+  const tests = readFileSync(new URL('../.github/workflows/tests.yml',import.meta.url),'utf8');
+  assert.match(tests,/node --test/);
+  assert.match(tests,/go test \$packages|go test \.\/\.\.\./);
+  assert.match(tests,/tools\/e2e-phases\.mjs/);
+  const workflow = readFileSync(new URL('../.github/workflows/release-gate.yml',import.meta.url),'utf8');
+  assert.match(workflow,/needs: \[plan, tests\]/);
   const check = workflow.indexOf('node tools/release-blockers.mjs');
   assert.ok(check > workflow.indexOf('id: previous') && check < workflow.indexOf('id: install'));
 });
