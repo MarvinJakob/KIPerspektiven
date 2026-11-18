@@ -31,9 +31,15 @@ const pressMouse = async (page: Page, reveal: Locator) => {
   await page.mouse.down();
 };
 
-/** Touch-Betätigung über Pointer Events, wie sie der Browser bei einem Finger auf dem Icon auslöst. */
-const touch = (reveal: Locator, type: 'pointerdown' | 'pointerup' | 'pointercancel' | 'pointerleave') =>
-  reveal.dispatchEvent(type, { pointerType: 'touch', pointerId: 7, isPrimary: true, bubbles: true, button: 0, buttons: type === 'pointerdown' ? 1 : 0 });
+/**
+ * Touch-Betätigung über Pointer Events, wie sie der Browser bei einem Finger auf dem Icon auslöst.
+ * Verlässt der Finger das Icon, sendet der Browser `pointerout` und danach `pointerleave`.
+ */
+const touch = async (reveal: Locator, type: 'pointerdown' | 'pointerup' | 'pointercancel' | 'pointerleave') => {
+  const init = { pointerType: 'touch', pointerId: 7, isPrimary: true, button: 0, buttons: type === 'pointerdown' ? 1 : 0 };
+  if (type === 'pointerleave') await reveal.dispatchEvent('pointerout', { ...init, bubbles: true });
+  await reveal.dispatchEvent(type, { ...init, bubbles: type !== 'pointerleave' });
+};
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/redaktion/benutzer');
