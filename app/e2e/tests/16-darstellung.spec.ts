@@ -3,7 +3,6 @@ import { expect, expectNoHorizontalScroll, expectVisibleKeyboardFocus, test } fr
 
 // Anforderung #16: Light und Darkmode für Webseite und Redaktion wählen.
 const THEME_KEY = 'ki-perspektiven.theme';
-const theme = (page: Page) => page.locator('html').getAttribute('data-theme');
 const storedTheme = (page: Page) => page.evaluate((k) => localStorage.getItem(k), THEME_KEY);
 
 async function chooseCookies(page: Page, option: 'Nur notwendige Cookies' | 'Keine Cookies speichern') {
@@ -37,7 +36,7 @@ async function contrast(page: Page, selector: string) {
 test('REQ-16-AC1: ohne gespeicherte Wahl erscheint die helle Darstellung, auch bei dunkler Systemeinstellung', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/de');
-  expect(await theme(page)).toBe('light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByRole('button', { name: 'Dunkle Darstellung' })).toHaveAttribute('aria-pressed', 'false');
 });
 
@@ -47,13 +46,13 @@ test('REQ-16-AC2: Umschalten auf der Webseite wechselt die Darstellung und erhä
   const toggle = page.getByRole('button', { name: 'Dunkle Darstellung' });
 
   await toggle.click();
-  expect(await theme(page)).toBe('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
   await expect(page).toHaveURL(/\/de\/kontakt$/);
   await expect(page.getByLabel('Name')).toHaveValue('Ada Lovelace');
 
   await toggle.click();
-  expect(await theme(page)).toBe('light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByLabel('Name')).toHaveValue('Ada Lovelace');
 });
 
@@ -61,7 +60,7 @@ test('REQ-16-AC2: Umschalten in der Redaktion wechselt die Darstellung und erhä
   await page.goto('/redaktion/anmelden');
   await page.getByLabel('E-Mail-Adresse').fill('jemand@example.test');
   await page.getByRole('button', { name: 'Dunkle Darstellung' }).click();
-  expect(await theme(page)).toBe('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page).toHaveURL(/\/redaktion\/anmelden$/);
   await expect(page.getByLabel('E-Mail-Adresse')).toHaveValue('jemand@example.test');
 });
@@ -70,12 +69,12 @@ test('REQ-16-AC3: mit Einwilligung gilt die Wahl nach Neuladen und in der Redakt
   await page.goto('/de');
   await chooseCookies(page, 'Nur notwendige Cookies');
   await page.getByRole('button', { name: 'Dunkle Darstellung' }).click();
-  expect(await storedTheme(page)).toBe('dark');
+  await expect.poll(() => storedTheme(page)).toBe('dark');
 
   await page.reload();
-  expect(await theme(page)).toBe('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.goto('/redaktion/anmelden');
-  expect(await theme(page)).toBe('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.getByRole('button', { name: 'Dunkle Darstellung' })).toHaveAttribute('aria-pressed', 'true');
 });
 
@@ -85,11 +84,11 @@ test('REQ-16-AC4: ohne Einwilligung wechselt die Darstellung, wird aber nicht da
   await page.goto('/de');
   await chooseCookies(page, 'Keine Cookies speichern');
   await page.getByRole('button', { name: 'Dunkle Darstellung' }).click();
-  expect(await theme(page)).toBe('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(await storedTheme(page)).toBeNull();
 
   await page.reload();
-  expect(await theme(page)).toBe('light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   expect(errors).toEqual([]);
 });
 
@@ -105,7 +104,7 @@ test('REQ-16-AC4: bei blockiertem Browserspeicher funktioniert der Wechsel ohne 
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/de');
   await page.getByRole('button', { name: 'Dunkle Darstellung' }).click();
-  expect(await theme(page)).toBe('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.getByRole('alert')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -115,7 +114,7 @@ test('REQ-16-AC5: Tastaturbedienung, zugänglicher Name in DE/EN und lesbare Tex
   const toggle = page.getByRole('button', { name: 'Dark mode' });
   await expectVisibleKeyboardFocus(page, toggle);
   await page.keyboard.press('Enter');
-  expect(await theme(page)).toBe('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(await contrast(page, 'h1')).toBeGreaterThanOrEqual(4.5);
   expect(await contrast(page, 'label')).toBeGreaterThanOrEqual(4.5);
 
@@ -123,7 +122,7 @@ test('REQ-16-AC5: Tastaturbedienung, zugänglicher Name in DE/EN und lesbare Tex
   const de = page.getByRole('button', { name: 'Dunkle Darstellung' });
   await de.focus();
   await page.keyboard.press('Space');
-  expect(await theme(page)).toBe('light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   expect(await contrast(page, 'h1')).toBeGreaterThanOrEqual(4.5);
   // Fehlermeldungen bleiben lesbar
   await page.getByRole('button', { name: 'Nachricht senden' }).click();
@@ -140,7 +139,7 @@ test.describe('mobil', () => {
     const toggle = page.getByRole('button', { name: 'Dunkle Darstellung' });
     await expect(toggle).toBeVisible();
     await toggle.tap();
-    expect(await theme(page)).toBe('dark');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await expectNoHorizontalScroll(page);
   });
 });

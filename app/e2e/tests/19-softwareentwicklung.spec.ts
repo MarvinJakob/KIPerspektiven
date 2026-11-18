@@ -11,7 +11,7 @@ test('REQ-19-AC1: Artikel mit Hero, Autor, Stand und Lesezeit in beiden Sprachen
   };
   for (const lang of ['de', 'en'] as const) {
     await page.goto(PATH(lang));
-    expect(text(await page.locator('#sd-title').innerText())).toBe(expected[lang].title);
+    await expect.poll(async () => text(await page.locator('#sd-title').innerText())).toBe(expected[lang].title);
     const byline = page.locator('.byline');
     await expect(byline).toContainText('Marvin Jakob');
     await expect(byline).toContainText(expected[lang].stand);
@@ -83,7 +83,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 
       if (viewport.width < 650) await page.getByRole('button', { name: 'Menü' }).click();
       await page.getByRole('button', { name: 'English' }).click();
       await expect(page).toHaveURL(/\/en\/themen\/softwareentwicklung$/);
-      expect(text(await page.locator('#sd-title').innerText())).toBe('AI in Software Development');
+      await expect.poll(async () => text(await page.locator('#sd-title').innerText())).toBe('AI in Software Development');
       await expectNoHorizontalScroll(page);
     });
   });
