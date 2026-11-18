@@ -197,6 +197,10 @@ svg { display: block; }
   transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out), visibility 0s linear var(--dur-base);
 }
 .popover.is-open { visibility: visible; opacity: 1; transform: none; transition-delay: 0s; }
+@media (min-width: 651px) {
+  .nav-topics .popover { max-height: calc(100dvh - 7rem); overflow-y: auto; }
+}
+.menu-list .menu-title, .menu-list .menu-desc { overflow-wrap: anywhere; }
 .menu-list { list-style: none; padding: 0; display: grid; gap: 2px; }
 .menu-link { display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: center; padding: 10px; border-radius: var(--radius-small); text-decoration: none; }
 .menu-link:hover, .menu-link:focus-visible, .menu-link[aria-current="page"] { background: var(--fill); }

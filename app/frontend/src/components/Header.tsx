@@ -215,7 +215,10 @@ function TopicsMenu({ active }: { active: boolean }) {
             );
           })}
           {articles.data?.map(entry => <li key={entry.id}>
-            <Link className="menu-link" to={href(lang, '/themenartikel/' + entry.id)} onClick={() => setOpen(false)}>
+            <Link className="menu-link" to={href(lang, '/themenartikel/' + entry.id)}
+              aria-current={pathname === href(lang, '/themenartikel/' + entry.id) ? 'page' : undefined}
+              onClick={() => setOpen(false)}>
+              <span className="menu-icon" style={artBackground('artikel', 2)}><Icon name="file" /></span>
               <span><span className="menu-title">{entry.title}</span>
                 {entry.subtitle && <span className="menu-desc">{entry.subtitle}</span>}
               </span>

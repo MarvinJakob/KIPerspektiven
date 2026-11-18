@@ -385,8 +385,8 @@ fieldset.field { margin: 0; padding: 0; border: 0; }
   .ed-user { display: none; }
   .nav-btn { padding: 0 12px; }
 }
-@media (max-width: 600px) {
-  /* Zwei Zeilen: oben Marke und Konto, unten die Bereiche (Ticket #20: Platz für den Darstellungsschalter). */
+@media (max-width: 1100px) {
+  /* Genug Platz für alle Redaktionsbereiche und die Kontoaktionen. */
   .ed-bar { height: auto; flex-wrap: wrap; border-radius: var(--radius-l); }
   .ed-bar .nav-main { order: 3; flex: 1 0 100%; min-width: 0; flex-wrap: wrap; justify-content: center; margin-inline: 0; }
   .ed-bar .nav-actions { margin-left: auto; }
