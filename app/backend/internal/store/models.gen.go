@@ -67,6 +67,7 @@ type Post struct {
 	CoverMediaID sql.NullInt64
 	UpdatedAt    string
 	ScheduledAt  sql.NullString
+	AuthorID     sql.NullInt64
 }
 
 type PostTopic struct {
@@ -119,10 +120,17 @@ type TopicTranslation struct {
 }
 
 type User struct {
-	ID           int64
-	Email        string
-	PasswordHash string
-	Role         string
-	Active       bool
-	CreatedAt    string
+	ID            int64
+	Email         string
+	PasswordHash  string
+	Role          string
+	Active        bool
+	CreatedAt     string
+	DisplayName   string
+	AvatarMediaID sql.NullInt64
+}
+
+type UserRole struct {
+	UserID int64
+	Role   string
 }

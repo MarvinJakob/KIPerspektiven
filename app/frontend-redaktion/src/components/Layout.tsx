@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Navigate, NavLink, Outlet, useNavigate } from 'react-router';
-import { canEdit, canManageUsers, useLogout, useMe, type Me } from '../api/client';
+import { useLogout, useMe, type Me } from '../api/client';
+import { can, rolesLabel, type Permission } from '../lib/permissions';
 import { ThemeToggle } from './ThemeToggle';
 
 /**
@@ -50,11 +51,13 @@ function Header({ me }: { me: Me }) {
           <span className="brand-name">Redaktion</span>
         </a>
         <div className="nav-main">
-          {canEdit(me.role) && (
+          {can(me.roles, 'posts') && (
+            <NavLink className="nav-btn press" to="/" end>
+              Beiträge
+            </NavLink>
+          )}
+          {can(me.roles, 'insights') && (
             <>
-              <NavLink className="nav-btn press" to="/" end>
-                Beiträge
-              </NavLink>
               <NavLink className="nav-btn press" to="/statistik">
                 Statistik
               </NavLink>
@@ -66,17 +69,20 @@ function Header({ me }: { me: Me }) {
               </NavLink>
             </>
           )}
-          {canManageUsers(me.role) && (
+          {can(me.roles, 'users') && (
             <NavLink className="nav-btn press" to="/benutzer">
               Benutzer
             </NavLink>
           )}
+          <NavLink className="nav-btn press" to="/profil">
+            Profil
+          </NavLink>
         </div>
         <div className="nav-actions">
           <ThemeToggle />
           <span className="ed-user" title={me.email}>
-            {me.email}
-            <span className="ed-role">{me.role === 'admin' ? 'Admin' : 'Redaktion'}</span>
+            {me.displayName || me.email}
+            <span className="ed-role">{rolesLabel(me.roles)}</span>
           </span>
           <button className="btn btn-secondary press" type="button" onClick={onLogout} disabled={logout.isPending}>
             Abmelden
@@ -87,14 +93,11 @@ function Header({ me }: { me: Me }) {
   );
 }
 
-type Permission = 'edit' | 'manageUsers';
-
-/** Zeigt den Inhalt nur mit passender Rolle. Sonst erscheint ein Hinweis statt der Seite. */
-export function RequireRole({ can, children }: { can: Permission; children: React.ReactNode }) {
+/** Zeigt den Inhalt nur mit passender Rolle (Ticket #64). Sonst erscheint ein Hinweis statt der Seite. */
+export function RequireRole({ can: permission, children }: { can: Permission; children: React.ReactNode }) {
   const { data: me } = useMe();
   if (!me) return null;
-  const ok = can === 'edit' ? canEdit(me.role) : canManageUsers(me.role);
-  if (!ok) return <Forbidden can={can} />;
+  if (!can(me.roles, permission)) return <Forbidden can={permission} />;
   return <>{children}</>;
 }
 
@@ -102,7 +105,7 @@ function Forbidden({ can }: { can: Permission }) {
   return (
     <Page title="Keine Berechtigung">
       <p className="lead">
-        {can === 'manageUsers'
+        {can === 'users'
           ? 'Die Benutzerverwaltung ist Admin-Konten vorbehalten.'
           : 'Ihr Konto hat keinen Zugriff auf diesen Bereich.'}{' '}
         Wenden Sie sich bei Bedarf an die Administration.

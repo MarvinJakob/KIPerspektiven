@@ -58,7 +58,8 @@ func clientIPFrom(ctx context.Context) string {
 // guard schützt die Redaktions-API. Die Entscheidung trifft ausschließlich das Backend
 // (ARCHITECTURE.md, Abschnitt 1):
 //   - /api/admin/*, /api/auth/me und /api/auth/logout verlangen eine gültige Sitzung (sonst 401).
-//   - /api/admin/users* verlangt die Rolle admin, die übrigen /api/admin-Pfade eine Redaktionsrolle (sonst 403).
+//   - /api/profile* verlangt eine gültige Sitzung beliebiger Rolle (Ticket #64).
+//   - /api/admin-Pfade verlangen die Rolle laut Rollentabelle aus Ticket #64 (sonst 403), siehe allowed.
 //   - Schreibende Aufrufe mit Sitzung verlangen das CSRF-Token der Sitzung im Header X-CSRF-Token (sonst 403).
 //   - Schreibende API-Aufrufe von fremden Ursprüngen werden abgelehnt (403).
 type guard struct {
@@ -73,7 +74,8 @@ func unsafeMethod(m string) bool {
 
 // needsSession meldet, ob der API-Pfad eine gültige Sitzung verlangt.
 func needsSession(p string) bool {
-	return p == "/api/admin" || strings.HasPrefix(p, "/api/admin/") || p == "/api/auth/me" || p == "/api/auth/logout"
+	return p == "/api/admin" || strings.HasPrefix(p, "/api/admin/") || p == "/api/auth/me" || p == "/api/auth/logout" ||
+		p == "/api/profile" || strings.HasPrefix(p, "/api/profile/")
 }
 
 // wrap prüft Herkunft, Sitzung, CSRF-Token und Rolle vor dem eigentlichen Handler.
@@ -110,7 +112,7 @@ func (g *guard) wrap(next http.Handler) http.Handler {
 			writeJSONError(w, http.StatusForbidden, "CSRF-Token fehlt oder ist ungültig. Bitte die Seite neu laden.")
 			return
 		}
-		if !allowed(p, id.Role) {
+		if !allowed(r.Method, p, id.Roles) {
 			writeJSONError(w, http.StatusForbidden, "Keine Berechtigung für diesen Bereich.")
 			return
 		}
@@ -118,15 +120,34 @@ func (g *guard) wrap(next http.Handler) http.Handler {
 	})
 }
 
-// allowed prüft die Rolle für einen geschützten API-Pfad.
-func allowed(p string, role service.Role) bool {
+// under prüft, ob p der Pfad prefix oder ein Unterpfad davon ist.
+func under(p, prefix string) bool { return p == prefix || strings.HasPrefix(p, prefix+"/") }
+
+// allowed prüft die Rollen für einen geschützten API-Pfad nach der Rollentabelle aus Ticket #64:
+// Beiträge für Admin und Redakteur, Statistik, Nachrichten und Beratungsanfragen lesend für Admin und
+// Marketing, Löschen von Beratungsanfragen und Benutzerverwaltung nur für Admin. Unbekannte /api/admin-Pfade
+// bleiben Admin-Konten vorbehalten. Profil, /api/auth/me und /api/auth/logout gelten für jede gültige Sitzung.
+func allowed(method, p string, roles service.Roles) bool {
 	switch {
-	case p == "/api/admin/users" || strings.HasPrefix(p, "/api/admin/users/"):
-		return role.CanManageUsers()
-	case p == "/api/admin" || strings.HasPrefix(p, "/api/admin/"):
-		return role.CanEdit()
+	case under(p, "/api/admin/posts"), p == "/api/admin/authors":
+		return roles.CanEditPosts()
+	case under(p, "/api/admin/consultation-requests") && method == http.MethodDelete:
+		return roles.CanDeleteConsultations()
+	case under(p, "/api/admin/statistics"), under(p, "/api/admin/contact-messages"), under(p, "/api/admin/consultation-requests"):
+		return roles.CanViewInsights() && !unsafeMethod(method)
+	case under(p, "/api/admin"):
+		return roles.CanManageUsers()
 	}
-	return true // /api/auth/me und /api/auth/logout: jede gültige Sitzung
+	return true
+}
+
+// toRolesAPI wandelt Rollen für die API um.
+func toRolesAPI(rs service.Roles) api.Roles {
+	out := make(api.Roles, len(rs))
+	for i, r := range rs {
+		out[i] = api.Role(r)
+	}
+	return out
 }
 
 // sessionToken liest das Sitzungs-Token aus dem Cookie, leer wenn es fehlt.
@@ -169,7 +190,7 @@ func (s *apiServer) sessionCookie(value string, maxAge int, expires time.Time) s
 
 // toMe wandelt die Identität in die API-Antwort um.
 func toMe(id service.Identity) api.Me {
-	return api.Me{Id: id.UserID, Email: id.Email, Role: api.Role(id.Role), CsrfToken: id.CSRFToken}
+	return api.Me{Id: id.UserID, Email: id.Email, DisplayName: id.DisplayName, Roles: toRolesAPI(id.Roles), CsrfToken: id.CSRFToken}
 }
 
 // Login meldet an und ersetzt eine bestehende Sitzung des Browsers. Vor der teuren Argon2-Prüfung gelten zwei

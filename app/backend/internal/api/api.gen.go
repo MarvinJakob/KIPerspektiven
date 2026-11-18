@@ -114,8 +114,9 @@ func (e PostStatus) Valid() bool {
 
 // Defines values for Role.
 const (
-	Admin  Role = "admin"
-	Editor Role = "editor"
+	Admin     Role = "admin"
+	Editor    Role = "editor"
+	Marketing Role = "marketing"
 )
 
 // Valid indicates whether the value is a known member of the Role enum.
@@ -124,6 +125,8 @@ func (e Role) Valid() bool {
 	case Admin:
 		return true
 	case Editor:
+		return true
+	case Marketing:
 		return true
 	default:
 		return false
@@ -238,6 +241,31 @@ type AuditQuestion struct {
 	Text string `json:"text"`
 }
 
+// AuthorInput defines model for AuthorInput.
+type AuthorInput struct {
+	// AuthorId Konto-ID des Autors oder `null` für „Kein Autor“
+	AuthorId *int64 `json:"authorId"`
+}
+
+// AuthorOption defines model for AuthorOption.
+type AuthorOption struct {
+	DisplayName string `json:"displayName"`
+	Email       string `json:"email"`
+	Id          int64  `json:"id"`
+}
+
+// AuthorOptionList defines model for AuthorOptionList.
+type AuthorOptionList struct {
+	Items []AuthorOption `json:"items"`
+}
+
+// Avatar Profilbild in der Variante 480 px
+type Avatar struct {
+	Height int    `json:"height"`
+	Src    string `json:"src"`
+	Width  int    `json:"width"`
+}
+
 // ConsultationRequest defines model for ConsultationRequest.
 type ConsultationRequest struct {
 	// Email Normalisiert (ohne Leerzeichen, kleingeschrieben)
@@ -294,6 +322,8 @@ type ContactMessageList struct {
 
 // EditorPost defines model for EditorPost.
 type EditorPost struct {
+	// AuthorId Konto-ID des Autors (Ticket #64), fehlt bei „Kein Autor“
+	AuthorId *int64 `json:"authorId,omitempty"`
 	Cover    *Image `json:"cover,omitempty"`
 	Featured bool   `json:"featured"`
 	Id       int64  `json:"id"`
@@ -380,21 +410,21 @@ type LoginRequest struct {
 // Me defines model for Me.
 type Me struct {
 	// CsrfToken Für den Header `X-CSRF-Token` bei schreibenden Aufrufen
-	CsrfToken string `json:"csrfToken"`
-	Email     string `json:"email"`
-	Id        int64  `json:"id"`
-
-	// Role `editor` verwaltet Beiträge, `admin` zusätzlich die Redaktionskonten
-	Role Role `json:"role"`
+	CsrfToken   string `json:"csrfToken"`
+	DisplayName string `json:"displayName"`
+	Email       string `json:"email"`
+	Id          int64  `json:"id"`
+	Roles       Roles  `json:"roles"`
 }
 
 // NewUser defines model for NewUser.
 type NewUser struct {
-	// Email Eindeutige E-Mail-Adresse, Groß- und Kleinschreibung zählt nicht
+	// Email Eindeutige E-Mail-Adresse, Groß- und Kleinschreibung zählt nicht. Dient als Benutzername.
 	Email string `json:"email"`
 
 	// Password Startpasswort mit mindestens 10 Zeichen
 	Password string `json:"password"`
+	Roles    Roles  `json:"roles"`
 }
 
 // PageViewDay defines model for PageViewDay.
@@ -424,15 +454,26 @@ type PageViewStats struct {
 	UniqueTotal *int64 `json:"uniqueTotal"`
 }
 
+// PasswordChange defines model for PasswordChange.
+type PasswordChange struct {
+	CurrentPassword string `json:"currentPassword"`
+
+	// NewPassword Mindestens 10 Zeichen
+	NewPassword string `json:"newPassword"`
+}
+
 // Post defines model for Post.
 type Post struct {
-	BodyMarkdown   string    `json:"bodyMarkdown"`
-	Cover          *Image    `json:"cover,omitempty"`
-	Featured       bool      `json:"featured"`
-	Lang           Lang      `json:"lang"`
-	PublishedAt    time.Time `json:"publishedAt"`
-	ReadingMinutes int       `json:"readingMinutes"`
-	Slug           string    `json:"slug"`
+	// Author Öffentliche Autorendaten (Ticket #64). Nur vorhanden, wenn der Beitrag einen Autor mit Anzeigenamen hat.
+	// Enthält bewusst keine E-Mail-Adresse.
+	Author         *PostAuthor `json:"author,omitempty"`
+	BodyMarkdown   string      `json:"bodyMarkdown"`
+	Cover          *Image      `json:"cover,omitempty"`
+	Featured       bool        `json:"featured"`
+	Lang           Lang        `json:"lang"`
+	PublishedAt    time.Time   `json:"publishedAt"`
+	ReadingMinutes int         `json:"readingMinutes"`
+	Slug           string      `json:"slug"`
 
 	// Summary Kurztext
 	Summary string     `json:"summary"`
@@ -442,6 +483,14 @@ type Post struct {
 	// Translations Sprachen, in denen der Beitrag vorliegt
 	Translations []Lang    `json:"translations"`
 	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+// PostAuthor Öffentliche Autorendaten (Ticket #64). Nur vorhanden, wenn der Beitrag einen Autor mit Anzeigenamen hat.
+// Enthält bewusst keine E-Mail-Adresse.
+type PostAuthor struct {
+	// Avatar Profilbild in der Variante 480 px
+	Avatar *Avatar `json:"avatar,omitempty"`
+	Name   string  `json:"name"`
 }
 
 // PostInput defines model for PostInput.
@@ -498,6 +547,20 @@ type PostText struct {
 	Title   string `json:"title"`
 }
 
+// Profile defines model for Profile.
+type Profile struct {
+	// Avatar Profilbild in der Variante 480 px
+	Avatar      *Avatar `json:"avatar,omitempty"`
+	DisplayName string  `json:"displayName"`
+	Email       string  `json:"email"`
+	Roles       Roles   `json:"roles"`
+}
+
+// ProfileInput defines model for ProfileInput.
+type ProfileInput struct {
+	DisplayName string `json:"displayName"`
+}
+
 // ReadinessDimensionName defines model for ReadinessDimensionName.
 type ReadinessDimensionName struct {
 	Slug  string `json:"slug"`
@@ -551,8 +614,12 @@ type ReadinessResultPage struct {
 	Total int64 `json:"total"`
 }
 
-// Role `editor` verwaltet Beiträge, `admin` zusätzlich die Redaktionskonten
+// Role Ticket #64: `admin` darf alles einschließlich Benutzerverwaltung, `editor` (Redakteur) verwaltet Beiträge,
+// `marketing` liest Statistik, Nachrichten und Beratungsanfragen. Ein Konto hat mindestens eine Rolle.
 type Role string
+
+// Roles defines model for Roles.
+type Roles = []Role
 
 // ScheduleInput defines model for ScheduleInput.
 type ScheduleInput struct {
@@ -618,11 +685,12 @@ type User struct {
 	// Active Deaktivierte Konten können sich nicht anmelden
 	Active    bool      `json:"active"`
 	CreatedAt time.Time `json:"createdAt"`
-	Email     string    `json:"email"`
-	Id        int64     `json:"id"`
 
-	// Role `editor` verwaltet Beiträge, `admin` zusätzlich die Redaktionskonten
-	Role Role `json:"role"`
+	// DisplayName Vom Konto selbst gepflegter Anzeigename, leer wenn nicht gesetzt
+	DisplayName string `json:"displayName"`
+	Email       string `json:"email"`
+	Id          int64  `json:"id"`
+	Roles       Roles  `json:"roles"`
 }
 
 // UserList defines model for UserList.
@@ -630,9 +698,10 @@ type UserList struct {
 	Items []User `json:"items"`
 }
 
-// UserPatch defines model for UserPatch.
+// UserPatch Mindestens eines der Felder angeben.
 type UserPatch struct {
-	Active bool `json:"active"`
+	Active *bool  `json:"active,omitempty"`
+	Roles  *Roles `json:"roles,omitempty"`
 }
 
 // Id defines model for Id.
@@ -711,6 +780,11 @@ type GetPostParams struct {
 	Lang *Lang `form:"lang,omitempty" json:"lang,omitempty"`
 }
 
+// SetProfileAvatarMultipartBody defines parameters for SetProfileAvatar.
+type SetProfileAvatarMultipartBody struct {
+	File openapi_types.File `json:"file"`
+}
+
 // ListTopicsParams defines parameters for ListTopics.
 type ListTopicsParams struct {
 	// Lang Gewünschte Sprache
@@ -728,6 +802,9 @@ type AdminCreatePostJSONRequestBody = PostInput
 
 // AdminUpdatePostJSONRequestBody defines body for AdminUpdatePost for application/json ContentType.
 type AdminUpdatePostJSONRequestBody = PostInput
+
+// AdminSetPostAuthorJSONRequestBody defines body for AdminSetPostAuthor for application/json ContentType.
+type AdminSetPostAuthorJSONRequestBody = AuthorInput
 
 // AdminSetPostCoverMultipartRequestBody defines body for AdminSetPostCover for multipart/form-data ContentType.
 type AdminSetPostCoverMultipartRequestBody AdminSetPostCoverMultipartBody
@@ -750,11 +827,23 @@ type RequestConsultationJSONRequestBody = ConsultationRequestInput
 // SendContactMessageJSONRequestBody defines body for SendContactMessage for application/json ContentType.
 type SendContactMessageJSONRequestBody = ContactMessageInput
 
+// UpdateProfileJSONRequestBody defines body for UpdateProfile for application/json ContentType.
+type UpdateProfileJSONRequestBody = ProfileInput
+
+// SetProfileAvatarMultipartRequestBody defines body for SetProfileAvatar for multipart/form-data ContentType.
+type SetProfileAvatarMultipartRequestBody SetProfileAvatarMultipartBody
+
+// ChangePasswordJSONRequestBody defines body for ChangePassword for application/json ContentType.
+type ChangePasswordJSONRequestBody = PasswordChange
+
 // SaveReadinessResultJSONRequestBody defines body for SaveReadinessResult for application/json ContentType.
 type SaveReadinessResultJSONRequestBody = ReadinessResultInput
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// AdminListAuthors Wählbare Autoren für Beiträge
+	// (GET /api/admin/authors)
+	AdminListAuthors(w http.ResponseWriter, r *http.Request)
 	// AdminListConsultationRequests Offene Anfragen für ein Beratungsgespräch, neueste zuerst
 	// (GET /api/admin/consultation-requests)
 	AdminListConsultationRequests(w http.ResponseWriter, r *http.Request)
@@ -779,6 +868,9 @@ type ServerInterface interface {
 	// AdminUpdatePost Texte, Themen und Einstellungen speichern
 	// (PUT /api/admin/posts/{id})
 	AdminUpdatePost(w http.ResponseWriter, r *http.Request, id Id)
+	// AdminSetPostAuthor Autor zuordnen oder entfernen
+	// (PUT /api/admin/posts/{id}/author)
+	AdminSetPostAuthor(w http.ResponseWriter, r *http.Request, id Id)
 	// AdminDeletePostCover Titelbild entfernen
 	// (DELETE /api/admin/posts/{id}/cover)
 	AdminDeletePostCover(w http.ResponseWriter, r *http.Request, id Id)
@@ -806,10 +898,10 @@ type ServerInterface interface {
 	// AdminListUsers Redaktionskonten mit E-Mail-Adresse, Rolle und Status
 	// (GET /api/admin/users)
 	AdminListUsers(w http.ResponseWriter, r *http.Request)
-	// AdminCreateUser Redaktionskonto mit Rolle editor und Startpasswort anlegen
+	// AdminCreateUser Konto mit Rollen und Startpasswort anlegen
 	// (POST /api/admin/users)
 	AdminCreateUser(w http.ResponseWriter, r *http.Request)
-	// AdminUpdateUser Konto deaktivieren oder reaktivieren
+	// AdminUpdateUser Konto deaktivieren, reaktivieren oder Rollen ändern
 	// (PATCH /api/admin/users/{id})
 	AdminUpdateUser(w http.ResponseWriter, r *http.Request, id Id)
 	// GetAudit Einstieg in das KI-Audit mit allen freigegebenen Dimensionen
@@ -842,6 +934,18 @@ type ServerInterface interface {
 	// GetPost Ein veröffentlichter Beitrag
 	// (GET /api/posts/{slug})
 	GetPost(w http.ResponseWriter, r *http.Request, slug Slug, params GetPostParams)
+	// GetProfile Eigenes Profil mit Anzeigename und Profilbild
+	// (GET /api/profile)
+	GetProfile(w http.ResponseWriter, r *http.Request)
+	// UpdateProfile Anzeigenamen ändern
+	// (PATCH /api/profile)
+	UpdateProfile(w http.ResponseWriter, r *http.Request)
+	// SetProfileAvatar Profilbild hochladen oder ersetzen
+	// (PUT /api/profile/avatar)
+	SetProfileAvatar(w http.ResponseWriter, r *http.Request)
+	// ChangePassword Eigenes Passwort ändern
+	// (PUT /api/profile/password)
+	ChangePassword(w http.ResponseWriter, r *http.Request)
 	// SaveReadinessResult Ergebnis der Selbsteinschätzung anonym speichern oder aktualisieren
 	// (POST /api/readiness-results)
 	SaveReadinessResult(w http.ResponseWriter, r *http.Request)
@@ -864,6 +968,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// AdminListAuthors operation middleware
+func (siw *ServerInterfaceWrapper) AdminListAuthors(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminListAuthors(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // AdminListConsultationRequests operation middleware
 func (siw *ServerInterfaceWrapper) AdminListConsultationRequests(w http.ResponseWriter, r *http.Request) {
@@ -1016,6 +1134,32 @@ func (siw *ServerInterfaceWrapper) AdminUpdatePost(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AdminUpdatePost(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminSetPostAuthor operation middleware
+func (siw *ServerInterfaceWrapper) AdminSetPostAuthor(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminSetPostAuthor(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1561,6 +1705,62 @@ func (siw *ServerInterfaceWrapper) GetPost(w http.ResponseWriter, r *http.Reques
 	handler.ServeHTTP(w, r)
 }
 
+// GetProfile operation middleware
+func (siw *ServerInterfaceWrapper) GetProfile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetProfile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateProfile operation middleware
+func (siw *ServerInterfaceWrapper) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateProfile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetProfileAvatar operation middleware
+func (siw *ServerInterfaceWrapper) SetProfileAvatar(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetProfileAvatar(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ChangePassword operation middleware
+func (siw *ServerInterfaceWrapper) ChangePassword(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ChangePassword(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SaveReadinessResult operation middleware
 func (siw *ServerInterfaceWrapper) SaveReadinessResult(w http.ResponseWriter, r *http.Request) {
 
@@ -1810,6 +2010,11 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/auth/login", wrapper.Login)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/auth/logout", wrapper.Logout)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/auth/me", wrapper.GetMe)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/profile", wrapper.GetProfile)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/profile", wrapper.UpdateProfile)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/profile/password", wrapper.ChangePassword)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/profile/avatar", wrapper.SetProfileAvatar)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/admin/authors", wrapper.AdminListAuthors)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/admin/posts", wrapper.AdminListPosts)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/admin/posts", wrapper.AdminCreatePost)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/admin/posts/{id}", wrapper.AdminDeletePost)
@@ -1817,6 +2022,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/admin/posts/{id}", wrapper.AdminUpdatePost)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/admin/posts/{id}/cover", wrapper.AdminDeletePostCover)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/admin/posts/{id}/cover", wrapper.AdminSetPostCover)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/admin/posts/{id}/author", wrapper.AdminSetPostAuthor)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/admin/posts/{id}/publish", wrapper.AdminPublishPost)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/admin/posts/{id}/schedule", wrapper.AdminUnschedulePost)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/admin/posts/{id}/schedule", wrapper.AdminSchedulePost)
@@ -1844,6 +2050,55 @@ type NotFoundJSONResponse Error
 type UnauthorizedJSONResponse Error
 
 type UnprocessableJSONResponse Error
+
+type AdminListAuthorsRequestObject struct {
+}
+
+type AdminListAuthorsResponseObject interface {
+	VisitAdminListAuthorsResponse(w http.ResponseWriter) error
+}
+
+type AdminListAuthors200JSONResponse AuthorOptionList
+
+func (response AdminListAuthors200JSONResponse) VisitAdminListAuthorsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminListAuthors401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response AdminListAuthors401JSONResponse) VisitAdminListAuthorsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminListAuthors403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response AdminListAuthors403JSONResponse) VisitAdminListAuthorsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type AdminListConsultationRequestsRequestObject struct {
 }
@@ -2360,6 +2615,99 @@ func (response AdminUpdatePost409JSONResponse) VisitAdminUpdatePostResponse(w ht
 type AdminUpdatePost422JSONResponse struct{ UnprocessableJSONResponse }
 
 func (response AdminUpdatePost422JSONResponse) VisitAdminUpdatePostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminSetPostAuthorRequestObject struct {
+	Id   Id `json:"id"`
+	Body *AdminSetPostAuthorJSONRequestBody
+}
+
+type AdminSetPostAuthorResponseObject interface {
+	VisitAdminSetPostAuthorResponse(w http.ResponseWriter) error
+}
+
+type AdminSetPostAuthor200JSONResponse EditorPost
+
+func (response AdminSetPostAuthor200JSONResponse) VisitAdminSetPostAuthorResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminSetPostAuthor400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response AdminSetPostAuthor400JSONResponse) VisitAdminSetPostAuthorResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminSetPostAuthor401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response AdminSetPostAuthor401JSONResponse) VisitAdminSetPostAuthorResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminSetPostAuthor403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response AdminSetPostAuthor403JSONResponse) VisitAdminSetPostAuthorResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminSetPostAuthor404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response AdminSetPostAuthor404JSONResponse) VisitAdminSetPostAuthorResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminSetPostAuthor422JSONResponse struct{ UnprocessableJSONResponse }
+
+func (response AdminSetPostAuthor422JSONResponse) VisitAdminSetPostAuthorResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -3724,6 +4072,305 @@ func (response GetPost404JSONResponse) VisitGetPostResponse(w http.ResponseWrite
 	return err
 }
 
+type GetProfileRequestObject struct {
+}
+
+type GetProfileResponseObject interface {
+	VisitGetProfileResponse(w http.ResponseWriter) error
+}
+
+type GetProfile200JSONResponse Profile
+
+func (response GetProfile200JSONResponse) VisitGetProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetProfile401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetProfile401JSONResponse) VisitGetProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateProfileRequestObject struct {
+	Body *UpdateProfileJSONRequestBody
+}
+
+type UpdateProfileResponseObject interface {
+	VisitUpdateProfileResponse(w http.ResponseWriter) error
+}
+
+type UpdateProfile200JSONResponse Profile
+
+func (response UpdateProfile200JSONResponse) VisitUpdateProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateProfile400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateProfile400JSONResponse) VisitUpdateProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateProfile401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateProfile401JSONResponse) VisitUpdateProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateProfile403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateProfile403JSONResponse) VisitUpdateProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateProfile422JSONResponse struct{ UnprocessableJSONResponse }
+
+func (response UpdateProfile422JSONResponse) VisitUpdateProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetProfileAvatarRequestObject struct {
+	Body *multipart.Reader
+}
+
+type SetProfileAvatarResponseObject interface {
+	VisitSetProfileAvatarResponse(w http.ResponseWriter) error
+}
+
+type SetProfileAvatar200JSONResponse Profile
+
+func (response SetProfileAvatar200JSONResponse) VisitSetProfileAvatarResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetProfileAvatar400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SetProfileAvatar400JSONResponse) VisitSetProfileAvatarResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetProfileAvatar401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response SetProfileAvatar401JSONResponse) VisitSetProfileAvatarResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetProfileAvatar403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response SetProfileAvatar403JSONResponse) VisitSetProfileAvatarResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetProfileAvatar422JSONResponse struct{ UnprocessableJSONResponse }
+
+func (response SetProfileAvatar422JSONResponse) VisitSetProfileAvatarResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangePasswordRequestObject struct {
+	Body *ChangePasswordJSONRequestBody
+}
+
+type ChangePasswordResponseObject interface {
+	VisitChangePasswordResponse(w http.ResponseWriter) error
+}
+
+type ChangePassword204Response struct {
+}
+
+func (response ChangePassword204Response) VisitChangePasswordResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type ChangePassword400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ChangePassword400JSONResponse) VisitChangePasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangePassword401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ChangePassword401JSONResponse) VisitChangePasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangePassword403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ChangePassword403JSONResponse) VisitChangePasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangePassword422JSONResponse struct{ UnprocessableJSONResponse }
+
+func (response ChangePassword422JSONResponse) VisitChangePasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangePassword429JSONResponse Error
+
+func (response ChangePassword429JSONResponse) VisitChangePasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangePassword503ResponseHeaders struct {
+	RetryAfter int
+}
+
+type ChangePassword503JSONResponse struct {
+	Body    Error
+	Headers ChangePassword503ResponseHeaders
+}
+
+func (response ChangePassword503JSONResponse) VisitChangePasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Retry-After", fmt.Sprint(response.Headers.RetryAfter))
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SaveReadinessResultRequestObject struct {
 	Body *SaveReadinessResultJSONRequestBody
 }
@@ -3915,6 +4562,9 @@ func (response GetTopic404JSONResponse) VisitGetTopicResponse(w http.ResponseWri
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// AdminListAuthors Wählbare Autoren für Beiträge
+	// (GET /api/admin/authors)
+	AdminListAuthors(ctx context.Context, request AdminListAuthorsRequestObject) (AdminListAuthorsResponseObject, error)
 	// AdminListConsultationRequests Offene Anfragen für ein Beratungsgespräch, neueste zuerst
 	// (GET /api/admin/consultation-requests)
 	AdminListConsultationRequests(ctx context.Context, request AdminListConsultationRequestsRequestObject) (AdminListConsultationRequestsResponseObject, error)
@@ -3939,6 +4589,9 @@ type StrictServerInterface interface {
 	// AdminUpdatePost Texte, Themen und Einstellungen speichern
 	// (PUT /api/admin/posts/{id})
 	AdminUpdatePost(ctx context.Context, request AdminUpdatePostRequestObject) (AdminUpdatePostResponseObject, error)
+	// AdminSetPostAuthor Autor zuordnen oder entfernen
+	// (PUT /api/admin/posts/{id}/author)
+	AdminSetPostAuthor(ctx context.Context, request AdminSetPostAuthorRequestObject) (AdminSetPostAuthorResponseObject, error)
 	// AdminDeletePostCover Titelbild entfernen
 	// (DELETE /api/admin/posts/{id}/cover)
 	AdminDeletePostCover(ctx context.Context, request AdminDeletePostCoverRequestObject) (AdminDeletePostCoverResponseObject, error)
@@ -3966,10 +4619,10 @@ type StrictServerInterface interface {
 	// AdminListUsers Redaktionskonten mit E-Mail-Adresse, Rolle und Status
 	// (GET /api/admin/users)
 	AdminListUsers(ctx context.Context, request AdminListUsersRequestObject) (AdminListUsersResponseObject, error)
-	// AdminCreateUser Redaktionskonto mit Rolle editor und Startpasswort anlegen
+	// AdminCreateUser Konto mit Rollen und Startpasswort anlegen
 	// (POST /api/admin/users)
 	AdminCreateUser(ctx context.Context, request AdminCreateUserRequestObject) (AdminCreateUserResponseObject, error)
-	// AdminUpdateUser Konto deaktivieren oder reaktivieren
+	// AdminUpdateUser Konto deaktivieren, reaktivieren oder Rollen ändern
 	// (PATCH /api/admin/users/{id})
 	AdminUpdateUser(ctx context.Context, request AdminUpdateUserRequestObject) (AdminUpdateUserResponseObject, error)
 	// GetAudit Einstieg in das KI-Audit mit allen freigegebenen Dimensionen
@@ -4002,6 +4655,18 @@ type StrictServerInterface interface {
 	// GetPost Ein veröffentlichter Beitrag
 	// (GET /api/posts/{slug})
 	GetPost(ctx context.Context, request GetPostRequestObject) (GetPostResponseObject, error)
+	// GetProfile Eigenes Profil mit Anzeigename und Profilbild
+	// (GET /api/profile)
+	GetProfile(ctx context.Context, request GetProfileRequestObject) (GetProfileResponseObject, error)
+	// UpdateProfile Anzeigenamen ändern
+	// (PATCH /api/profile)
+	UpdateProfile(ctx context.Context, request UpdateProfileRequestObject) (UpdateProfileResponseObject, error)
+	// SetProfileAvatar Profilbild hochladen oder ersetzen
+	// (PUT /api/profile/avatar)
+	SetProfileAvatar(ctx context.Context, request SetProfileAvatarRequestObject) (SetProfileAvatarResponseObject, error)
+	// ChangePassword Eigenes Passwort ändern
+	// (PUT /api/profile/password)
+	ChangePassword(ctx context.Context, request ChangePasswordRequestObject) (ChangePasswordResponseObject, error)
 	// SaveReadinessResult Ergebnis der Selbsteinschätzung anonym speichern oder aktualisieren
 	// (POST /api/readiness-results)
 	SaveReadinessResult(ctx context.Context, request SaveReadinessResultRequestObject) (SaveReadinessResultResponseObject, error)
@@ -4053,6 +4718,30 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// AdminListAuthors operation middleware
+func (sh *strictHandler) AdminListAuthors(w http.ResponseWriter, r *http.Request) {
+	var request AdminListAuthorsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AdminListAuthors(ctx, request.(AdminListAuthorsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdminListAuthors")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AdminListAuthorsResponseObject); ok {
+		if err := validResponse.VisitAdminListAuthorsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // AdminListConsultationRequests operation middleware
@@ -4262,6 +4951,39 @@ func (sh *strictHandler) AdminUpdatePost(w http.ResponseWriter, r *http.Request,
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(AdminUpdatePostResponseObject); ok {
 		if err := validResponse.VisitAdminUpdatePostResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AdminSetPostAuthor operation middleware
+func (sh *strictHandler) AdminSetPostAuthor(w http.ResponseWriter, r *http.Request, id Id) {
+	var request AdminSetPostAuthorRequestObject
+
+	request.Id = id
+
+	var body AdminSetPostAuthorJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AdminSetPostAuthor(ctx, request.(AdminSetPostAuthorRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdminSetPostAuthor")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AdminSetPostAuthorResponseObject); ok {
+		if err := validResponse.VisitAdminSetPostAuthorResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -4843,6 +5565,123 @@ func (sh *strictHandler) GetPost(w http.ResponseWriter, r *http.Request, slug Sl
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetPostResponseObject); ok {
 		if err := validResponse.VisitGetPostResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetProfile operation middleware
+func (sh *strictHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+	var request GetProfileRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetProfile(ctx, request.(GetProfileRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetProfile")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetProfileResponseObject); ok {
+		if err := validResponse.VisitGetProfileResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateProfile operation middleware
+func (sh *strictHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	var request UpdateProfileRequestObject
+
+	var body UpdateProfileJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateProfile(ctx, request.(UpdateProfileRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateProfile")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateProfileResponseObject); ok {
+		if err := validResponse.VisitUpdateProfileResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetProfileAvatar operation middleware
+func (sh *strictHandler) SetProfileAvatar(w http.ResponseWriter, r *http.Request) {
+	var request SetProfileAvatarRequestObject
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetProfileAvatar(ctx, request.(SetProfileAvatarRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetProfileAvatar")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetProfileAvatarResponseObject); ok {
+		if err := validResponse.VisitSetProfileAvatarResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ChangePassword operation middleware
+func (sh *strictHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	var request ChangePasswordRequestObject
+
+	var body ChangePasswordJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ChangePassword(ctx, request.(ChangePasswordRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ChangePassword")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ChangePasswordResponseObject); ok {
+		if err := validResponse.VisitChangePasswordResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

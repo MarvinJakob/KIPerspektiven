@@ -32,7 +32,7 @@ export function LoginPage() {
   }, [me, target, login.isPending]);
 
   // Bereits angemeldet: direkt zur passenden Startseite.
-  if (me && !login.isPending && !target) return <Navigate to={homeFor(me.role)} replace />;
+  if (me && !login.isPending && !target) return <Navigate to={homeFor(me.roles)} replace />;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +44,7 @@ export function LoginPage() {
     login.mutate(
       { email, password },
       {
-        onSuccess: (m) => (target ? page.open(target) : navigate(homeFor(m.role), { replace: true })),
+        onSuccess: (m) => (target ? page.open(target) : navigate(homeFor(m.roles), { replace: true })),
       },
     );
   };

@@ -1,13 +1,19 @@
 import { useId, useState } from 'react';
 import { ApiError, useMe } from '../api/client';
-import { useCreateUser, useSetUserActive, useUsers, type User } from '../api/users';
+import { useCreateUser, useSetUserActive, useSetUserRoles, useUsers, type User } from '../api/users';
 import { Loading, Page } from '../components/Layout';
 import { PasswordInput } from '../components/PasswordInput';
 import { formatDate } from '../components/PostParts';
+import { ROLES, type Role } from '../lib/permissions';
 
 const MIN_PASSWORD = 10;
 
-/** Benutzerverwaltung für Admin-Konten (Anforderung 11): Konten anzeigen, anlegen, deaktivieren und reaktivieren. */
+const failure = (e: unknown, fallback: string) => (e instanceof ApiError && e.status < 500 ? e.message : fallback);
+
+/**
+ * Benutzerverwaltung für Admin-Konten (Anforderung 11, Ticket #64): Konten mit Rollen anzeigen und anlegen,
+ * Rollen ändern, deaktivieren und reaktivieren. Die E-Mail-Adresse ist der Benutzername.
+ */
 export function UsersPage() {
   const { data: users, isPending, isError, refetch } = useUsers();
   const [notice, setNotice] = useState('');
@@ -15,8 +21,10 @@ export function UsersPage() {
   return (
     <Page title="Benutzerverwaltung">
       <p className="lead">
-        Konten der Redaktion. Neue Konten erhalten die Rolle Redaktion und melden sich mit dem Startpasswort an.
-        Deaktivierte Konten können sich nicht mehr anmelden, offene Sitzungen enden sofort.
+        Konten der Redaktion. Jedes Konto meldet sich mit seiner E-Mail-Adresse an und hat mindestens eine Rolle:
+        Admin (alles einschließlich Benutzerverwaltung), Redakteur (Beiträge) oder Marketing (Statistik, Nachrichten
+        und Beratungsanfragen lesen). Deaktivierte Konten können sich nicht mehr anmelden, offene Sitzungen enden
+        sofort.
       </p>
       <p className="form-ok" role="status">
         {notice}
@@ -39,6 +47,7 @@ export function UsersPage() {
 function UserTable({ users, onNotice }: { users: User[]; onNotice: (s: string) => void }) {
   const { data: me } = useMe();
   const setActive = useSetUserActive();
+  const setRoles = useSetUserRoles();
   const [error, setError] = useState('');
 
   const toggle = (u: User) => {
@@ -53,7 +62,24 @@ function UserTable({ users, onNotice }: { users: User[]; onNotice: (s: string) =
               ? `${r.email} ist wieder aktiv und kann sich anmelden.`
               : `${r.email} ist deaktiviert. Offene Sitzungen wurden beendet.`,
           ),
-        onError: (e) => setError(e instanceof ApiError && e.status < 500 ? e.message : 'Ändern ist gerade nicht möglich.'),
+        onError: (e) => setError(failure(e, 'Ändern ist gerade nicht möglich.')),
+      },
+    );
+  };
+
+  const changeRole = (u: User, role: Role, on: boolean) => {
+    setError('');
+    onNotice('');
+    const roles = on ? [...u.roles, role] : u.roles.filter((r) => r !== role);
+    if (roles.length === 0) {
+      setError(`${u.email} braucht mindestens eine Rolle.`);
+      return;
+    }
+    setRoles.mutate(
+      { id: u.id, roles },
+      {
+        onSuccess: (r) => onNotice(`Rollen von ${r.email} gespeichert.`),
+        onError: (e) => setError(failure(e, 'Die Rollen konnten gerade nicht geändert werden.')),
       },
     );
   };
@@ -69,7 +95,7 @@ function UserTable({ users, onNotice }: { users: User[]; onNotice: (s: string) =
           <thead>
             <tr>
               <th scope="col">E-Mail-Adresse</th>
-              <th scope="col">Rolle</th>
+              <th scope="col">Rollen</th>
               <th scope="col">Status</th>
               <th scope="col">Angelegt</th>
               <th scope="col" className="actions">
@@ -80,13 +106,31 @@ function UserTable({ users, onNotice }: { users: User[]; onNotice: (s: string) =
           <tbody>
             {users.map((u) => {
               const self = u.id === me?.id;
+              const isAdmin = u.roles.includes('admin');
               return (
                 <tr key={u.id}>
                   <td>
                     {u.email}
                     {self && <span className="row-meta"> Sie</span>}
+                    {u.displayName && <span className="row-sub">{u.displayName}</span>}
                   </td>
-                  <td>{u.role === 'admin' ? 'Admin' : 'Redaktion'}</td>
+                  <td>
+                    <div className="checks checks-compact" role="group" aria-label={`Rollen von ${u.email}`}>
+                      {ROLES.map(({ role, label }) => (
+                        <label className="check" key={role}>
+                          <input
+                            type="checkbox"
+                            checked={u.roles.includes(role)}
+                            // Einem Admin-Konto lässt sich die Admin-Rolle nicht entziehen (REQ-64-AC3).
+                            disabled={setRoles.isPending || (role === 'admin' && isAdmin)}
+                            onChange={(e) => changeRole(u, role, e.target.checked)}
+                            aria-label={`${u.email}: ${label}`}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </td>
                   <td>
                     {u.active ? (
                       <span className="badge badge-published">Aktiv</span>
@@ -122,30 +166,35 @@ function NewUserForm({ onNotice }: { onNotice: (s: string) => void }) {
   const create = useCreateUser();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [roles, setRoles] = useState<Role[]>([]);
   const [error, setError] = useState('');
   const ids = { email: useId(), password: useId(), hint: useId(), error: useId(), heading: useId() };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     onNotice('');
-    if (!email.trim() || password.length < MIN_PASSWORD) {
-      setError(
-        !email.trim()
-          ? 'Bitte eine E-Mail-Adresse angeben.'
-          : `Das Startpasswort muss mindestens ${MIN_PASSWORD} Zeichen lang sein.`,
-      );
+    const problem = !email.trim()
+      ? 'Bitte eine E-Mail-Adresse angeben.'
+      : password.length < MIN_PASSWORD
+        ? `Das Startpasswort muss mindestens ${MIN_PASSWORD} Zeichen lang sein.`
+        : roles.length === 0
+          ? 'Bitte mindestens eine Rolle wählen.'
+          : '';
+    if (problem) {
+      setError(problem);
       return;
     }
     setError('');
     create.mutate(
-      { email, password },
+      { email, password, roles },
       {
         onSuccess: (u) => {
           setEmail('');
           setPassword('');
+          setRoles([]);
           onNotice(`Konto ${u.email} angelegt. Teilen Sie das Startpasswort auf einem sicheren Weg mit.`);
         },
-        onError: (e) => setError(e instanceof ApiError && e.status < 500 ? e.message : 'Anlegen ist gerade nicht möglich.'),
+        onError: (e) => setError(failure(e, 'Anlegen ist gerade nicht möglich.')),
       },
     );
   };
@@ -180,6 +229,21 @@ function NewUserForm({ onNotice }: { onNotice: (s: string) => void }) {
             Mindestens {MIN_PASSWORD} Zeichen.
           </span>
         </div>
+        <fieldset className="field roles-field">
+          <legend>Rollen</legend>
+          <div className="checks">
+            {ROLES.map(({ role, label }) => (
+              <label className="check" key={role}>
+                <input
+                  type="checkbox"
+                  checked={roles.includes(role)}
+                  onChange={(e) => setRoles((rs) => (e.target.checked ? [...rs, role] : rs.filter((r) => r !== role)))}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <div className="inline-form-actions">
           <button type="submit" className="btn btn-primary press" disabled={create.isPending}>
             Konto anlegen

@@ -90,8 +90,5 @@ export const useLogout = () => {
   });
 };
 
-/** Startseite nach der Anmeldung (Anforderung 6): Beitragsliste für die Redaktion, Benutzerverwaltung für Admins. */
-export const homeFor = (role: Role) => (role === 'admin' ? '/benutzer' : '/');
-
-export const canEdit = (role: Role) => role === 'editor' || role === 'admin';
-export const canManageUsers = (role: Role) => role === 'admin';
+// Rechte und Startseite je Rolle (Ticket #64)
+export { can, homeFor } from '../lib/permissions';

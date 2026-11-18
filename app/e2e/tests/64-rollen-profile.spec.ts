@@ -414,7 +414,7 @@ test.describe('Profil', () => {
 
         await page.goto('/redaktion/profil');
         await expect(page.getByRole('heading', { name: 'Profil', level: 1 })).toBeVisible();
-        await expect(page.getByText(email)).toBeVisible();
+        await expect(page.locator('main').getByText(email)).toBeVisible();
         await expect(page.getByRole('checkbox')).toHaveCount(0); // keine Rollenzuweisung im Profil
 
         const name = `Mobil ${uid()}`;

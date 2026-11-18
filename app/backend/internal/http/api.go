@@ -134,7 +134,24 @@ func (s *apiServer) GetPost(ctx context.Context, req api.GetPostRequestObject) (
 		PublishedAt: sum.PublishedAt, Featured: sum.Featured, Topics: sum.Topics,
 		Translations: sum.Translations, Cover: sum.Cover,
 		BodyMarkdown: p.BodyMarkdown, ReadingMinutes: p.ReadingMinutes, UpdatedAt: p.UpdatedAt,
+		Author: toPostAuthor(p.Author),
 	}, nil
+}
+
+// toPostAuthor liefert die öffentlichen Autorendaten ohne E-Mail-Adresse (Ticket #64).
+func toPostAuthor(a *service.PostAuthor) *api.PostAuthor {
+	if a == nil {
+		return nil
+	}
+	return &api.PostAuthor{Name: a.Name, Avatar: toAvatar(a.Avatar)}
+}
+
+// toAvatar liefert die Variante 480 px eines Profilbilds.
+func toAvatar(a *service.Avatar) *api.Avatar {
+	if a == nil {
+		return nil
+	}
+	return &api.Avatar{Src: media.URL(a.Key, a.MimeType, "480"), Width: a.Width, Height: a.Height}
 }
 
 func (s *apiServer) GetAudit(_ context.Context, req api.GetAuditRequestObject) (api.GetAuditResponseObject, error) {
