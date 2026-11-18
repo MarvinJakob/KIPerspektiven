@@ -59,7 +59,8 @@ test('REQ-45-AC1: Freigabe über HTTP mit offenen, behobenen und erneut geöffne
 test('REQ-45-AC2: Unit- und Fidelity-Prüfungen sind vor Installation verpflichtend', () => {
   const workflow = readFileSync(new URL('../.github/workflows/merge-gate.yml',import.meta.url),'utf8');
   assert.match(workflow,/node --test/);
-  assert.match(workflow,/go test/);
+  const dockerfile = readFileSync(new URL('../app/Dockerfile',import.meta.url),'utf8');
+  assert.match(dockerfile,/^RUN CGO_ENABLED=0 go test \.\/\.\.\.$/m);
   assert.match(workflow,/npx playwright test/);
   const check = workflow.indexOf('node tools/release-blockers.mjs');
   assert.ok(check > workflow.indexOf('id: previous') && check < workflow.indexOf('id: install'));

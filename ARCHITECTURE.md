@@ -55,7 +55,7 @@ Redaktionelle Endpunkte unter `/api/admin/*` verlangen eine gültige Sitzung und
 
 Der Docker-Build kompiliert beide React-Anwendungen mit Vite und bettet ihre Ausgaben in das Go-Binary ein. Das Laufzeitimage startet den Server als unprivilegierter Benutzer. Für die lokale Entwicklung sind Build und Start mit Testdaten in der Anwendungs-README beschrieben. [Dockerfile](app/Dockerfile) · [Anwendungs-README](app/README.md)
 
-Bei Pull Requests und Pushes auf `main` laufen die Unit-Tests für Backend und Prozesswerkzeuge. Beide Frontends führen beim Image-Build vorhandene `test:unit`-Paketskripte aus. Playwright prüft API und Browser gegen das gebaute Image mit Testdaten. Das Gate veröffentlicht Testbericht und Nachweis für den geprüften Git-Tree. [Merge Gate](.github/workflows/merge-gate.yml) · [Entwicklungsprozess](AGENTS.md)
+Der Branch-Schutz verlangt vor dem Merge einen aktuellen Pull Request und den erfolgreichen Check `Merge Gate`. Bei Pull Requests und Pushes auf `main` laufen die Unit-Tests für die Prozesswerkzeuge und beim Image-Build die Go-Unit-Tests für das Backend. Beide Frontends führen beim Image-Build vorhandene `test:unit`-Paketskripte aus. Playwright prüft API und Browser gegen das gebaute Image mit Testdaten. Das Gate veröffentlicht Testbericht und Nachweis für den geprüften Git-Tree. [Merge Gate](.github/workflows/merge-gate.yml) · [Entwicklungsprozess](AGENTS.md)
 
 ## 7 Auslieferung
 
