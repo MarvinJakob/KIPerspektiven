@@ -55,12 +55,16 @@ test.describe('Zeitpunkt im Editor', () => {
 });
 
 test('REQ-84-AC2 AC3 AC4: Geänderte Minute gilt öffentlich, aufgehobener Termin bleibt verborgen', async ({ editor, posts, request, page }) => {
-  test.setTimeout(150_000);
+  // Die Zeitregeln (Minute, Termin als Datum, geänderter und aufgehobener Termin) prüfen mit gesteuerter Uhr die Go-Tests
+  // in app/backend/internal/service/editorial_test.go. Hier zählt der reguläre Betrieb: Der Hintergrundjob läuft alle 15 s.
+  // Ein Termin wenige Sekunden in der Zukunft genügt dafür; das Warten auf eine volle Minute kostete bis zu 75 s (#94).
+  test.setTimeout(90_000); // Ein nicht übernommener geänderter Termin soll an der Sichtbarkeitsprüfung scheitern, nicht am Testzeitlimit.
   const topic = 'softwareentwicklung';
   const makePost = () => posts.create({ texts: [fullText('de', uid()), fullText('en', uid())], topics: [topic] });
   const post = await makePost();
   const cancelled = await makePost();
-  const due = Math.ceil((Date.now() + 15_000) / 60_000) * 60_000;
+  // Ganze Sekunde mit 5 s Vorlauf für die Prüfungen vor dem Termin; der Server speichert Termine sekundengenau.
+  const due = Math.ceil((Date.now() + 5_000) / 1_000) * 1_000;
   const schedule = async (id: number, time: number) => {
     const response = await editor.send('PUT', `/api/admin/posts/${id}/schedule`, { publishAt: new Date(time).toISOString() });
     expect(response.status(), await response.text()).toBe(200);
@@ -79,6 +83,7 @@ test('REQ-84-AC2 AC3 AC4: Geänderte Minute gilt öffentlich, aufgehobener Termi
       expect((await request.get(path)).status()).toBe(404);
     }
   }
+  expect(Date.now(), 'Prüfungen vor dem Termin abgeschlossen').toBeLessThan(due);
   await expect.poll(async () => (await request.get(`/api/posts/${post.slug}?lang=de`)).status(), {
     timeout: due + 60_000 - Date.now(), intervals: [1000],
   }).toBe(200);
