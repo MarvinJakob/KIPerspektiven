@@ -204,10 +204,11 @@ svg { display: block; }
 
 .ed-header { position: sticky; top: 0; z-index: 50; padding: max(12px, env(safe-area-inset-top)) 12px 0; }
 .ed-bar {
-  width: min(1120px, 100%); height: var(--header-h); margin-inline: auto;
-  display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: var(--radius-pill);
+  width: min(1120px, 100%); min-height: var(--header-h); margin-inline: auto;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px; border-radius: var(--radius-l);
 }
 .ed-bar .brand-mark { width: 32px; height: 32px; }
+.ed-bar .nav-main { flex: 1 1 22rem; min-width: 0; flex-wrap: wrap; justify-content: center; }
 .ed-user { display: grid; justify-items: end; max-width: 240px; padding-inline: 8px; font-size: .8125rem; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ed-role { color: var(--text-2); font-weight: 500; }
 .nav-btn.active { background: var(--fill-active); }
