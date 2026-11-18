@@ -82,7 +82,7 @@ test('REQ-64-AC1 REQ-64-AC2: Admin legt Konto mit mehreren Rollen an; Anmeldung 
 });
 
 test('REQ-64-AC1 REQ-64-AC2: leere, ungültige oder belegte Adresse und fehlende Rolle legen kein Konto an', async ({ admin }) => {
-  const before = (await users(admin)).length;
+  const before = await users(admin);
   const cases: [unknown, number][] = [
     [{ email: '', password: PASSWORD, roles: ['editor'] }, 422],
     [{ email: 'anna.example.org', password: PASSWORD, roles: ['editor'] }, 422],
@@ -95,7 +95,12 @@ test('REQ-64-AC1 REQ-64-AC2: leere, ungültige oder belegte Adresse und fehlende
     expect(res.status(), JSON.stringify(data)).toBe(status);
     expect(((await res.json()) as { message: string }).message.length, JSON.stringify(data)).toBeGreaterThan(0);
   }
-  expect((await users(admin)).length).toBe(before);
+  // Parallel laufende Tests legen eigene Konten an; geprüft werden die Adressen dieses Tests.
+  const after = await users(admin);
+  for (const [data] of cases) {
+    const e = String((data as { email: string }).email).trim().toLowerCase();
+    expect(after.filter((u) => u.email === e).length, e).toBe(before.filter((u) => u.email === e).length);
+  }
 });
 
 test('REQ-64-AC1: ohne Admin-Rolle ist die Benutzerverwaltung über die API gesperrt', async ({ request, editor, marketing, admin }) => {
@@ -277,9 +282,24 @@ test('REQ-64-AC10: bestehende Testkonten melden sich an und behalten ihre Rolle'
 // Oberfläche
 // ---------------------------------------------------------------------------
 
+/**
+ * Sendet ein Formular mit Passwortprüfung ab und wiederholt es, solange das Backend wegen paralleler Argon2-Prüfungen
+ * „ausgelastet“ meldet (503, Ticket #138). Das ist gewolltes Verhalten unter Last, kein Fehler dieses Tickets.
+ */
+async function submitWithRetry(page: import('@playwright/test').Page, path: string, submit: () => Promise<void>) {
+  for (let i = 0; ; i++) {
+    const res = page.waitForResponse((r) => new URL(r.url()).pathname === path && r.request().method() !== 'GET');
+    await submit();
+    if ((await res).status() !== 503 || i >= 10) return;
+    await page.waitForTimeout(1000);
+  }
+}
+
 const NAV = ['Beiträge', 'Statistik', 'Beratungsanfragen', 'Nachrichten', 'Benutzer', 'Profil'];
 async function navLinks(page: import('@playwright/test').Page) {
   const nav = page.getByRole('navigation', { name: 'Redaktion' });
+  // Profil steht für jedes Konto in der Navigation: erst danach ist sie vollständig gerendert.
+  await nav.getByRole('link', { name: 'Profil', exact: true }).waitFor();
   const out: string[] = [];
   for (const name of NAV) if ((await nav.getByRole('link', { name, exact: true }).count()) > 0) out.push(name);
   return out;
@@ -321,7 +341,7 @@ test('REQ-64-AC5: Marketing landet nach der Anmeldung auf der Statistik', async 
   await page.goto('/redaktion/anmelden');
   await page.getByLabel('E-Mail-Adresse').fill(ACCOUNTS.marketing.email);
   await page.getByLabel('Passwort', { exact: true }).fill(ACCOUNTS.marketing.password);
-  await page.getByRole('button', { name: 'Anmelden' }).click();
+  await submitWithRetry(page, '/api/auth/login', () => page.getByRole('button', { name: 'Anmelden' }).click());
   await expect(page).toHaveURL(/\/redaktion\/statistik$/);
 });
 
@@ -409,7 +429,7 @@ test.describe('Profil', () => {
         await page.goto('/redaktion/anmelden');
         await page.getByLabel('E-Mail-Adresse').fill(email);
         await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
-        await page.keyboard.press('Enter');
+        await submitWithRetry(page, '/api/auth/login', () => page.keyboard.press('Enter'));
         await expect(page).toHaveURL(/\/redaktion\/statistik$/);
 
         await page.goto('/redaktion/profil');
@@ -436,10 +456,10 @@ test.describe('Profil', () => {
 
         await page.getByLabel('Aktuelles Passwort').fill('falsches-passwort');
         await page.getByLabel('Neues Passwort').fill('neues-passwort-64');
-        await page.getByLabel('Neues Passwort').press('Enter');
+        await submitWithRetry(page, '/api/profile/password', () => page.getByLabel('Neues Passwort').press('Enter'));
         await expect(page.getByRole('alert').filter({ hasText: /aktuelle Passwort/ })).toBeVisible();
         await page.getByLabel('Aktuelles Passwort').fill(PASSWORD);
-        await page.getByLabel('Neues Passwort').press('Enter');
+        await submitWithRetry(page, '/api/profile/password', () => page.getByLabel('Neues Passwort').press('Enter'));
         await expect(page.getByRole('status').filter({ hasText: 'Passwort geändert.' })).toBeVisible();
 
         await page.reload();

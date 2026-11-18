@@ -44,6 +44,9 @@ const touch = async (reveal: Locator, type: 'pointerdown' | 'pointerup' | 'point
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/redaktion/benutzer');
+  // Erst nach dem Laden der Kontenliste steht das Formular an seiner endgültigen Position. Sonst treffen
+  // Mausaktionen auf Koordinaten des Icons womöglich eine Schaltfläche der nachgeladenen Liste (#64).
+  await expect(page.getByRole('table')).toBeVisible();
 });
 
 test('REQ-6-AC1: getipptes und eingefügtes Startpasswort erscheint nur maskiert', async ({ page }) => {
@@ -171,10 +174,12 @@ test('REQ-6-AC5: wiederholtes Betätigen ändert den Wert nicht und sendet nicht
   await expect(page.getByRole('status')).toBeEmpty();
   expect(sent, 'Betätigen des Icons sendet das Formular nicht ab').toHaveLength(0);
 
+  // Seit #64 braucht ein neues Konto mindestens eine Rolle (REQ-64-AC1).
+  await page.getByRole('group', { name: 'Rollen', exact: true }).getByLabel('Redakteur').check();
   await page.getByRole('button', { name: 'Konto anlegen' }).click();
   await expect(page.getByRole('status')).toContainText(`Konto ${email} angelegt.`);
   expect(sent).toHaveLength(1);
-  expect(JSON.parse(sent[0])).toEqual({ email, password: PASSWORD });
+  expect(JSON.parse(sent[0])).toEqual({ email, password: PASSWORD, roles: ['editor'] });
   const res = await login(email, PASSWORD);
   expect(res.status, 'neues Konto meldet sich mit dem eingegebenen Passwort an').toBe(200);
   await expect(password).toHaveValue('');
@@ -197,6 +202,8 @@ test('REQ-6-AC6: leeres Feld bleibt leer; Validierungsfehler und Eingaben bleibe
   const address = `kurz.${uid()}@example.test`;
   await email.fill(address);
   await password.fill('kurz');
+  // Seit #64 braucht ein neues Konto mindestens eine Rolle (REQ-64-AC1).
+  await page.getByRole('group', { name: 'Rollen', exact: true }).getByLabel('Redakteur').check();
   await page.getByRole('button', { name: 'Konto anlegen' }).click();
   const error = page.getByRole('alert').filter({ hasText: 'mindestens 10 Zeichen' });
   await expect(error).toBeVisible();
