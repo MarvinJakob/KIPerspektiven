@@ -10,7 +10,9 @@ import { LangContext, type Lang } from '../lib/lang';
 import { SoftwareDevelopment } from './SoftwareDevelopment';
 
 // Anforderung #57: Verfügbaren Platz auf dem Desktop in allen Themenartikeln besser nutzen.
-// Unit-Ebene: Aufbau und Gestaltungsregeln. Fidelity im Browser: app/e2e/tests/57-themenartikel-breite.spec.ts.
+// Anforderung #66: Überschrift und Zitat in den Lesefluss integrieren (ersetzt REQ-57-AC2 für „Softwareentwicklung“).
+// Unit-Ebene: Aufbau und Gestaltungsregeln. Fidelity im Browser: app/e2e/tests/57-themenartikel-breite.spec.ts und
+// app/e2e/tests/66-softwareentwicklung-lesefluss.spec.ts.
 
 function render(lang: Lang) {
   const t = ((key: string) => key) as unknown as TFunction;
@@ -42,31 +44,47 @@ const readingOrder = (lang: Lang) => {
 };
 
 describe.each(['de', 'en'] as const)('Softwareentwicklung %s', (lang) => {
-  it('REQ-57-AC2: Abschnitte mit Titel trennen Titelspalte und Lesespalte', () => {
-    const article = render(lang);
-    for (const id of ['moderne-softwareentwicklung', 'der-weg']) {
-      const section = article.querySelector(`section[aria-labelledby="${id}"]`)!;
-      expect(section.classList.contains('article-split'), `${id}: zweispaltiger Abschnitt`).toBe(true);
-      const [head, body] = [...section.children];
-      expect(head.classList.contains('article-split-head') && head.querySelector(`h2#${id}`), `${id}: Titel in der Titelspalte`).toBeTruthy();
-      expect(body.classList.contains('article-split-body'), `${id}: Lesespalte`).toBe(true);
-      expect(head.querySelector('p'), `${id}: kein Fließtext in der Titelspalte`).toBeNull();
-      expect(section.querySelectorAll('p').length, `${id}: Fließtext`).toBe(body.querySelectorAll('p').length);
-    }
+  const c = softwareDevelopment[lang];
+
+  it('REQ-66-AC1: Zwischenüberschrift steht im Abschnitt direkt über dem Einleitungsabsatz', () => {
+    const section = render(lang).querySelector('section[aria-labelledby="moderne-softwareentwicklung"]')!;
+    const [heading, lead] = [...section.children];
+    expect(heading.matches('h2#moderne-softwareentwicklung'), 'erstes Element des Abschnitts ist die Zwischenüberschrift').toBe(true);
+    expect(heading.textContent).toBe(c.modernTitle);
+    expect(lead.tagName, 'Einleitungsabsatz folgt unmittelbar auf die Überschrift').toBe('P');
+    expect(lead.textContent).toBe(c.modern[0]);
   });
 
-  it('REQ-57-AC2: Abschnitte ohne Titel und beide Grafiken stehen in der Lesespalte', () => {
+  it('REQ-66-AC2: Zitat mit Zuschreibung steht nach der Einleitung und unmittelbar vor dem Absatz „Der Weg“', () => {
     const article = render(lang);
-    for (const id of ['drei-teams', 'release-gate']) {
-      const section = article.querySelector(`section#${id}`)!;
-      expect(section.classList.contains('article-split'), id).toBe(true);
-      expect([...section.children].map((e) => e.className), id).toEqual(['article-split-body']);
-      expect(section.querySelectorAll('.article-split-body > figure.article-figure > img[alt]').length, `${id}: Grafik in der Lesespalte`).toBe(1);
-    }
-    expect(article.querySelectorAll('figure').length).toBe(2);
+    const quote = article.querySelector('#der-weg')!;
+    expect(quote.textContent!.replace(/\s+/g, ' '), 'Zitat, dann Zuschreibung im selben Element').toContain(`${c.wayTitle}${c.wayAuthor}`);
+    const paragraphs = [...article.querySelectorAll('p')];
+    const intro = paragraphs.find((p) => p.textContent === c.modern[1])!;
+    const way = paragraphs.find((p) => p.textContent === c.way)!;
+    expect(intro.compareDocumentPosition(quote) & Node.DOCUMENT_POSITION_FOLLOWING, 'Zitat nach dem letzten Einleitungsabsatz').toBeTruthy();
+    expect(quote.nextElementSibling, 'Absatz „Der Weg“ folgt unmittelbar auf das Zitat').toBe(way);
   });
 
-  it('REQ-57-AC4: Inhalte behalten ihre Lesereihenfolge', () => {
+  it('REQ-66-AC3: Artikelabschnitte haben keine eigene Titel- oder Lesespalte', () => {
+    const article = render(lang);
+    const sections = [...article.querySelectorAll(':scope > section:not(.opinion)')];
+    // Moderne Softwareentwicklung, Der Weg, Drei Teams, Release Gate
+    expect(sections.length).toBe(4);
+    for (const section of sections) {
+      const name = section.getAttribute('aria-labelledby') ?? section.id;
+      expect(section.querySelectorAll(':scope > div').length, `${name}: keine Spaltencontainer`).toBe(0);
+      for (const p of section.querySelectorAll('p')) expect(p.parentElement, `${name}: Absatz direkt im Abschnitt`).toBe(section);
+      for (const cls of section.classList) {
+        const rule = declarations(css, `.${cls}`);
+        expect(rule['grid-template-columns'], `${name}: .${cls} ohne Spaltenraster`).toBeUndefined();
+        expect(rule['max-width'], `${name}: .${cls} ohne Breitenbegrenzung`).toBeUndefined();
+      }
+    }
+    expect(article.querySelectorAll('section > figure.article-figure > img[alt]').length, 'beide Grafiken im Lesefluss').toBe(2);
+  });
+
+  it('REQ-57-AC4 / REQ-66-AC4: Inhalte behalten ihre Lesereihenfolge', () => {
     const text = (render(lang).textContent ?? '').replace(/\s+/g, ' ');
     let from = 0;
     for (const part of readingOrder(lang)) {
@@ -77,28 +95,17 @@ describe.each(['de', 'en'] as const)('Softwareentwicklung %s', (lang) => {
   });
 });
 
-describe('REQ-57-AC1/AC2: Gestaltungsregeln der Themenartikel', () => {
+describe('REQ-57-AC1 / REQ-66-AC3: Gestaltungsregeln der Themenartikel', () => {
   it('der Artikel nutzt den vollen Inhaltsrahmen statt einer 760-px-Spalte', () => {
     const layout = declarations(css, '.article-layout');
     expect(layout['grid-template-columns'] ?? 'none').not.toMatch(/760px/);
     expect(layout['max-width'] ?? 'none').toBe('none');
   });
 
-  it('Desktop: Titelspalte und Lesespalte im Verhältnis 5 : 7 wie „Vibe Coding“, Lesespalte höchstens 760 px', () => {
-    const split = declarations(css, '.article-split');
-    expect(split.display).toBe('grid');
-    expect(split['grid-template-columns']).toBe(declarations(vcCss, '.vc-split')['grid-template-columns']);
-    expect(split.gap).toBe(declarations(vcCss, '.vc-split').gap);
-    const max = /^(\d+)px$/.exec(declarations(css, '.article-split-body')['max-width'] ?? '');
-    expect(max, 'max-width der Lesespalte').not.toBeNull();
-    expect(Number(max![1])).toBeLessThanOrEqual(760);
-    expect(declarations(css, '.article-split-body')['grid-column']).toBe('2');
-  });
-
-  it('bis 850 px: eine Spalte in Dokumentreihenfolge', () => {
-    const narrow = declarations(css, '.article-split', '(max-width: 850px)');
-    expect(narrow['grid-template-columns']).toBe('1fr');
-    expect(declarations(css, '.article-split-body', '(max-width: 850px)')['grid-column']).toBe('auto');
+  it('Fließtext der Artikelabschnitte ist nicht auf eine Lesespalte begrenzt', () => {
+    expect(declarations(css, '.article-body')['max-width']).toBeUndefined();
+    expect(declarations(css, '.article-body p')['max-width']).toBeUndefined();
+    expect(css, 'keine Regeln für Titel- und Lesespalte mehr').not.toMatch(/\.article-split/);
   });
 });
 
