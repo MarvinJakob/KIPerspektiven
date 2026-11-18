@@ -153,6 +153,10 @@ export const en: Messages = {
     sentTitle: 'Thank you for your message',
     sent: 'Your message has been received. We will reply by email to {{email}}.',
     another: 'Write another message',
+    // Requirement #77: remaining length and notice for truncated pastes in the message field.
+    remaining_one: '{{count}} character remaining',
+    remaining_other: '{{count}} characters remaining',
+    truncated: 'The pasted text was shortened because a message can be at most 5,000 characters long.',
   },
   footer: {
     tagline: 'Perspectives and experiences around artificial intelligence.',
