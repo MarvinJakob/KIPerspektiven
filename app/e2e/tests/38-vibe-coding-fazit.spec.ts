@@ -38,14 +38,15 @@ for (const vp of VIEWPORTS) {
           return after;
         });
         expect(trailing, `${lang}: Elemente nach dem Fazit`).toEqual([]);
-        // Zwischen Fazit und Seitenfuß bleibt nur der übliche Abstand, kein Raum für die Karten (früher ≥ 150 px).
-        const gap = await page.evaluate(() => {
+        // Zwischen Fazit und Seitenfuß bleibt nur der reguläre Abstand des Seitenfußes (margin-top),
+        // kein zusätzlicher Raum für die Karten.
+        const { gap, regular } = await page.evaluate(() => {
           const c = document.querySelector('section[aria-labelledby="vc-conclusion-title"]')!.getBoundingClientRect();
-          const f = document.querySelector('footer.site-footer')!.getBoundingClientRect();
-          return f.top - c.bottom;
+          const footer = document.querySelector('footer.site-footer')!;
+          return { gap: footer.getBoundingClientRect().top - c.bottom, regular: parseFloat(getComputedStyle(footer).marginTop) };
         });
         expect(gap, `${lang}: Abstand Fazit → Seitenfuß in px`).toBeGreaterThanOrEqual(0);
-        expect(gap, `${lang}: Abstand Fazit → Seitenfuß in px`).toBeLessThanOrEqual(80);
+        expect(gap, `${lang}: Abstand Fazit → Seitenfuß in px (regulär ${regular} px)`).toBeLessThanOrEqual(regular + 1);
       }
     });
   });

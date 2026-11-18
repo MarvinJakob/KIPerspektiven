@@ -7,7 +7,7 @@ export const vibeCoding: Record<Lang, {
   conclusion: string[]; conclusionTitle: string; conclusionLabel: string;
   home: string; topics: string; breadcrumb: string; introLabel: string;
   harnessDiagram: { alt: string; open: string };
-  example: string; storyLabel: string; formLabel: string; readMore: string; allTopics: string; readiness: string;
+  example: string; storyLabel: string; formLabel: string;
 }> = {
   "de": {
     "subtitle": "Willkommen beim Vibe Coding: Dem einfachsten Weg, SLOP zu erzeugen.",
@@ -77,10 +77,7 @@ export const vibeCoding: Record<Lang, {
     },
     "example": "Im Beispiel",
     "storyLabel": "Stell dir vor",
-    "formLabel": "In unserem Formular",
-    "readMore": "Weiterlesen",
-    "allTopics": "Zur Themenübersicht",
-    "readiness": "KI Readiness einschätzen"
+    "formLabel": "In unserem Formular"
   },
   "en": {
     "subtitle": "Welcome to Vibe Coding: The easiest way to generate SLOP.",
@@ -150,9 +147,6 @@ export const vibeCoding: Record<Lang, {
     },
     "example": "An example",
     "storyLabel": "Imagine this",
-    "formLabel": "In our form",
-    "readMore": "Read on",
-    "allTopics": "Back to the topic overview",
-    "readiness": "Assess your AI Readiness"
+    "formLabel": "In our form"
   }
 };
