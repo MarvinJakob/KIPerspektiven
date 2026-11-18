@@ -243,6 +243,36 @@ func (q *Queries) DeleteConsultationRequest(ctx context.Context, id int64) (int6
 	return result.RowsAffected()
 }
 
+const deleteConsultationRequestIfUnchanged = `-- name: DeleteConsultationRequestIfUnchanged :execrows
+DELETE FROM consultation_requests WHERE id = ? AND requested_at = ?
+`
+
+type DeleteConsultationRequestIfUnchangedParams struct {
+	ID          int64
+	RequestedAt string
+}
+
+// Loescht nur, wenn die Anfrage seit der Auswahl nicht erneut gesendet wurde (neuer Fristbeginn).
+func (q *Queries) DeleteConsultationRequestIfUnchanged(ctx context.Context, arg DeleteConsultationRequestIfUnchangedParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteConsultationRequestIfUnchanged, arg.ID, arg.RequestedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteContactMessage = `-- name: DeleteContactMessage :execrows
+DELETE FROM contact_messages WHERE id = ?
+`
+
+func (q *Queries) DeleteContactMessage(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteContactMessage, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteExpiredSessions = `-- name: DeleteExpiredSessions :execrows
 DELETE FROM sessions WHERE expires_at <= ?
 `
@@ -975,6 +1005,39 @@ func (q *Queries) ListConsultationRequests(ctx context.Context) ([]ConsultationR
 	return items, nil
 }
 
+const listConsultationRequestsBefore = `-- name: ListConsultationRequestsBefore :many
+SELECT id, requested_at FROM consultation_requests WHERE requested_at <= ? ORDER BY id
+`
+
+type ListConsultationRequestsBeforeRow struct {
+	ID          int64
+	RequestedAt string
+}
+
+// Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
+func (q *Queries) ListConsultationRequestsBefore(ctx context.Context, requestedAt string) ([]ListConsultationRequestsBeforeRow, error) {
+	rows, err := q.db.QueryContext(ctx, listConsultationRequestsBefore, requestedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListConsultationRequestsBeforeRow{}
+	for rows.Next() {
+		var i ListConsultationRequestsBeforeRow
+		if err := rows.Scan(&i.ID, &i.RequestedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listContactMessages = `-- name: ListContactMessages :many
 SELECT id, name, company, email, message, lang, received_at FROM contact_messages ORDER BY received_at DESC, id DESC
 `
@@ -997,6 +1060,39 @@ func (q *Queries) ListContactMessages(ctx context.Context) ([]ContactMessage, er
 			&i.Lang,
 			&i.ReceivedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listContactMessagesBefore = `-- name: ListContactMessagesBefore :many
+SELECT id, received_at FROM contact_messages WHERE received_at <= ? ORDER BY id
+`
+
+type ListContactMessagesBeforeRow struct {
+	ID         int64
+	ReceivedAt string
+}
+
+// Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
+func (q *Queries) ListContactMessagesBefore(ctx context.Context, receivedAt string) ([]ListContactMessagesBeforeRow, error) {
+	rows, err := q.db.QueryContext(ctx, listContactMessagesBefore, receivedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListContactMessagesBeforeRow{}
+	for rows.Next() {
+		var i ListContactMessagesBeforeRow
+		if err := rows.Scan(&i.ID, &i.ReceivedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

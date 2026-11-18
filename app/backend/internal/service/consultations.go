@@ -18,10 +18,14 @@ type ConsultationRequest struct {
 
 // Consultations nimmt Anfragen für ein kostenloses Beratungsgespräch nach der Selbsteinschätzung an und stellt
 // sie der Redaktion bereit (Ticket #136, ADR 0011). Gespeichert werden nur E-Mail-Adresse, Sprache und
-// Zeitpunkt. Die Redaktion löscht eine Anfrage, sobald der Termin abgestimmt ist.
+// Zeitpunkt. Die Redaktion löscht eine Anfrage, sobald der Termin abgestimmt ist; spätestens sechs Monate nach
+// der letzten Anfrage löscht die Anwendung sie automatisch (Ticket #90, retention.go).
 type Consultations struct {
 	q   *store.Queries
 	now func() time.Time
+
+	// afterSelect läuft in Tests zwischen Auswahl und Löschung fälliger Anfragen (Ticket #90).
+	afterSelect func()
 }
 
 // NewConsultations erzeugt den Dienst.

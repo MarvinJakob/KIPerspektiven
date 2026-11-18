@@ -30,6 +30,12 @@ describe('Rechte je Rolle', () => {
   });
 });
 
+describe('Kontaktnachrichten löschen (Ticket #90)', () => {
+  it('REQ-90-AC2: Marketing und Admin löschen Nachrichten, der Redakteur allein nicht', () => {
+    expect([editor, marketing, both, admin].map((roles) => can(roles, 'deleteContactMessages'))).toEqual([false, true, true, true]);
+  });
+});
+
 describe('Startseite und Rollenbezeichnung', () => {
   it('führt Admin zur Benutzerverwaltung, Redakteure zu den Beiträgen und Marketing zur Statistik', () => {
     expect(homeFor(admin)).toBe('/benutzer');

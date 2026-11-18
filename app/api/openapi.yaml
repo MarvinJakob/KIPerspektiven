@@ -1165,6 +1165,28 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /api/admin/contact-messages/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    delete:
+      operationId: adminDeleteContactMessage
+      summary: Nachricht der Kontaktseite löschen
+      description: |
+        Ticket #90. Löscht eine Nachricht sofort, etwa auf Wunsch der absendenden Person. Erlaubt für die Rollen
+        `marketing` und `admin`, die die Nachrichten lesen. Unabhängig davon löscht die Anwendung jede Nachricht
+        automatisch spätestens sechs Monate nach Eingang.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '204':
+          description: Gelöscht
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/admin/consultation-requests:
     get:
       operationId: adminListConsultationRequests

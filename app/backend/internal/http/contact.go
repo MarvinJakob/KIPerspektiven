@@ -63,3 +63,17 @@ func (s *apiServer) AdminListContactMessages(ctx context.Context, _ api.AdminLis
 	}
 	return api.AdminListContactMessages200JSONResponse{Items: items}, nil
 }
+
+// AdminDeleteContactMessage löscht eine Nachricht sofort (Ticket #90). Sitzung, Rolle und CSRF-Token prüft guard.
+func (s *apiServer) AdminDeleteContactMessage(ctx context.Context, req api.AdminDeleteContactMessageRequestObject) (api.AdminDeleteContactMessageResponseObject, error) {
+	err := s.contact.Delete(ctx, req.Id)
+	if errors.Is(err, service.ErrNotFound) {
+		return api.AdminDeleteContactMessage404JSONResponse{NotFoundJSONResponse: api.NotFoundJSONResponse{Message: "Nachricht nicht gefunden."}}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	// Nur die ID: Das Protokoll enthält keine personenbezogenen Daten (ARCHITECTURE.md, Abschnitt 10).
+	s.log.Info("kontaktnachricht gelöscht", "id", req.Id)
+	return api.AdminDeleteContactMessage204Response{}, nil
+}

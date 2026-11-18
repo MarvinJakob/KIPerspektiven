@@ -28,6 +28,9 @@ func TestREQ64APIRechteJePfad(t *testing.T) {
 		{call{"GET", "/api/admin/statistics/page-views"}, []service.Roles{marketing, both, admin}},
 		{call{"GET", "/api/admin/statistics/readiness-results"}, []service.Roles{marketing, both, admin}},
 		{call{"GET", "/api/admin/contact-messages"}, []service.Roles{marketing, both, admin}},
+		// REQ-90-AC2: Kontaktnachrichten löschen, wer sie lesen darf (Entscheidung vom 18.11.2026).
+		{call{"DELETE", "/api/admin/contact-messages/3"}, []service.Roles{marketing, both, admin}},
+		{call{"POST", "/api/admin/contact-messages"}, nil},
 		{call{"GET", "/api/admin/consultation-requests"}, []service.Roles{marketing, both, admin}},
 		{call{"DELETE", "/api/admin/consultation-requests/3"}, []service.Roles{admin}},
 		{call{"GET", "/api/admin/users"}, []service.Roles{admin}},
