@@ -1,4 +1,5 @@
 // Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/App.tsx
+// Probe #55: nur diese Spec geändert.
 import type { Locator, Page } from '@playwright/test';
 import { expect, expectNoHorizontalScroll, expectVisibleKeyboardFocus, test } from '../support/fixtures';
 
