@@ -17,6 +17,7 @@ const E2E = 'app/e2e';
 const SPEC = /^app\/e2e\/tests\/[^/]+\.spec\.ts$/;
 const TEST_FILE = /\.test\.[cm]?[jt]sx?$/;
 const CODE = /\.(?:[cm]?[jt]sx?|css)$/;
+const CADDY_CONFIG = ['app/deploy/Caddyfile', 'app/compose.yaml'];
 const EXTENSIONS = ['', '.ts', '.tsx', '.js', '.jsx', '.mjs', '/index.ts', '/index.tsx', '/index.js'];
 
 /** Änderungen an Pipeline oder Testauswahl prüfen die vollständige Suite. */
@@ -238,6 +239,11 @@ export function selectTests({ changed, files, read, all = false }) {
       rules.push('Fidelity-Infrastruktur');
       addE2e('all');
       tests.push('alle Specs');
+    } else if (CADDY_CONFIG.includes(file)) {
+      // Caddyfile und Caddy-Image prüft tools/caddy-log.test.mjs mit echtem Caddy (#80).
+      rules.push('Caddy-Konfiguration');
+      plan.process = true;
+      tests.push('tools/*.test.mjs');
     } else if (file.startsWith('tools/') || !file.includes('/')) {
       rules.push(file.startsWith('tools/') ? 'Prozesswerkzeug' : 'Repository-Dokument');
       plan.process = true;

@@ -178,6 +178,15 @@ test('REQ-55-AC2: nachvollziehbar testfreie Änderung wählt keine Tests', () =>
   assert.equal(plan.reasons.length, 4);
 });
 
+test('Bug #80: Caddyfile und compose.yaml wählen die Prozesstests mit dem Caddy-Protokolltest', () => {
+  const files = { ...repo, 'app/deploy/Caddyfile': ':80', 'app/compose.yaml': 'services: {}' };
+  for (const file of ['app/deploy/Caddyfile', 'app/compose.yaml']) {
+    const plan = select([file], files);
+    assert.deepEqual([plan.process, plan.backend, plan.e2e, plan.unresolved], [true, [], [], []], file);
+    assert.match(plan.reasons[0].rule, /Caddy-Konfiguration/);
+  }
+});
+
 test('REQ-55-AC2: Änderung an Pipeline oder Testauswahl führt zur vollständigen Suite', () => {
   for (const file of ['.github/workflows/merge-gate.yml', 'tools/affected-tests.mjs', 'tools/e2e-phases.mjs']) {
     const plan = select([file], { ...repo, 'tools/affected-tests.mjs': '', 'tools/e2e-phases.mjs': '' });

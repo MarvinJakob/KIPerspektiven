@@ -98,8 +98,10 @@ test('Bug #80 / REQ-74-AC3: Zugriffsprotokoll eines echten Abrufs enthält keine
   const file = join(dir, 'Caddyfile');
   writeFileSync(file, localCaddyfile(dir, backend.address().port));
   const caddy = spawn(CADDY, ['run', '--config', file, '--adapter', 'caddyfile'], { env: caddyEnv(port, adminPort), stdio: 'ignore' });
-  t.after(() => {
+  const exited = new Promise((r) => caddy.once('exit', r));
+  t.after(async () => {
     caddy.kill();
+    await exited; // Unter Windows hält Caddy die Protokolldatei bis zum Ende offen.
     backend.close();
     rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   });
