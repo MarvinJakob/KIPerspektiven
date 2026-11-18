@@ -291,6 +291,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Eigenes Profil mit Anzeigename und Profilbild
+         * @description Ticket #64. Für jedes angemeldete Konto. Es gibt nur das eigene Profil, keine Konto-ID.
+         */
+        get: operations["getProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Anzeigenamen ändern
+         * @description Ticket #64. Der Anzeigename wird getrimmt und darf höchstens 80 Zeichen haben; leer entfernt ihn.
+         *     Weitere Felder wie Rollen ignoriert das Backend. Änderungen erscheinen sofort in veröffentlichten Beiträgen.
+         */
+        patch: operations["updateProfile"];
+        trace?: never;
+    };
+    "/api/profile/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Eigenes Passwort ändern
+         * @description Ticket #64. Verlangt das aktuelle Passwort. Danach gilt nur noch das neue Passwort; andere Sitzungen des
+         *     Kontos enden, die aktuelle bleibt. Falsches aktuelles oder zu kurzes neues Passwort liefert `422`.
+         *     Fehlversuche zählen wie bei der Anmeldung je IP-Adresse (`429`).
+         */
+        put: operations["changePassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/profile/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Profilbild hochladen oder ersetzen
+         * @description Ticket #64. Wie beim Titelbild (Ticket #25) JPEG, PNG oder WebP bis 5 MB; das Backend kodiert neu und
+         *     vergibt den Dateinamen. Ungültige Dateien lehnt es mit `422` ab, das bisherige Bild bleibt dann erhalten.
+         */
+        put: operations["setProfileAvatar"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/authors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wählbare Autoren für Beiträge
+         * @description Ticket #64. Aktive Konten mit Rolle Redakteur oder Admin, sortiert nach Anzeigename und E-Mail-Adresse.
+         */
+        get: operations["adminListAuthors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/posts": {
         parameters: {
             query?: never;
@@ -362,6 +450,29 @@ export interface paths {
          * @description Entfernt das Titelbild samt Alternativtexten und Bilddateien. Die Beitragsseite zeigt wieder die Themengrafik.
          */
         delete: operations["adminDeletePostCover"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/posts/{id}/author": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Autor zuordnen oder entfernen
+         * @description Ticket #64. `authorId` ist ein aktives Konto mit Rolle Redakteur oder Admin (sonst `422`); `null` entfernt
+         *     die Zuordnung. Ein neuer Beitrag erhält beim Anlegen das anlegende Konto als Autor.
+         */
+        put: operations["adminSetPostAuthor"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -452,7 +563,7 @@ export interface paths {
          */
         get: operations["adminListUsers"];
         put?: never;
-        /** Redaktionskonto mit Rolle editor und Startpasswort anlegen */
+        /** Konto mit Rollen und Startpasswort anlegen */
         post: operations["adminCreateUser"];
         delete?: never;
         options?: never;
@@ -476,9 +587,11 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Konto deaktivieren oder reaktivieren
+         * Konto deaktivieren, reaktivieren oder Rollen ändern
          * @description Beim Deaktivieren löscht das Backend alle Sitzungen des Kontos in derselben Transaktion.
          *     Bereits geöffnete Sitzungen sind damit sofort ungültig. Das eigene Konto lässt sich nicht deaktivieren (`422`).
+         *     `roles` ersetzt die Rollen (Ticket #64): mindestens eine Rolle; einem Admin-Konto lässt sich die Rolle `admin`
+         *     nicht entziehen (`422`). Rollenänderungen gelten sofort für bestehende Sitzungen.
          */
         patch: operations["adminUpdateUser"];
         trace?: never;
@@ -535,7 +648,7 @@ export interface paths {
         };
         /**
          * Nachrichten der Kontaktseite, neueste zuerst
-         * @description Anforderung
+         * @description Anforderung #4. Seit Ticket #64 für die Rollen `marketing` und `admin`.
          */
         get: operations["adminListContactMessages"];
         put?: never;
@@ -555,7 +668,7 @@ export interface paths {
         };
         /**
          * Offene Anfragen für ein Beratungsgespräch, neueste zuerst
-         * @description Ticket
+         * @description Ticket #136. Seit Ticket #64 für die Rollen `marketing` und `admin`.
          */
         get: operations["adminListConsultationRequests"];
         put?: never;
@@ -580,7 +693,7 @@ export interface paths {
         post?: never;
         /**
          * Erledigte Anfrage löschen
-         * @description Ticket
+         * @description Ticket #136. Admins löschen eine Anfrage, sobald der Termin abgestimmt ist (seit Ticket #64 nur Rolle `admin`).
          */
         delete: operations["adminDeleteConsultationRequest"];
         options?: never;
@@ -663,12 +776,59 @@ export interface components {
             readingMinutes: number;
             /** Format: date-time */
             updatedAt: string;
+            author?: components["schemas"]["PostAuthor"];
         };
         /**
-         * @description `editor` verwaltet Beiträge, `admin` zusätzlich die Redaktionskonten
+         * @description Öffentliche Autorendaten (Ticket #64). Nur vorhanden, wenn der Beitrag einen Autor mit Anzeigenamen hat.
+         *     Enthält bewusst keine E-Mail-Adresse.
+         */
+        PostAuthor: {
+            name: string;
+            avatar?: components["schemas"]["Avatar"];
+        };
+        /** @description Profilbild in der Variante 480 px */
+        Avatar: {
+            src: string;
+            width: number;
+            height: number;
+        };
+        /**
+         * @description Ticket #64: `admin` darf alles einschließlich Benutzerverwaltung, `editor` (Redakteur) verwaltet Beiträge,
+         *     `marketing` liest Statistik, Nachrichten und Beratungsanfragen. Ein Konto hat mindestens eine Rolle.
          * @enum {string}
          */
-        Role: "editor" | "admin";
+        Role: "admin" | "editor" | "marketing";
+        Roles: components["schemas"]["Role"][];
+        Profile: {
+            email: string;
+            displayName: string;
+            roles: components["schemas"]["Roles"];
+            avatar?: components["schemas"]["Avatar"];
+        };
+        ProfileInput: {
+            displayName: string;
+        };
+        PasswordChange: {
+            currentPassword: string;
+            /** @description Mindestens 10 Zeichen */
+            newPassword: string;
+        };
+        AuthorOption: {
+            /** Format: int64 */
+            id: number;
+            email: string;
+            displayName: string;
+        };
+        AuthorOptionList: {
+            items: components["schemas"]["AuthorOption"][];
+        };
+        AuthorInput: {
+            /**
+             * Format: int64
+             * @description Konto-ID des Autors oder `null` für „Kein Autor“
+             */
+            authorId: number | null;
+        };
         LoginRequest: {
             email: string;
             password: string;
@@ -677,7 +837,8 @@ export interface components {
             /** Format: int64 */
             id: number;
             email: string;
-            role: components["schemas"]["Role"];
+            displayName: string;
+            roles: components["schemas"]["Roles"];
             /** @description Für den Header `X-CSRF-Token` bei schreibenden Aufrufen */
             csrfToken: string;
         };
@@ -728,6 +889,11 @@ export interface components {
              */
             scheduledAt?: string;
             cover?: components["schemas"]["Image"];
+            /**
+             * Format: int64
+             * @description Konto-ID des Autors (Ticket #64), fehlt bei „Kein Autor“
+             */
+            authorId?: number;
             /** Format: date-time */
             updatedAt: string;
         };
@@ -763,7 +929,9 @@ export interface components {
             /** Format: int64 */
             id: number;
             email: string;
-            role: components["schemas"]["Role"];
+            /** @description Vom Konto selbst gepflegter Anzeigename, leer wenn nicht gesetzt */
+            displayName: string;
+            roles: components["schemas"]["Roles"];
             /** @description Deaktivierte Konten können sich nicht anmelden */
             active: boolean;
             /** Format: date-time */
@@ -773,13 +941,16 @@ export interface components {
             items: components["schemas"]["User"][];
         };
         NewUser: {
-            /** @description Eindeutige E-Mail-Adresse, Groß- und Kleinschreibung zählt nicht */
+            /** @description Eindeutige E-Mail-Adresse, Groß- und Kleinschreibung zählt nicht. Dient als Benutzername. */
             email: string;
             /** @description Startpasswort mit mindestens 10 Zeichen */
             password: string;
+            roles: components["schemas"]["Roles"];
         };
+        /** @description Mindestens eines der Felder angeben. */
         UserPatch: {
-            active: boolean;
+            active?: boolean;
+            roles?: components["schemas"]["Roles"];
         };
         EditorPostList: {
             items: components["schemas"]["EditorPostSummary"][];
@@ -1454,6 +1625,153 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
+    getProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profil */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    updateProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileInput"];
+            };
+        };
+        responses: {
+            /** @description Gespeichert */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChange"];
+            };
+        };
+        responses: {
+            /** @description Passwort geändert */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Unprocessable"];
+            /** @description Zu viele Fehlversuche, später erneut versuchen */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Passwortprüfung ausgelastet, nach `Retry-After` Sekunden erneut versuchen */
+            503: {
+                headers: {
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    setProfileAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Profilbild gespeichert */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    adminListAuthors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Autoren */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorOptionList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
     adminListPosts: {
         parameters: {
             query?: never;
@@ -1642,6 +1960,37 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    adminSetPostAuthor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorInput"];
+            };
+        };
+        responses: {
+            /** @description Gespeichert */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditorPost"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Unprocessable"];
         };
     };
     adminPublishPost: {

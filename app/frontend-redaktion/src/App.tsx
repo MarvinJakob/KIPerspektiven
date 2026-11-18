@@ -8,6 +8,7 @@ import { LoginPage } from './pages/Login';
 import { EditPostPage } from './pages/EditPost';
 import { NotFound } from './pages/NotFound';
 import { PostsPage } from './pages/Posts';
+import { ProfilePage } from './pages/Profile';
 import { StatisticsPage } from './pages/Statistics';
 import { UsersPage } from './pages/Users';
 
@@ -20,12 +21,13 @@ export const routes: RouteObject[] = [
   {
     element: <Layout />,
     children: [
-      { index: true, element: <RequireRole can="edit"><PostsPage /></RequireRole> },
-      { path: 'beitraege/:id', element: <RequireRole can="edit"><EditPostPage /></RequireRole> },
-      { path: 'statistik', element: <RequireRole can="edit"><StatisticsPage /></RequireRole> },
-      { path: 'beratungsanfragen', element: <RequireRole can="edit"><ConsultationRequestsPage /></RequireRole> },
-      { path: 'nachrichten', element: <RequireRole can="edit"><ContactMessagesPage /></RequireRole> },
-      { path: 'benutzer', element: <RequireRole can="manageUsers"><UsersPage /></RequireRole> },
+      { index: true, element: <RequireRole can="posts"><PostsPage /></RequireRole> },
+      { path: 'beitraege/:id', element: <RequireRole can="posts"><EditPostPage /></RequireRole> },
+      { path: 'statistik', element: <RequireRole can="insights"><StatisticsPage /></RequireRole> },
+      { path: 'beratungsanfragen', element: <RequireRole can="insights"><ConsultationRequestsPage /></RequireRole> },
+      { path: 'nachrichten', element: <RequireRole can="insights"><ContactMessagesPage /></RequireRole> },
+      { path: 'benutzer', element: <RequireRole can="users"><UsersPage /></RequireRole> },
+      { path: 'profil', element: <ProfilePage /> },
       { path: '*', element: <NotFound /> },
     ],
   },

@@ -30,6 +30,7 @@ type Querier interface {
 	DeleteExpiredSessions(ctx context.Context, expiresAt string) (int64, error)
 	DeleteMedia(ctx context.Context, id int64) error
 	DeleteMediaTranslations(ctx context.Context, mediaID int64) error
+	DeleteOtherUserSessions(ctx context.Context, arg DeleteOtherUserSessionsParams) error
 	DeletePageViewSources(ctx context.Context) error
 	// Loeschen eines Beitrags (Ticket #24). Sprachfassungen und Themenzuordnungen entfernt ON DELETE CASCADE.
 	DeletePost(ctx context.Context, id int64) (int64, error)
@@ -38,16 +39,19 @@ type Querier interface {
 	DeleteReadinessRatings(ctx context.Context, resultID int64) error
 	DeleteReadinessResultByKey(ctx context.Context, keyHash string) error
 	DeleteSession(ctx context.Context, id string) error
+	DeleteUserRoles(ctx context.Context, userID int64) error
 	DeleteUserSessions(ctx context.Context, userID int64) error
 	GetMedia(ctx context.Context, id int64) (GetMediaRow, error)
 	GetPageViewIdentity(ctx context.Context) (GetPageViewIdentityRow, error)
 	GetPageViewSource(ctx context.Context, ipHash string) (string, error)
 	GetPostByID(ctx context.Context, id int64) (Post, error)
 	GetPostIDBySlug(ctx context.Context, slug string) (int64, error)
+	GetPublicAuthor(ctx context.Context, id int64) (GetPublicAuthorRow, error)
 	GetPublishedPostBySlug(ctx context.Context, slug string) (Post, error)
 	GetReadinessResultByKey(ctx context.Context, keyHash string) (GetReadinessResultByKeyRow, error)
 	GetSession(ctx context.Context, id string) (GetSessionRow, error)
 	GetTopicBySlug(ctx context.Context, slug string) (Topic, error)
+	GetUserAvatar(ctx context.Context, id int64) (GetUserAvatarRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	// ---------------------------------------------------------------------------
@@ -58,11 +62,13 @@ type Querier interface {
 	InsertPostTopic(ctx context.Context, arg InsertPostTopicParams) error
 	InsertPostTranslation(ctx context.Context, arg InsertPostTranslationParams) error
 	InsertReadinessRating(ctx context.Context, arg InsertReadinessRatingParams) error
+	InsertUserRole(ctx context.Context, arg InsertUserRoleParams) error
 	InvalidatePageViewDay(ctx context.Context, day string) error
 	// ---------------------------------------------------------------------------
 	// Redaktion: Beitraege verwalten (Anforderung 5)
 	// ---------------------------------------------------------------------------
 	ListAllPosts(ctx context.Context) ([]Post, error)
+	ListAllUserRoles(ctx context.Context) ([]UserRole, error)
 	ListConsultationRequests(ctx context.Context) ([]ConsultationRequest, error)
 	ListContactMessages(ctx context.Context) ([]ContactMessage, error)
 	ListDuePosts(ctx context.Context, scheduledAt sql.NullString) ([]ListDuePostsRow, error)
@@ -78,6 +84,12 @@ type Querier interface {
 	ListReadinessResults(ctx context.Context, arg ListReadinessResultsParams) ([]ListReadinessResultsRow, error)
 	ListTopicTranslations(ctx context.Context) ([]TopicTranslation, error)
 	ListTopics(ctx context.Context) ([]Topic, error)
+	// ---------------------------------------------------------------------------
+	// Rollen, Profil und Autoren (Ticket #64)
+	// ---------------------------------------------------------------------------
+	// Rollen der Konten. Ein Konto ohne Eintrag (angelegt von einer Version vor #64, etwa nach einem Rollback)
+	// behaelt seine Rolle aus der alten Spalte users.role. Das uebernimmt der Dienst.
+	ListUserRoles(ctx context.Context, userIds []int64) ([]UserRole, error)
 	ListUsers(ctx context.Context) ([]User, error)
 	Ping(ctx context.Context) (int64, error)
 	PublishPost(ctx context.Context, arg PublishPostParams) (int64, error)
@@ -88,8 +100,13 @@ type Querier interface {
 	// damit der Textvergleich der zeitlichen Reihenfolge entspricht.
 	SchedulePost(ctx context.Context, arg SchedulePostParams) (int64, error)
 	SetPageViewIdentity(ctx context.Context, arg SetPageViewIdentityParams) error
+	SetPostAuthor(ctx context.Context, arg SetPostAuthorParams) (int64, error)
 	SetPostCover(ctx context.Context, arg SetPostCoverParams) (int64, error)
 	SetUserActive(ctx context.Context, arg SetUserActiveParams) (int64, error)
+	SetUserAvatar(ctx context.Context, arg SetUserAvatarParams) (int64, error)
+	SetUserDisplayName(ctx context.Context, arg SetUserDisplayNameParams) (int64, error)
+	SetUserLegacyRole(ctx context.Context, arg SetUserLegacyRoleParams) error
+	SetUserPassword(ctx context.Context, arg SetUserPasswordParams) (int64, error)
 	UnpublishPost(ctx context.Context, arg UnpublishPostParams) (int64, error)
 	UnscheduleDuePost(ctx context.Context, arg UnscheduleDuePostParams) (int64, error)
 	UnschedulePost(ctx context.Context, arg UnschedulePostParams) (int64, error)

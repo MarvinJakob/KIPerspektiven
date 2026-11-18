@@ -56,6 +56,9 @@ type PostInput struct {
 	Slug     string // leer: wird aus dem Titel erzeugt
 	Featured bool
 	Topics   []string // Slugs der Themen
+	// AuthorID ist beim Anlegen das anlegende Konto (Ticket #64), 0 bedeutet „Kein Autor“. Beim Speichern
+	// bleibt die Zuordnung unverändert; sie ändert sich nur über SetAuthor.
+	AuthorID int64
 	Texts    []PostText
 }
 
@@ -70,6 +73,7 @@ type EditorPost struct {
 	PublishedAt *time.Time
 	ScheduledAt *time.Time // geplante Veröffentlichung (Ticket #23), nur bei Entwürfen
 	Cover       *Cover     // Titelbild (Ticket #25)
+	AuthorID    *int64     // Autor (Ticket #64), nil bei „Kein Autor“
 	UpdatedAt   time.Time
 }
 
@@ -199,6 +203,7 @@ func (e *Editorial) load(ctx context.Context, q *store.Queries, id int64) (Edito
 		ID: row.ID, Slug: row.Slug, Status: Status(row.Status), Featured: row.Featured,
 		Topics: orEmpty(topics[id]), Texts: texts, Cover: cover,
 		PublishedAt: optTime(row.PublishedAt), ScheduledAt: optTime(row.ScheduledAt), UpdatedAt: parseTime(row.UpdatedAt),
+		AuthorID: optID(row.AuthorID),
 	}, nil
 }
 
@@ -282,7 +287,9 @@ func (e *Editorial) write(ctx context.Context, id int64, in PostInput) (EditorPo
 
 	now := formatTime(e.now())
 	if id == 0 {
-		id, err = q.CreatePost(ctx, store.CreatePostParams{Slug: slug, Featured: in.Featured, UpdatedAt: now})
+		id, err = q.CreatePost(ctx, store.CreatePostParams{
+			Slug: slug, Featured: in.Featured, AuthorID: sql.NullInt64{Int64: in.AuthorID, Valid: in.AuthorID != 0}, UpdatedAt: now,
+		})
 	} else {
 		_, err = q.UpdatePost(ctx, store.UpdatePostParams{Slug: slug, Featured: in.Featured, UpdatedAt: now, ID: id})
 	}
@@ -771,4 +778,30 @@ func orEmpty(s []string) []string {
 		return []string{}
 	}
 	return s
+}
+
+// optID wandelt eine optionale Konto-ID um.
+func optID(v sql.NullInt64) *int64 {
+	if !v.Valid {
+		return nil
+	}
+	id := v.Int64
+	return &id
+}
+
+// SetAuthor ordnet einem Beitrag einen Autor zu oder entfernt ihn (authorID nil, Ticket #64). Ob das Konto
+// als Autor wählbar ist, prüft der Aufrufer. Bei veröffentlichten Beiträgen gilt die Änderung sofort.
+func (e *Editorial) SetAuthor(ctx context.Context, id int64, authorID *int64) (EditorPost, error) {
+	v := sql.NullInt64{}
+	if authorID != nil {
+		v = sql.NullInt64{Int64: *authorID, Valid: true}
+	}
+	n, err := e.q.SetPostAuthor(ctx, store.SetPostAuthorParams{AuthorID: v, UpdatedAt: formatTime(e.now()), ID: id})
+	if err != nil {
+		return EditorPost{}, err
+	}
+	if n == 0 {
+		return EditorPost{}, ErrNotFound
+	}
+	return e.load(ctx, e.q, id)
 }

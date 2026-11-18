@@ -5,7 +5,8 @@ import { ACCOUNTS, AUTH, expect, test, uid, type Session } from '../support/fixt
 interface User {
   id: number;
   email: string;
-  role: string;
+  displayName: string;
+  roles: string[];
   active: boolean;
   createdAt: string;
 }
@@ -17,35 +18,40 @@ test('REQ-28-AC1: nur Admin-Konten sehen die Kontenübersicht; Redaktion erhält
   expect((await request.get('/api/admin/users')).status()).toBe(401);
   expect((await editor.get('/api/admin/users')).status()).toBe(403);
   const list = await users(admin);
-  expect(list.find((u) => u.email === ACCOUNTS.admin.email)).toMatchObject({ role: 'admin', active: true });
-  expect(list.find((u) => u.email === ACCOUNTS.editor.email)).toMatchObject({ role: 'editor', active: true });
+  expect(list.find((u) => u.email === ACCOUNTS.admin.email)).toMatchObject({ roles: ['admin'], active: true });
+  expect(list.find((u) => u.email === ACCOUNTS.editor.email)).toMatchObject({ roles: ['editor'], active: true });
 });
 
 test('REQ-28-AC7: die Kontenliste gibt keine Passwörter aus', async ({ admin }) => {
   const res = await admin.get('/api/admin/users');
   const body = await res.text();
   expect(body).not.toMatch(/password|argon2|hash/i);
-  for (const u of await users(admin)) expect(Object.keys(u).sort()).toEqual(['active', 'createdAt', 'email', 'id', 'role']);
+  for (const u of await users(admin)) expect(Object.keys(u).sort()).toEqual(['active', 'createdAt', 'displayName', 'email', 'id', 'roles']);
 });
 
 test('REQ-28-AC3: ungültige oder belegte Adresse und zu kurzes Passwort legen kein Konto an', async ({ admin }) => {
-  const before = (await users(admin)).length;
+  const before = await users(admin);
   const cases: [unknown, number][] = [
-    [{ email: 'keine-adresse', password: PASSWORD }, 422],
-    [{ email: ACCOUNTS.editor.email.toUpperCase(), password: PASSWORD }, 409],
-    [{ email: newEmail(), password: '123456789' }, 422],
+    [{ email: 'keine-adresse', password: PASSWORD, roles: ['editor'] }, 422],
+    [{ email: ACCOUNTS.editor.email.toUpperCase(), password: PASSWORD, roles: ['editor'] }, 409],
+    [{ email: newEmail(), password: '123456789', roles: ['editor'] }, 422],
   ];
   for (const [data, status] of cases) {
     const res = await admin.send('POST', '/api/admin/users', data);
     expect(res.status(), JSON.stringify(data)).toBe(status);
     expect(((await res.json()) as { message: string }).message.length).toBeGreaterThan(0);
   }
-  expect((await users(admin)).length).toBe(before);
+  // Parallel laufende Tests legen eigene Konten an; geprüft werden die Adressen dieses Tests.
+  const after = await users(admin);
+  for (const [data] of cases) {
+    const e = String((data as { email: string }).email).trim().toLowerCase();
+    expect(after.filter((u) => u.email === e).length, e).toBe(before.filter((u) => u.email === e).length);
+  }
 });
 
 test('REQ-28-AC4 REQ-28-AC5: Deaktivieren beendet Sitzungen und sperrt die Anmeldung, Reaktivieren gibt sie wieder frei', async ({ admin, login }) => {
   const email = newEmail();
-  const created = (await (await admin.send('POST', '/api/admin/users', { email, password: PASSWORD })).json()) as User;
+  const created = (await (await admin.send('POST', '/api/admin/users', { email, password: PASSWORD, roles: ['editor'] })).json()) as User;
   const { session } = await login(email, PASSWORD);
   expect((await session!.get('/api/admin/posts')).status()).toBe(200);
 
@@ -80,15 +86,17 @@ test.describe('Oberfläche als Admin', () => {
 
     await page.getByLabel('E-Mail-Adresse').fill(email);
     await page.getByLabel('Startpasswort').fill(PASSWORD);
+    // Seit #64 wählt der Admin die Rollen ausdrücklich (REQ-64-AC1).
+    await page.getByRole('group', { name: 'Rollen', exact: true }).getByLabel('Redakteur').check();
     await page.getByRole('button', { name: 'Konto anlegen' }).click();
     await expect(page.getByRole('status')).toContainText(`Konto ${email} angelegt.`);
     const row = page.getByRole('row').filter({ hasText: email });
-    await expect(row).toContainText('Redaktion');
+    await expect(row.getByRole('checkbox', { name: `${email}: Redakteur` })).toBeChecked();
     await expect(row).toContainText('Aktiv');
 
     const res = await login(email, PASSWORD);
     expect(res.status).toBe(200);
-    expect(res.session!.me.role).toBe('editor');
+    expect(res.session!.me.roles).toEqual(['editor']);
   });
 
   test('REQ-28-AC3: Fehlermeldung bei zu kurzem Passwort und belegter Adresse in der Oberfläche', async ({ page }) => {
@@ -100,6 +108,7 @@ test.describe('Oberfläche als Admin', () => {
 
     await page.getByLabel('E-Mail-Adresse').fill(ACCOUNTS.editor.email);
     await page.getByLabel('Startpasswort').fill(PASSWORD);
+    await page.getByRole('group', { name: 'Rollen', exact: true }).getByLabel('Redakteur').check();
     await page.getByRole('button', { name: 'Konto anlegen' }).click();
     await expect(page.getByRole('alert').filter({ hasText: /\S/ }).last()).toBeVisible();
     await expect(page.getByRole('row').filter({ hasText: ACCOUNTS.editor.email })).toHaveCount(1);
@@ -107,7 +116,7 @@ test.describe('Oberfläche als Admin', () => {
 
   test('REQ-28-AC4 REQ-28-AC5: Status in der Oberfläche umschalten', async ({ page, admin }) => {
     const email = newEmail();
-    await admin.send('POST', '/api/admin/users', { email, password: PASSWORD });
+    await admin.send('POST', '/api/admin/users', { email, password: PASSWORD, roles: ['editor'] });
     await page.goto('/redaktion/benutzer');
     const row = page.getByRole('row').filter({ hasText: email });
     await row.getByRole('button', { name: `${email} deaktivieren` }).click();
@@ -120,7 +129,7 @@ test.describe('Oberfläche als Admin', () => {
 
   test('REQ-28-AC7: Lade- und Änderungsfehler werden gemeldet, nicht als Erfolg dargestellt', async ({ page, admin }) => {
     const email = newEmail();
-    await admin.send('POST', '/api/admin/users', { email, password: PASSWORD });
+    await admin.send('POST', '/api/admin/users', { email, password: PASSWORD, roles: ['editor'] });
     await page.goto('/redaktion/benutzer');
     await page.route('**/api/admin/users/*', (r) => r.fulfill({ status: 500, json: { message: 'x' } }));
     const row = page.getByRole('row').filter({ hasText: email });
@@ -143,6 +152,10 @@ test.describe('Oberfläche als Admin', () => {
       await page.keyboard.type(email);
       await page.keyboard.press('Tab');
       await page.keyboard.type(PASSWORD);
+      // Rolle per Tastatur wählen (seit #64), dann aus dem Passwortfeld absenden
+      await page.getByRole('group', { name: 'Rollen', exact: true }).getByLabel('Redakteur').focus();
+      await page.keyboard.press('Space');
+      await page.getByLabel('Startpasswort').focus();
       await page.keyboard.press('Enter');
       const toggle = page.getByRole('button', { name: `${email} deaktivieren` });
       await toggle.focus();

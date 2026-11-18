@@ -456,3 +456,21 @@ fieldset.field { margin: 0; padding: 0; border: 0; }
   .chart-unique-point { fill: CanvasText; }
   .chart-legend i, .chart-legend .legend-unique { border-color: CanvasText; }
 }
+
+/* Rollen und Profil (Ticket #64) */
+.inline-form .roles-field { grid-column: 1 / -1; margin-top: 4px; }
+.inline-form .roles-field + .inline-form-actions { padding-top: 8px; }
+.checks-compact { gap: 0 16px; }
+.checks-compact .check { min-height: 36px; font-size: .875rem; }
+.row-sub { display: block; color: var(--text-2); font-size: .8125rem; }
+.profile-grid { display: grid; gap: 24px; }
+.profile-avatar { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.profile-avatar img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; }
+.profile-avatar-empty { display: grid; place-items: center; width: 96px; height: 96px; border-radius: 50%; background: var(--surface-2, rgba(127, 127, 127, .12)); color: var(--text-2); font-size: .8125rem; text-align: center; }
+.file-input { max-width: 100%; }
+.form-stack { display: grid; gap: 16px; max-width: 32rem; }
+.form-stack .btn { justify-self: start; }
+.meta-list { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; }
+.meta-list dt { color: var(--text-2); font-size: .8125rem; font-weight: 650; }
+.meta-list dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 520px) { .meta-list { grid-template-columns: 1fr; gap: 2px; } .meta-list dd { margin-bottom: 8px; } }

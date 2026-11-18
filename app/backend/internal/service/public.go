@@ -87,6 +87,7 @@ type Post struct {
 	PostSummary
 	BodyMarkdown   string
 	ReadingMinutes int
+	Author         *PostAuthor // Ticket #64, nil ohne Autor oder ohne Anzeigenamen
 }
 
 // Public liefert die Inhalte der öffentlichen Webseite. Alle Methoden berücksichtigen nur
@@ -213,11 +214,46 @@ func (s *Public) Post(ctx context.Context, slug string, lang Lang) (Post, error)
 		byLang[Lang(tr.Lang)] = tr
 	}
 	tr, _, _ := pick(byLang, lang)
+	author, err := s.author(ctx, row.AuthorID)
+	if err != nil {
+		return Post{}, err
+	}
 	return Post{
 		PostSummary:    sums[0],
 		BodyMarkdown:   tr.BodyMarkdown,
 		ReadingMinutes: ReadingMinutes(tr.BodyMarkdown),
+		Author:         author,
 	}, nil
+}
+
+// PostAuthor sind die öffentlichen Autorendaten eines Beitrags (Ticket #64): nur Anzeigename und Profilbild,
+// nie die E-Mail-Adresse.
+type PostAuthor struct {
+	Name   string
+	Avatar *Avatar
+}
+
+// author liest den aktuellen Anzeigenamen und das Profilbild des Autors. Ohne Autor oder ohne Anzeigenamen
+// gibt es keine Autorenzeile (Entscheidung 3 vom 18.11.2026). Änderungen am Profil gelten sofort.
+func (s *Public) author(ctx context.Context, id sql.NullInt64) (*PostAuthor, error) {
+	if !id.Valid {
+		return nil, nil
+	}
+	row, err := s.q.GetPublicAuthor(ctx, id.Int64)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(row.DisplayName) == "" {
+		return nil, nil
+	}
+	a := &PostAuthor{Name: row.DisplayName}
+	if row.StorageKey.Valid {
+		a.Avatar = &Avatar{Key: row.StorageKey.String, MimeType: row.MimeType.String, Width: int(row.Width.Int64), Height: int(row.Height.Int64)}
+	}
+	return a, nil
 }
 
 // ReadingMinutes schätzt die Lesezeit bei 200 Wörtern pro Minute, mindestens eine Minute.

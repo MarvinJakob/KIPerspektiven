@@ -28,7 +28,7 @@ test('REQ-22-AC1: Pflichtfelder Name, E-Mail und Nachricht, Unternehmen freiwill
   await expect(page.getByRole('link', { name: 'Mehr dazu in der Datenschutzerklärung' })).toHaveAttribute('href', '/de/datenschutz');
 });
 
-test('REQ-22-AC2: gültige Nachricht wird gespeichert, Bestätigung ersetzt das Formular und erhält den Fokus', async ({ page, editor }) => {
+test('REQ-22-AC2: gültige Nachricht wird gespeichert, Bestätigung ersetzt das Formular und erhält den Fokus', async ({ page, marketing }) => {
   const tag = uid();
   await page.goto('/de/kontakt');
   await fill(page, { name: `Ada ${tag}`, company: 'Analytical Engines', email: ` Ada.${tag}@Example.org `, message: `Hallo ${tag}` });
@@ -37,11 +37,11 @@ test('REQ-22-AC2: gültige Nachricht wird gespeichert, Bestätigung ersetzt das 
   const done = page.getByRole('heading', { name: 'Vielen Dank für deine Nachricht' });
   await expect(done).toBeFocused();
   await expect(page.getByRole('textbox')).toHaveCount(0); // Formular ist ersetzt
-  const stored = (await inbox(editor)).find((m) => m.name === `Ada ${tag}`);
+  const stored = (await inbox(marketing)).find((m) => m.name === `Ada ${tag}`);
   expect(stored).toMatchObject({ company: 'Analytical Engines', email: `ada.${tag}@example.org`, message: `Hallo ${tag}`, lang: 'de' });
 });
 
-test('REQ-22-AC3: fehlende Angaben und ungültige Adresse zeigen Feldfehler, Fokus auf erstes Feld, nichts wird gespeichert', async ({ page, editor, request }) => {
+test('REQ-22-AC3: fehlende Angaben und ungültige Adresse zeigen Feldfehler, Fokus auf erstes Feld, nichts wird gespeichert', async ({ page, marketing, request }) => {
   const tag = uid();
   await page.goto('/de/kontakt');
   await page.getByRole('button', { name: 'Nachricht senden' }).click();
@@ -71,10 +71,10 @@ test('REQ-22-AC3: fehlende Angaben und ungültige Adresse zeigen Feldfehler, Fok
   ]) {
     expect((await request.post('/api/contact-messages', { data })).status()).toBe(422);
   }
-  expect((await inbox(editor)).some((m) => m.name.includes(tag) || m.message.includes(tag))).toBe(false);
+  expect((await inbox(marketing)).some((m) => m.name.includes(tag) || m.message.includes(tag))).toBe(false);
 });
 
-test('REQ-22-AC4: Eingaben werden begrenzt und zu lange Angaben serverseitig abgelehnt', async ({ page, request, editor }) => {
+test('REQ-22-AC4: Eingaben werden begrenzt und zu lange Angaben serverseitig abgelehnt', async ({ page, request, marketing }) => {
   await page.goto('/de/kontakt');
   const limits: [string, number][] = [['Name', 200], ['Unternehmen (optional)', 200], ['E-Mail-Adresse', 254], ['Nachricht', 5000]];
   for (const [label, max] of limits) {
@@ -94,7 +94,7 @@ test('REQ-22-AC4: Eingaben werden begrenzt und zu lange Angaben serverseitig abg
   ]) {
     expect((await request.post('/api/contact-messages', { data: tooLong })).status()).toBe(422);
   }
-  expect((await inbox(editor)).filter((m) => m.email === `${tag}@example.org`)).toHaveLength(1);
+  expect((await inbox(marketing)).filter((m) => m.email === `${tag}@example.org`)).toHaveLength(1);
 });
 
 test('REQ-22-AC5: Server-, Netz- und Ratenfehler zeigen eine Meldung ohne Bestätigung, Eingaben bleiben erhalten', async ({ page }) => {
@@ -115,21 +115,21 @@ test('REQ-22-AC5: Server-, Netz- und Ratenfehler zeigen eine Meldung ohne Bestä
   }
 });
 
-test('REQ-22-AC6: Eingang nur mit Sitzung, neueste zuerst', async ({ request, editor, admin }) => {
+test('REQ-22-AC6: Eingang nur mit Sitzung, neueste zuerst', async ({ request, marketing, admin }) => {
   expect((await request.get('/api/admin/contact-messages')).status()).toBe(401);
   const tag = uid();
   for (const n of [1, 2]) {
     const data = { name: `Absender ${n} ${tag}`, email: `${n}.${tag}@example.org`, message: `Nachricht ${n}`, lang: 'en' };
     expect((await request.post('/api/contact-messages', { data })).status()).toBe(204);
   }
-  for (const s of [editor, admin]) {
+  for (const s of [marketing, admin]) {
     const mine = (await inbox(s)).filter((m) => m.name.endsWith(tag));
     expect(mine.map((m) => m.name)).toEqual([`Absender 2 ${tag}`, `Absender 1 ${tag}`]);
   }
 });
 
 test.describe('Nachrichteneingang in der Redaktion', () => {
-  test.use({ storageState: AUTH.editor });
+  test.use({ storageState: AUTH.marketing });
 
   test('REQ-22-AC6: Nachrichten mit Name, Unternehmen, Adresse, Text und Eingang; Leerzustand und Ladefehler', async ({ page, request }) => {
     const tag = uid();
@@ -158,7 +158,7 @@ test('REQ-22-AC6: Nachrichtenseite ohne Sitzung führt zur Anmeldung', async ({ 
   await expect(page).toHaveURL(/\/redaktion\/anmelden/);
 });
 
-test('REQ-22-AC7: englische Beschriftungen und Fehler, Absenden per Tastatur', async ({ page, editor }) => {
+test('REQ-22-AC7: englische Beschriftungen und Fehler, Absenden per Tastatur', async ({ page, marketing }) => {
   const tag = uid();
   await page.goto('/en/kontakt');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Contact');
@@ -175,7 +175,7 @@ test('REQ-22-AC7: englische Beschriftungen und Fehler, Absenden per Tastatur', a
   await expect(page.getByRole('button', { name: 'Send message' })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Thank you for your message' })).toBeFocused();
-  expect((await inbox(editor)).find((m) => m.name === `Key ${tag}`)?.lang).toBe('en');
+  expect((await inbox(marketing)).find((m) => m.name === `Key ${tag}`)?.lang).toBe('en');
 });
 
 test.describe('mobil', () => {

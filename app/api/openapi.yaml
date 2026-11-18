@@ -345,6 +345,151 @@ paths:
                 $ref: '#/components/schemas/Me'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /api/profile:
+    get:
+      operationId: getProfile
+      summary: Eigenes Profil mit Anzeigename und Profilbild
+      description: "Ticket #64. Für jedes angemeldete Konto. Es gibt nur das eigene Profil, keine Konto-ID."
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Profil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    patch:
+      operationId: updateProfile
+      summary: Anzeigenamen ändern
+      description: |
+        Ticket #64. Der Anzeigename wird getrimmt und darf höchstens 80 Zeichen haben; leer entfernt ihn.
+        Weitere Felder wie Rollen ignoriert das Backend. Änderungen erscheinen sofort in veröffentlichten Beiträgen.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileInput'
+      responses:
+        '200':
+          description: Gespeichert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/profile/password:
+    put:
+      operationId: changePassword
+      summary: Eigenes Passwort ändern
+      description: |
+        Ticket #64. Verlangt das aktuelle Passwort. Danach gilt nur noch das neue Passwort; andere Sitzungen des
+        Kontos enden, die aktuelle bleibt. Falsches aktuelles oder zu kurzes neues Passwort liefert `422`.
+        Fehlversuche zählen wie bei der Anmeldung je IP-Adresse (`429`).
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+      responses:
+        '204':
+          description: Passwort geändert
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          description: Zu viele Fehlversuche, später erneut versuchen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Passwortprüfung ausgelastet, nach `Retry-After` Sekunden erneut versuchen
+          headers:
+            Retry-After:
+              required: true
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/profile/avatar:
+    put:
+      operationId: setProfileAvatar
+      summary: Profilbild hochladen oder ersetzen
+      description: |
+        Ticket #64. Wie beim Titelbild (Ticket #25) JPEG, PNG oder WebP bis 5 MB; das Backend kodiert neu und
+        vergibt den Dateinamen. Ungültige Dateien lehnt es mit `422` ab, das bisherige Bild bleibt dann erhalten.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Profilbild gespeichert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/admin/authors:
+    get:
+      operationId: adminListAuthors
+      summary: Wählbare Autoren für Beiträge
+      description: "Ticket #64. Aktive Konten mit Rolle Redakteur oder Admin, sortiert nach Anzeigename und E-Mail-Adresse."
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Autoren
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorOptionList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/admin/posts:
     get:
       operationId: adminListPosts
@@ -526,6 +671,41 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/admin/posts/{id}/author:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    put:
+      operationId: adminSetPostAuthor
+      summary: Autor zuordnen oder entfernen
+      description: |
+        Ticket #64. `authorId` ist ein aktives Konto mit Rolle Redakteur oder Admin (sonst `422`); `null` entfernt
+        die Zuordnung. Ein neuer Beitrag erhält beim Anlegen das anlegende Konto als Autor.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorInput'
+      responses:
+        '200':
+          description: Gespeichert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditorPost'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
   /api/admin/posts/{id}/publish:
     parameters:
       - $ref: '#/components/parameters/Id'
@@ -650,7 +830,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
     post:
       operationId: adminCreateUser
-      summary: Redaktionskonto mit Rolle editor und Startpasswort anlegen
+      summary: Konto mit Rollen und Startpasswort anlegen
       security:
         - sessionCookie: []
           csrfToken: []
@@ -682,10 +862,12 @@ paths:
       - $ref: '#/components/parameters/Id'
     patch:
       operationId: adminUpdateUser
-      summary: Konto deaktivieren oder reaktivieren
+      summary: Konto deaktivieren, reaktivieren oder Rollen ändern
       description: |
         Beim Deaktivieren löscht das Backend alle Sitzungen des Kontos in derselben Transaktion.
         Bereits geöffnete Sitzungen sind damit sofort ungültig. Das eigene Konto lässt sich nicht deaktivieren (`422`).
+        `roles` ersetzt die Rollen (Ticket #64): mindestens eine Rolle; einem Admin-Konto lässt sich die Rolle `admin`
+        nicht entziehen (`422`). Rollenänderungen gelten sofort für bestehende Sitzungen.
       security:
         - sessionCookie: []
           csrfToken: []
@@ -772,7 +954,7 @@ paths:
     get:
       operationId: adminListContactMessages
       summary: Nachrichten der Kontaktseite, neueste zuerst
-      description: Anforderung #4. Für die Rollen `editor` und `admin`.
+      description: "Anforderung #4. Seit Ticket #64 für die Rollen `marketing` und `admin`."
       security:
         - sessionCookie: []
       responses:
@@ -790,7 +972,7 @@ paths:
     get:
       operationId: adminListConsultationRequests
       summary: Offene Anfragen für ein Beratungsgespräch, neueste zuerst
-      description: Ticket #136. Für die Rollen `editor` und `admin`.
+      description: "Ticket #136. Seit Ticket #64 für die Rollen `marketing` und `admin`."
       security:
         - sessionCookie: []
       responses:
@@ -810,7 +992,7 @@ paths:
     delete:
       operationId: adminDeleteConsultationRequest
       summary: Erledigte Anfrage löschen
-      description: Ticket #136. Die Redaktion löscht eine Anfrage, sobald der Termin abgestimmt ist.
+      description: "Ticket #136. Admins löschen eine Anfrage, sobald der Termin abgestimmt ist (seit Ticket #64 nur Rolle `admin`)."
       security:
         - sessionCookie: []
           csrfToken: []
@@ -1044,10 +1226,97 @@ components:
             updatedAt:
               type: string
               format: date-time
+            author:
+              $ref: '#/components/schemas/PostAuthor'
+    PostAuthor:
+      type: object
+      description: |
+        Öffentliche Autorendaten (Ticket #64). Nur vorhanden, wenn der Beitrag einen Autor mit Anzeigenamen hat.
+        Enthält bewusst keine E-Mail-Adresse.
+      required: [name]
+      properties:
+        name:
+          type: string
+        avatar:
+          $ref: '#/components/schemas/Avatar'
+    Avatar:
+      type: object
+      description: Profilbild in der Variante 480 px
+      required: [src, width, height]
+      properties:
+        src:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
     Role:
       type: string
-      description: "`editor` verwaltet Beiträge, `admin` zusätzlich die Redaktionskonten"
-      enum: [editor, admin]
+      description: |
+        Ticket #64: `admin` darf alles einschließlich Benutzerverwaltung, `editor` (Redakteur) verwaltet Beiträge,
+        `marketing` liest Statistik, Nachrichten und Beratungsanfragen. Ein Konto hat mindestens eine Rolle.
+      enum: [admin, editor, marketing]
+    Roles:
+      type: array
+      minItems: 1
+      items:
+        $ref: '#/components/schemas/Role'
+    Profile:
+      type: object
+      required: [email, displayName, roles]
+      properties:
+        email:
+          type: string
+        displayName:
+          type: string
+        roles:
+          $ref: '#/components/schemas/Roles'
+        avatar:
+          $ref: '#/components/schemas/Avatar'
+    ProfileInput:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+          maxLength: 80
+    PasswordChange:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          description: Mindestens 10 Zeichen
+    AuthorOption:
+      type: object
+      required: [id, email, displayName]
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+        displayName:
+          type: string
+    AuthorOptionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthorOption'
+    AuthorInput:
+      type: object
+      required: [authorId]
+      properties:
+        authorId:
+          type: integer
+          format: int64
+          nullable: true
+          description: Konto-ID des Autors oder `null` für „Kein Autor“
     LoginRequest:
       type: object
       required: [email, password]
@@ -1058,15 +1327,17 @@ components:
           type: string
     Me:
       type: object
-      required: [id, email, role, csrfToken]
+      required: [id, email, displayName, roles, csrfToken]
       properties:
         id:
           type: integer
           format: int64
         email:
           type: string
-        role:
-          $ref: '#/components/schemas/Role'
+        displayName:
+          type: string
+        roles:
+          $ref: '#/components/schemas/Roles'
         csrfToken:
           type: string
           description: Für den Header `X-CSRF-Token` bei schreibenden Aufrufen
@@ -1144,6 +1415,10 @@ components:
           description: Geplante automatische Veröffentlichung in UTC, nur bei Beiträgen „In Arbeit“
         cover:
           $ref: '#/components/schemas/Image'
+        authorId:
+          type: integer
+          format: int64
+          description: "Konto-ID des Autors (Ticket #64), fehlt bei „Kein Autor“"
         updatedAt:
           type: string
           format: date-time
@@ -1192,15 +1467,18 @@ components:
     User:
       type: object
       description: Redaktionskonto ohne Passwortdaten
-      required: [id, email, role, active, createdAt]
+      required: [id, email, displayName, roles, active, createdAt]
       properties:
         id:
           type: integer
           format: int64
         email:
           type: string
-        role:
-          $ref: '#/components/schemas/Role'
+        displayName:
+          type: string
+          description: Vom Konto selbst gepflegter Anzeigename, leer wenn nicht gesetzt
+        roles:
+          $ref: '#/components/schemas/Roles'
         active:
           type: boolean
           description: Deaktivierte Konten können sich nicht anmelden
@@ -1217,20 +1495,24 @@ components:
             $ref: '#/components/schemas/User'
     NewUser:
       type: object
-      required: [email, password]
+      required: [email, password, roles]
       properties:
         email:
           type: string
-          description: Eindeutige E-Mail-Adresse, Groß- und Kleinschreibung zählt nicht
+          description: Eindeutige E-Mail-Adresse, Groß- und Kleinschreibung zählt nicht. Dient als Benutzername.
         password:
           type: string
           description: Startpasswort mit mindestens 10 Zeichen
+        roles:
+          $ref: '#/components/schemas/Roles'
     UserPatch:
       type: object
-      required: [active]
+      description: Mindestens eines der Felder angeben.
       properties:
         active:
           type: boolean
+        roles:
+          $ref: '#/components/schemas/Roles'
     EditorPostList:
       type: object
       required: [items]

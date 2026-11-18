@@ -1079,3 +1079,7 @@ svg { display: block; }
   .home-hero { margin-top: 0; }
   .post-row, .check, .dim-acc-item, .choice-card { break-inside: avoid; }
 }
+
+/* Autorenzeile redaktioneller Beiträge (Ticket #64) */
+.post-author { margin-top: 20px; }
+.post-author strong { font-weight: 650; }

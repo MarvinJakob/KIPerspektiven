@@ -3,10 +3,12 @@ import { deflateSync } from 'node:zlib';
 import { test as base, expect, type APIRequestContext, type APIResponse, type Page } from '@playwright/test';
 
 /** Gespeicherte Sitzungen der Testkonten aus der Entwicklungs-Migration (auth.setup.ts). */
-export const AUTH = { editor: '.auth/editor.json', admin: '.auth/admin.json' } as const;
+export const AUTH = { editor: '.auth/editor.json', admin: '.auth/admin.json', marketing: '.auth/marketing.json' } as const;
 export const ACCOUNTS = {
   editor: { email: 'redaktion@example.test', password: 'redaktion-test' },
   admin: { email: 'admin@example.test', password: 'admin-test-123' },
+  // Ticket #64: reines Marketing-Konto für Statistik, Nachrichten und Beratungsanfragen
+  marketing: { email: 'marketing@example.test', password: 'marketing-test-1' },
 } as const;
 
 /** Zufällige, eindeutige Kennung für Testdaten (Titel, Adressen, Kürzel). */
@@ -15,10 +17,12 @@ export const uid = () => randomBytes(5).toString('hex');
 /** Zufällige Client-IP aus 10.0.0.0/8. Isoliert Ratenbegrenzung und IP-Statistik je Test. */
 export const randomIp = () => `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
 
+export type Role = 'admin' | 'editor' | 'marketing';
 export interface Me {
   id: number;
   email: string;
-  role: 'editor' | 'admin';
+  displayName: string;
+  roles: Role[];
   csrfToken: string;
 }
 
@@ -70,6 +74,8 @@ interface Fixtures {
   ip: string;
   editor: Session;
   admin: Session;
+  /** Reines Marketing-Konto aus den Testdaten (Ticket #64). */
+  marketing: Session;
   /** Legt Beiträge über die API an und löscht sie nach dem Test wieder. */
   posts: {
     create(input: { texts: PostText[]; topics?: string[]; slug?: string }): Promise<EditorPost>;
@@ -104,6 +110,11 @@ export const test = base.extend<Fixtures>({
   },
   admin: async ({ playwright, baseURL, ip }, use) => {
     const s = await openSession(playwright.request.newContext.bind(playwright.request), baseURL!, ip, AUTH.admin);
+    await use(s);
+    await s.ctx.dispose();
+  },
+  marketing: async ({ playwright, baseURL, ip }, use) => {
+    const s = await openSession(playwright.request.newContext.bind(playwright.request), baseURL!, ip, AUTH.marketing);
     await use(s);
     await s.ctx.dispose();
   },

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router';
 import { isNotFound, usePost, useTopic } from '../api/client';
 import { Art } from '../components/Art';
 import { Icon } from '../components/Icon';
+import { PostAuthor } from '../components/PostAuthor';
 import { PostList, TopicChip } from '../components/PostRow';
 import { LoadError, Loading, TranslationNotice } from '../components/Status';
 import { href, useLang } from '../lib/lang';
@@ -49,6 +50,7 @@ export function PostPage() {
               <span aria-hidden="true">·</span>
               <span>{t('minRead', { n: p.readingMinutes })}</span>
             </p>
+            <PostAuthor author={p.author} />
           </header>
           {fallback && <TranslationNotice text={t('fallbackPost', { language: t(`langName.${p.lang}`) })} />}
         </div>

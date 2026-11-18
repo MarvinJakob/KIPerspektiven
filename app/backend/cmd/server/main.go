@@ -3,7 +3,7 @@
 //	server              startet die Anwendung (Standard)
 //	server healthcheck  ruft /api/health auf (für den Docker-Healthcheck, das Image enthält kein curl)
 //	server backup [ZIEL] schreibt mit VACUUM INTO eine konsistente Kopie der Datenbank
-//	server user create --email ADRESSE [--role admin|editor]
+//	server user create --email ADRESSE [--role admin|editor|marketing[,...]]
 //	                    legt ein Konto an, z. B. das erste Admin-Konto bei der Inbetriebnahme.
 //	                    Das Passwort kommt aus USER_PASSWORD oder wird abgefragt.
 //

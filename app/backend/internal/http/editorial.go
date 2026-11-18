@@ -38,7 +38,12 @@ func (s *apiServer) AdminCreatePost(ctx context.Context, req api.AdminCreatePost
 	if req.Body == nil {
 		return api.AdminCreatePost400JSONResponse{BadRequestJSONResponse: api.BadRequestJSONResponse{Message: msgNoBody}}, nil
 	}
-	p, err := s.editorial.Create(ctx, fromPostInput(*req.Body))
+	in := fromPostInput(*req.Body)
+	// Ticket #64: Ein neuer Beitrag erhält das anlegende Konto als Autor.
+	if id, ok := identityFrom(ctx); ok {
+		in.AuthorID = id.UserID
+	}
+	p, err := s.editorial.Create(ctx, in)
 	var verr *service.ValidationError
 	switch {
 	case errors.As(err, &verr):
@@ -178,6 +183,7 @@ func toEditorPost(p service.EditorPost) api.EditorPost {
 	out := api.EditorPost{
 		Id: p.ID, Slug: p.Slug, Status: api.PostStatus(p.Status), Featured: p.Featured,
 		Topics: p.Topics, Texts: texts, PublishedAt: p.PublishedAt, ScheduledAt: p.ScheduledAt, UpdatedAt: p.UpdatedAt,
+		AuthorId: p.AuthorID,
 	}
 	if c := p.Cover; c != nil {
 		alt := ""
@@ -276,4 +282,44 @@ func (s *apiServer) removeMedia(key, mimeType string) {
 	if err := s.media.Remove(key, mimeType); err != nil {
 		s.log.Warn("bilddateien löschen", "schlüssel", key, "fehler", err)
 	}
+}
+
+// AdminListAuthors liefert die als Autor wählbaren Konten (Ticket #64).
+func (s *apiServer) AdminListAuthors(ctx context.Context, _ api.AdminListAuthorsRequestObject) (api.AdminListAuthorsResponseObject, error) {
+	list, err := s.accounts.AuthorCandidates(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]api.AuthorOption, 0, len(list))
+	for _, a := range list {
+		out = append(out, api.AuthorOption{Id: a.ID, Email: a.Email, DisplayName: a.DisplayName})
+	}
+	return api.AdminListAuthors200JSONResponse{Items: out}, nil
+}
+
+// AdminSetPostAuthor ordnet einen Autor zu oder entfernt ihn (Ticket #64). Wählbar sind aktive Konten mit
+// Rolle Redakteur oder Admin.
+func (s *apiServer) AdminSetPostAuthor(ctx context.Context, req api.AdminSetPostAuthorRequestObject) (api.AdminSetPostAuthorResponseObject, error) {
+	if req.Body == nil {
+		return api.AdminSetPostAuthor400JSONResponse{BadRequestJSONResponse: api.BadRequestJSONResponse{Message: msgNoBody}}, nil
+	}
+	if a := req.Body.AuthorId; a != nil {
+		ok, err := s.accounts.CanAuthor(ctx, *a)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return api.AdminSetPostAuthor422JSONResponse{UnprocessableJSONResponse: api.UnprocessableJSONResponse{
+				Message: "Als Autor sind nur aktive Konten mit der Rolle Redakteur oder Admin wählbar.",
+			}}, nil
+		}
+	}
+	p, err := s.editorial.SetAuthor(ctx, req.Id, req.Body.AuthorId)
+	if errors.Is(err, service.ErrNotFound) {
+		return api.AdminSetPostAuthor404JSONResponse{NotFoundJSONResponse: api.NotFoundJSONResponse{Message: msgPostNotFound}}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return api.AdminSetPostAuthor200JSONResponse(toEditorPost(p)), nil
 }
