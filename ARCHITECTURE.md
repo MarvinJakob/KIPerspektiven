@@ -137,13 +137,13 @@ Das Backend rendert die öffentliche `index.html` als Template mit Titel, Beschr
 | Beratungsanfragen | E-Mail, Sprache, Zeitpunkt; Löschung durch die Redaktion ([ADR 0011](app/docs/adr/0011-beratungsanfragen-in-der-redaktion.md)) |
 | Audit-Inhalte | Datei im Repository (`internal/audit/content.json`) |
 
-Einstellungen: `journal_mode=WAL`, `foreign_keys=ON`, `busy_timeout=5000`. Ein Wechsel zu PostgreSQL ist durch Store-Interface und goose vorbereitet ([ADR 0003](app/docs/adr/0003-sqlite-als-erste-datenbank.md)).
+Einstellungen: `journal_mode=WAL`, `foreign_keys=ON`, `busy_timeout=5000`, Transaktionen mit `_txlock=immediate` (gleichzeitige Schreibzugriffe warten statt mit `SQLITE_BUSY` zu scheitern, Bug #31). Ein Wechsel zu PostgreSQL ist durch Store-Interface und goose vorbereitet ([ADR 0003](app/docs/adr/0003-sqlite-als-erste-datenbank.md)).
 
 ---
 
 ## 5 Spezifikationen
 
-Akzeptanzkriterien stehen im Ticket und tragen stabile IDs `REQ-<n>-AC<m>`. Das Repository enthält keine automatisierten Tests; das Merge Gate baut das Image, die Installation prüft Docker- und HTTPS-Healthcheck.
+Akzeptanzkriterien stehen im Ticket und tragen stabile IDs `REQ-<n>-AC<m>`. Die automatisierten Akzeptanztests liegen in [app/e2e](app/e2e) (Playwright, eine Datei je Anforderung, Testnamen beginnen mit der Kriterien-ID). Sie laufen über das echte Backend: Das Merge Gate startet das gebaute Image mit Testdaten (`DEV_SEED=true`) und führt die Suite als Pflichtprüfung aus, bevor installiert wird. Der Großteil der Kriterien wird über die API geprüft, Browsertests decken Nutzerabläufe, Barrierefreiheit sowie Desktop (1280 px) und Mobil (375 px) ab. Jeder Test sendet eine eigene Client-IP (`X-Forwarded-For`, `TRUSTED_PROXIES=127.0.0.1`), damit Ratenbegrenzungen und IP-Statistik je Test isoliert sind und die Tests parallel laufen; die Statistiktests laufen zuletzt und seriell. Lokal: Anwendung bauen (`make build`), dann in `app/e2e` `npm ci`, `npx playwright install chromium` und `npx playwright test`. Die Installation prüft zusätzlich Docker- und HTTPS-Healthcheck.
 
 ---
 

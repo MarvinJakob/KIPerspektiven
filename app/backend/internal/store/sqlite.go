@@ -27,6 +27,10 @@ func Open(path string) (*sql.DB, error) {
 	q.Add("_pragma", "journal_mode(WAL)")
 	q.Add("_pragma", "foreign_keys(ON)")
 	q.Add("_pragma", "busy_timeout(5000)")
+	// Transaktionen sperren sofort zum Schreiben. Bei verzögerten Transaktionen scheitert das spätere
+	// Umstellen von Lesen auf Schreiben unter gleichzeitigen Zugriffen ohne Wartezeit mit SQLITE_BUSY;
+	// busy_timeout greift dort nicht (Bug #31).
+	q.Add("_txlock", "immediate")
 	db, err := sql.Open("sqlite", "file:"+filepath.ToSlash(path)+"?"+q.Encode())
 	if err != nil {
 		return nil, err
