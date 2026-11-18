@@ -1,12 +1,12 @@
 import type { Ref } from 'react';
-import { Link } from 'react-router';
 import portrait from '../assets/marvin-jakob.jpg';
 import harness from '../assets/topics/harness.png';
 import { ArticleByline } from '../components/ArticleByline';
+import { ArticleHeader } from '../components/ArticleHeader';
 import { Diagram } from '../components/Diagram';
 import { VIBE_CODING_QUOTE, vibeCoding, vibeCodingMeta, vibeCodingReadingText } from '../i18n/vibeCoding';
 import { jumpTo } from '../lib/jump';
-import { href, useLang } from '../lib/lang';
+import { useLang } from '../lib/lang';
 import './VibeCoding.css';
 
 function Example({ id, label, text }: { id: string; label: string; text: string }) {
@@ -24,20 +24,12 @@ export function VibeCoding({ titleRef }: { titleRef: Ref<HTMLHeadingElement> }) 
   const c = vibeCoding[lang];
   return (
     <article className="vc-page" lang={lang}>
-      <header className="vc-hero">
-        <div className="container">
-          <nav className="crumbs" aria-label={c.breadcrumb}>
-            <Link to={href(lang)}>{c.home}</Link><span aria-hidden="true">/</span>
-            <Link to={`${href(lang)}#themen`}>{c.topics}</Link><span aria-hidden="true">/</span>
-            <span aria-current="page">Vibe Coding</span>
-          </nav>
-          <div className="vc-hero-copy">
-            <h1 ref={titleRef} tabIndex={-1}>Vibe Coding</h1>
-            <p className="vc-subtitle">{c.subtitle}</p>
-            <ArticleByline {...vibeCodingMeta} portrait={portrait} text={vibeCodingReadingText(c)} />
-          </div>
-        </div>
-      </header>
+      <ArticleHeader
+        title="Vibe Coding"
+        titleRef={titleRef}
+        subtitle={c.subtitle}
+        byline={<ArticleByline {...vibeCodingMeta} portrait={portrait} text={vibeCodingReadingText(c)} />}
+      />
       <section className="container vc-intro" aria-label={c.introLabel}>
         <div className="vc-reading">
           {c.intro.map((p) => <p key={p}>{p}</p>)}

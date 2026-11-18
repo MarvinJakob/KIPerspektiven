@@ -117,7 +117,6 @@ export const en: Messages = {
     // Title and description match backend/internal/web/meta.go (bug #126).
     resultTitle: 'Self-assessment results',
     resultMeta: 'The chosen maturity levels of all dimensions of the AI readiness self-assessment.',
-    resultCrumb: 'Results',
     resultEyebrow: 'AI Readiness · Self-assessment',
     incomplete: 'The results appear once every dimension is rated. Rated so far: {{rated}} of {{total}}. Still open:',
     continue: 'Continue self-assessment',

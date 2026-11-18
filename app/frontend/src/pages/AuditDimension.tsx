@@ -1,13 +1,13 @@
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { isNotFound, useAudit, useAuditDimension, useTopics, type AuditDimension } from '../api/client';
+import { isNotFound, useAudit, useAuditDimension, type AuditDimension } from '../api/client';
 import { AssessmentSteps } from '../components/AssessmentSteps';
 import { Icon } from '../components/Icon';
 import { ShareConsent } from '../components/ShareConsent';
 import { LoadError, Loading, TranslationNotice } from '../components/Status';
 import { useAssessment } from '../lib/assessment';
-import { AUDIT_TOPIC, auditPath, progress, resultPath, type MaturityLevel } from '../lib/audit';
-import { href, useLang, type Lang } from '../lib/lang';
+import { auditPath, progress, resultPath, type MaturityLevel } from '../lib/audit';
+import { useLang, type Lang } from '../lib/lang';
 import { useHead, usePageFocus } from '../lib/page';
 import { NotFound } from './NotFound';
 
@@ -22,7 +22,6 @@ export function AuditDimensionPage() {
   const h1 = usePageFocus<HTMLHeadingElement>();
   const dimension = useAuditDimension(slug, lang);
   const overview = useAudit(lang);
-  const { data: topics } = useTopics(lang);
   const { ratings, rate } = useAssessment();
   useHead(dimension.data?.title, dimension.data?.summary);
 
@@ -34,23 +33,10 @@ export function AuditDimensionPage() {
   const d = dimension.data;
   const o = overview.data;
   const contentLang = d.lang !== lang ? d.lang : undefined;
-  const topicTitle = topics?.find((tp) => tp.slug === AUDIT_TOPIC)?.title ?? t('audit.eyebrow');
   const index = o.dimensions.findIndex((x) => x.slug === d.slug);
 
   return (
     <div className="container">
-      <nav className="crumbs" aria-label={t('crumbs')}>
-        <Link to={href(lang)}>{t('nav.home')}</Link>
-        <span aria-hidden="true">/</span>
-        <span>{t('nav.topics')}</span>
-        <span aria-hidden="true">/</span>
-        <Link to={auditPath(lang)}>{topicTitle}</Link>
-        <span aria-hidden="true">/</span>
-        <span aria-current="page" lang={contentLang}>
-          {d.title}
-        </span>
-      </nav>
-
       <div className="assess-layout">
         <AssessmentSteps dimensions={o.dimensions} levels={o.levels} ratings={ratings} current={d.slug} />
 

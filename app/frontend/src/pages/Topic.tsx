@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { isNotFound, useTopic } from '../api/client';
 import { Art } from '../components/Art';
 import { AuditOverview } from '../components/AuditOverview';
@@ -6,7 +6,7 @@ import { TopicContent } from '../components/TopicContent';
 import { AUDIT_TOPIC } from '../lib/audit';
 import { PostList } from '../components/PostRow';
 import { EmptyPosts, LoadError, Loading, TranslationNotice } from '../components/Status';
-import { href, useLang } from '../lib/lang';
+import { useLang } from '../lib/lang';
 import { useHead, usePageFocus } from '../lib/page';
 import { getTopicContent } from '../lib/topicContent';
 import { NotFound } from './NotFound';
@@ -44,13 +44,6 @@ export function TopicPage() {
 
   return (
     <div className="container">
-      <nav className="crumbs" aria-label={t('crumbs')}>
-        <Link to={href(lang)}>{t('nav.home')}</Link>
-        <span aria-hidden="true">/</span>
-        <span>{t('nav.topics')}</span>
-        <span aria-hidden="true">/</span>
-        <span aria-current="page">{tp.title}</span>
-      </nav>
       <section className="topic-hero">
         <div lang={contentLang}>
           <p className="eyebrow">{t(tp.slug === AUDIT_TOPIC ? 'audit.eyebrow' : 'topic.eyebrow')}</p>
