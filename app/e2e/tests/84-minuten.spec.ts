@@ -36,6 +36,9 @@ test.describe('Zeitpunkt im Editor', () => {
     await expect(change).toBeVisible();
     await input.fill('2030-01-17T10:38');
     await change.click();
+    // Erst nach der Bestätigung in der Oberfläche weiter: Die Antwort setzt das Eingabefeld auf den gespeicherten
+    // Zeitpunkt zurück und würde eine schon getippte neue Eingabe überschreiben (Befund im CI-Lauf 44343394571).
+    await expect(page.getByRole('status').filter({ hasText: 'Geplant:' })).toContainText('09:38 UTC');
     await expect.poll(async () => (await (await editor.get(url)).json()).scheduledAt).toBe('2030-01-17T09:38:00Z');
     await input.fill('2000-01-01T12:00');
     await change.click();
