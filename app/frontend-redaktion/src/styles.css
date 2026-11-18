@@ -279,7 +279,8 @@ input[type="file"] { padding: 10px; }
 .back { margin-top: 8px; }
 .back a { color: var(--text-2); font-weight: 600; text-decoration: none; }
 .back a:hover { color: var(--text); text-decoration: underline; }
-.editor { display: grid; gap: 0; padding-bottom: 24px; }
+/* minmax(0, 1fr): Die Spalte folgt der Seitenbreite statt der Mindestbreite ihres Inhalts (Bug #33). */
+.editor { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding-bottom: 24px; }
 .lang-tabs { display: flex; gap: 4px; padding: 4px; width: fit-content; border-radius: var(--radius-pill); background: var(--fill); }
 .lang-tabs .nav-btn { height: 40px; }
 .lang-tabs .nav-btn[aria-pressed="true"] { background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
