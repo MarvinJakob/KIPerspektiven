@@ -3,7 +3,6 @@ import { Link } from 'react-router';
 import harness from '../assets/topics/harness.png';
 import { Diagram } from '../components/Diagram';
 import { vibeCoding } from '../i18n/vibeCoding';
-import { auditPath } from '../lib/audit';
 import { jumpTo } from '../lib/jump';
 import { href, useLang } from '../lib/lang';
 import './VibeCoding.css';
@@ -17,7 +16,7 @@ function Example({ id, label, text }: { id: string; label: string; text: string 
   );
 }
 
-/** #29: Complete bilingual article, following the approved Vibe Coding mock. */
+/** #29: Complete bilingual article, following the approved Vibe Coding mock. #38: the article ends with the conclusion. */
 export function VibeCoding({ titleRef }: { titleRef: Ref<HTMLHeadingElement> }) {
   const { lang } = useLang();
   const c = vibeCoding[lang];
@@ -82,10 +81,6 @@ export function VibeCoding({ titleRef }: { titleRef: Ref<HTMLHeadingElement> }) 
         </header>
         <div className="vc-body">{c.conclusion.map((p) => <p key={p}>{p}</p>)}</div>
       </section>
-      <nav className="container vc-next" aria-label={c.readMore}>
-        <Link to={`${href(lang)}#themen`}>{c.allTopics}</Link>
-        <Link to={auditPath(lang)}>{c.readiness}</Link>
-      </nav>
     </article>
   );
 }
