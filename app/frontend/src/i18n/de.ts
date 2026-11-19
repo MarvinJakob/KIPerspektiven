@@ -54,11 +54,7 @@ export const de = {
     cta: 'Zur Startseite',
   },
   audit: {
-    eyebrow: 'KI Readiness',
-    title: 'Warum eine Selbsteinschätzung?',
-    levelsTitle: 'Drei Reifegrade',
     dimensionsTitle: 'Die Dimensionen im Überblick',
-    dimensionsSub: 'Alle {{count}} Dimensionen in der Reihenfolge der Selbsteinschätzung. Öffne eine Dimension, um zu lesen, was sie betrachtet.',
     toDimension: 'Reifegrade und Prüffragen: {{title}}',
     start: 'Selbsteinschätzung starten',
     category: { organizational: 'Organisatorisch', business: 'Fachlich', technical: 'Technisch' },

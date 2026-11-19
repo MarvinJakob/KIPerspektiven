@@ -79,7 +79,7 @@ Gekürzte Specs (Tests vorher → nachher):
 | News: Übersicht, Beitrag, Nachladen | `20-blog` (4), `75-blog-nachladen` (1), `76-news` (3) | `Blog`, `i18n/news`, `PostAuthor`, Go `TestREQ75…`, `TestNewsOverviewTitle` |
 | Mobiles Inhaltsverzeichnis | `98-mobiles-inhaltsverzeichnis` (3): Abschnitte, Markierung, Sprung | `toc`, `MobileToc` |
 | Profil | `17-profil` (2): Inhalt DE/EN, Einstiege und Kontaktziele | – |
-| KI-Selbsteinschätzung (Readiness) | `23-readiness` (6): Übersicht, Dimension, Bewertung, Auswertung, Speicherung mit und ohne Einwilligung | – |
+| KI-Selbsteinschätzung (Readiness) | `23-readiness` (7): Übersicht nach Mock mit Aufklappen und Einstieg, Wortlaut der Übersicht, Dimension, Bewertung, Auswertung, Speicherung mit und ohne Einwilligung | `i18n/readiness` |
 | Beratungsanfrage | `27-beratung` (4): Anfrage, Feldfehler, Zugriffsschutz, Verwaltung mit Löschen | Go `TestREQ90AC5…` |
 | Kontaktformular mit Zeichenzähler | `22-kontakt` (4): Senden, Feldfehler, Zugriffsschutz, Eingang; `77-zeichenzaehler` (2) | `messageLength` |
 | Sprache | `24-sprache` (4): Präfix, Wechsel, Browsersprache, gespeicherte Wahl | – |

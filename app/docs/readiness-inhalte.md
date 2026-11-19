@@ -26,6 +26,7 @@ Deshalb erklärt die Anleitung die bewusste Wahl von „Einfach“, „Strukturi
 - #112 (umgesetzt) zeigt die Dimensionsbeschreibungen aufklappbar in der Übersicht und ergänzt „Selbsteinschätzung starten“.
 - #113 (umgesetzt) ersetzt den bisherigen Fragebogen auf den Dimensionsseiten durch die direkte Reifegradwahl und den geführten Ablauf. Die alten Quiztexte und die Stufe 0 sind entfernt.
 - #114 (umgesetzt) ergänzt die Gesamtauswertung als Netzdiagramm. Deren Einordnung verwendet den hier übernommenen Text „Nicht überall auf der höchsten Stufe“: Er steht in `content.json` als `overview.de.classification`, die API liefert ihn als `classification` und weiterhin am Ende von `guidance`.
+- #115 (umgesetzt) gestaltet die Übersicht nach dem Mock `readiness_v1` neu. Einleitung, Reifegradtexte und Einordnung der Übersicht stehen seitdem zweisprachig in `frontend/src/i18n/readiness.ts`. `overview.de.intro`, `guidance` und die Leitsätze der Reifegrade im Katalog erscheinen dort nicht mehr; Titel, Leitfrage und Erklärung der Dimensionen sowie `classification` für die Auswertung kommen weiter aus dem Katalog.
 
 **Gemeinsame Veröffentlichung:** Diese Inhaltsänderung beschreibt den Zielablauf aus #112–#114. Sie darf erst zusammen mit diesem Ablauf veröffentlicht werden, damit Anleitung und Bedienung übereinstimmen. Der PR zu #111 ist separat inhaltlich prüfbar; der Review-Agent muss diese Integrationsvoraussetzung vor einem Merge mit automatischem Deployment beachten.
 
