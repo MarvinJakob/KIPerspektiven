@@ -9,10 +9,11 @@ import { useHead, usePageFocus } from '../lib/page';
  * Vorstellung mit Porträt, Beschreibung, Fakten, Kontakt und Beratungsangebote.
  */
 export function Profile() {
-  const { lang } = useLang();
+  const { lang, t } = useLang();
   const content = profile[lang];
   const h1 = usePageFocus<HTMLHeadingElement>();
-  useHead(content.title, content.description);
+  // Im Tab steht die kurze Bezeichnung aus der Navigation (Anforderung #108).
+  useHead(t('nav.profile'), content.description);
 
   return (
     <article className="container profile">

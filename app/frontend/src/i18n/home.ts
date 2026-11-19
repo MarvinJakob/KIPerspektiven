@@ -26,8 +26,7 @@ export interface CheckItem {
 export type CheckAnswer = 'yes' | 'no' | 'skip';
 
 interface HomeContent {
-  /** Seitentitel und Beschreibung; serverseitig gleichlautend in backend/internal/web/meta.go. */
-  title: string;
+  /** Beschreibung der Seite; serverseitig gleichlautend in backend/internal/web/meta.go. */
   description: string;
   hook: string;
   display1: string;
@@ -69,7 +68,6 @@ interface HomeContent {
  */
 export const home: Record<Lang, HomeContent> = {
   de: {
-    title: 'KI verstehen. Sinnvoll einsetzen.',
     description: 'Praxiswissen für den professionellen Einsatz von KI. Mit klarem Blick auf Nutzen, Grenzen und Verantwortung.',
     hook: 'KI kann viel. Entscheidend ist, wie wir sie einsetzen.',
     display1: 'KI verstehen.',
@@ -130,7 +128,6 @@ export const home: Record<Lang, HomeContent> = {
     },
   },
   en: {
-    title: 'Understand AI. Use it wisely.',
     description: 'Practical knowledge for the professional use of AI. With a clear view of benefits, limits and responsibility.',
     hook: 'AI can do a lot. What matters is how we use it.',
     display1: 'Understand AI.',

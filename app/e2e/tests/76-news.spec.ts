@@ -7,7 +7,8 @@ const SOLL = {
   de: { nav: 'Hauptnavigation', back: 'Zurück zu News' },
   en: { nav: 'Main navigation', back: 'Back to News' },
 } as const;
-const TITLE = 'News · KI Perspektiven';
+// Die Form des Tab-Titels legt seit Anforderung #108 REQ-108-AC1 fest; der Seitenname bleibt „News“.
+const TITLE = 'KI Perspektiven News';
 
 for (const lang of ['de', 'en'] as const) {
   const s = SOLL[lang];

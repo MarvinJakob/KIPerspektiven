@@ -13,7 +13,7 @@ export function ArticlePage() {
   const { lang, t } = useLang();
   const article = useArticle(Number(id), lang);
   const heading = usePageFocus<HTMLHeadingElement>();
-  useHead(article.data?.content.title ?? '', article.data?.content.subtitle ?? '');
+  useHead(article.data?.content.title, article.data?.content.subtitle ?? '');
   if (article.isPending) return <Loading />;
   if (isNotFound(article.error)) return <NotFound />;
   if (!article.data) return <LoadError onRetry={() => void article.refetch()} />;
