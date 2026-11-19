@@ -2,8 +2,8 @@
 import type { Page } from '@playwright/test';
 import { expect, expectNoHorizontalScroll, expectVisibleKeyboardFocus, test } from '../support/fixtures';
 
-// Anforderung #34: Landingpage nach Home-Mock (mock/home/) mit zwei Themen und KI-Readiness-Kurzcheck.
-// Sollwerte aus content/topics/home v1_de.md, mock/home/index.html und mock/home/script.js (Variante 7).
+// Anforderung #34: Landingpage nach Home-Mock (.mock/home/) mit zwei Themen und KI-Readiness-Kurzcheck.
+// Sollwerte aus content/topics/home v1_de.md, .mock/home/index.html und .mock/home/script.js (Variante 7).
 
 const DIMENSIONS = [
   ['Strategie und Wirtschaftlichkeit', 'Wissen wir, wofür wir KI einsetzen und ob es sich lohnt?'],

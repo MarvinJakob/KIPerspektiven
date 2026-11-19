@@ -8,6 +8,11 @@
 /content/archive/
 /archive/
 
+# Lokale Arbeitsordner mit Punkt-Präfix: Mocks, Recherchen und Präsentationen bleiben nur lokal.
+/.mock/
+/content/.research/
+/content/.presentation/
+
 # Parallele Agenten: ein Git-Worktree pro Aufgabe (AGENTS.md, „Aufgabe übernehmen“)
 /.worktrees/
 

@@ -3,7 +3,7 @@ import { i18n } from '../i18n';
 import { footerNotes, footerPages, footerTopics, footerYearLine } from './footer';
 
 // Anforderung #54: Öffentlicher Footer „Kompakt mit Themen“.
-// Sollwerte laut Ticket #54 und Mock mock/footer/index.html; Fidelity-Tests: app/e2e/tests/54-footer.spec.ts.
+// Sollwerte laut Ticket #54 und Mock .mock/footer/index.html; Fidelity-Tests: app/e2e/tests/54-footer.spec.ts.
 const SOLL = {
   de: {
     notes: ['Perspektiven und Erfahrungen rund um künstliche Intelligenz.', 'Diese Website wurde mit Unterstützung von KI erstellt.'],

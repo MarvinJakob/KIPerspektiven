@@ -62,7 +62,7 @@ interface HomeContent {
 }
 
 /**
- * Texte der Startseite nach content/topics/home v1_de.md (Stand 16.11.2026) und dem Home-Mock mock/home/ (Ticket #34).
+ * Texte der Startseite nach content/topics/home v1_de.md (Stand 16.11.2026) und dem Home-Mock .mock/home/ (Ticket #34).
  * Deutsch steht wortgleich wie im Mock. Die Leitfragen entsprechen den Kurzfassungen (`summary`) der Dimensionen
  * in backend/internal/audit/content.json. Englisch übernimmt vorhandene Fassungen (Hero, Leitfrage
  * Softwareentwicklung) und übersetzt die übrigen Mock-Texte. Den Abschnitt „Über mich“ hat #47 entfernt.

@@ -40,8 +40,8 @@ export interface SoftwareDevelopmentContent {
 
 /**
  * Artikel „KI in der Softwareentwicklung“ (#7). Deutsch: Textvorlage `content/topics/Software Development v1_de.md`
- * (Stand 16. November 2026) mit den Rechtschreibkorrekturen aus `mock/software_development/README.md`.
- * Englisch: vollständige Übersetzung. Aufbau und Reihenfolge folgen `mock/software_development/index.html`.
+ * (Stand 16. November 2026) mit den Rechtschreibkorrekturen aus `.mock/software_development/README.md`.
+ * Englisch: vollständige Übersetzung. Aufbau und Reihenfolge folgen `.mock/software_development/index.html`.
  */
 export const softwareDevelopment: Record<Lang, SoftwareDevelopmentContent> = {
   de: {

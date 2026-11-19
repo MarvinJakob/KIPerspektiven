@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 import { href, type Lang } from '../lib/lang';
 
-// Inhalte des öffentlichen Footers „Kompakt mit Themen“ (Ticket #54, mock/footer/index.html).
+// Inhalte des öffentlichen Footers „Kompakt mit Themen“ (Ticket #54, .mock/footer/index.html).
 
 export interface FooterLink {
   label: string;
