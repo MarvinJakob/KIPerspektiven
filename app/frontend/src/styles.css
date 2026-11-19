@@ -841,6 +841,24 @@ svg { display: block; }
 .consent-options .btn[aria-pressed="true"] { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); background: var(--note-bg); }
 .consent-status { color: var(--text-2); }
 
+/* Anmeldedialog der Redaktion am Kontosymbol (Ticket #109): natives <dialog> im Top-Layer, Fläche opak wie
+   alle Karten. Felder und Fehlermeldung nutzen die Formularregeln der Kontaktseite. */
+.login-dialog {
+  width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 32px; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text);
+  box-shadow: var(--shadow-dialog);
+}
+.login-dialog::backdrop { background: #0a121bb8; }
+.login-dialog h2 { font-size: 1.5rem; }
+.login-intro { margin-top: 8px; color: var(--text-2); font-size: .9375rem; line-height: 1.55; }
+.login-form { display: grid; gap: 16px; margin-top: 24px; }
+.login-error:empty { display: none; }
+.login-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 4px; }
+@media (max-width: 520px) {
+  .login-dialog { padding: 22px; }
+  .login-actions .btn { flex: 1 1 auto; }
+}
+
 /* ==========================================================================
    Responsiv (Breakpoints aus DESIGN.md, Abschnitt 7, kumulativ)
    ========================================================================== */
@@ -1103,7 +1121,7 @@ svg { display: block; }
 @media print {
   :root, :root[data-theme="dark"] { --navigation-bg: var(--paper); --navigation-filter: none; --navigation-sheen: none; }
   .site-header { position: static; }
-  .menu-toggle, .nav-actions, .lang-switch, .popover, .consent-backdrop { display: none !important; }
+  .menu-toggle, .nav-actions, .lang-switch, .popover, .consent-backdrop, .login-dialog { display: none !important; }
   .home-hero { margin-top: 0; }
   .post-row, .check, .dim-acc-item, .choice-card { break-inside: avoid; }
 }

@@ -1,18 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
+import { hasEditorialSession } from '../api/client';
 import { hasOptionalPurposes, setConsent, useConsent, type ConsentMode } from '../lib/consent';
 import { href, useLang } from '../lib/lang';
 import { consentStatus, storageOptions } from './consentTexts';
-
-/** Prüft, ob eine Redaktionssitzung besteht. Die Sitzung wird dabei nicht verändert. */
-async function hasEditorialSession(): Promise<boolean> {
-  try {
-    const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
 
 const FOCUSABLE = 'button, a[href], input, [tabindex]:not([tabindex="-1"])';
 

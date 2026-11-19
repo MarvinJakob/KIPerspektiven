@@ -202,4 +202,21 @@ export const en: Messages = {
     sessionLink: 'Go to the editorial area to sign out',
     close: 'Close',
   },
+  login: {
+    title: 'Sign in',
+    intro: 'Access is reserved for members of the editorial team. Accounts are set up by the administrators.',
+    email: 'Email address',
+    password: 'Password',
+    close: 'Close',
+    submit: 'Sign in',
+    pending: 'Signing in …',
+    errors: {
+      missing: 'Please enter your email address and password.',
+      invalid:
+        'The email address or password is incorrect, or the account is deactivated. Please check your entries or contact the administrators.',
+      locked: 'Too many failed attempts. Please try again in 15 minutes.',
+      busy: 'Sign-in is busy at the moment. Please try again in a few seconds.',
+      unavailable: 'Sign-in is not possible at the moment. Please try again later.',
+    },
+  },
 };
