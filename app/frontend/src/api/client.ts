@@ -53,6 +53,29 @@ async function unwrap<T>(p: Promise<{ data?: T; error?: unknown; response: Respo
   return data;
 }
 
+/** Prüft, ob eine Redaktionssitzung besteht. Die Sitzung wird dabei nicht verändert. */
+export async function hasEditorialSession(): Promise<boolean> {
+  try {
+    const { response } = await client.GET('/api/auth/me');
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Meldet ein Redaktionskonto an (Ticket #109) und liefert den HTTP-Status; 0 bedeutet „keine Antwort“.
+ * Bewusst ohne unwrap: Eine abgelehnte Anmeldung (`401`) führt zu einer Meldung im Dialog, nicht zur Anmeldeseite.
+ */
+export async function loginEditorial(body: components['schemas']['LoginRequest']): Promise<number> {
+  try {
+    const { response } = await client.POST('/api/auth/login', { body });
+    return response.status;
+  } catch {
+    return 0;
+  }
+}
+
 export const useArticles = (lang: Lang) =>
   useQuery({
     queryKey: ['articles', lang],

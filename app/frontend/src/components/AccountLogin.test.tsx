@@ -122,7 +122,7 @@ function type(input: HTMLInputElement, value: string) {
 
 async function open() {
   act(() => account().click());
-  await until(() => expect(dialog(), 'Anmeldedialog ist geöffnet').not.toBeNull());
+  await until(() => expect(dialog()?.open, 'Anmeldedialog ist geöffnet').toBe(true));
 }
 
 async function submit(lang: Lang, email: string, password: string) {
