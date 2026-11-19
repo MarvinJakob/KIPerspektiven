@@ -3,6 +3,7 @@ import type { BrowserContext, Page } from '@playwright/test';
 import { ACCOUNTS, expect, test, uid } from '../support/fixtures';
 
 // Anforderung #109: Redaktionsanmeldung im Dialog öffnen und Anmeldeseite für Direktaufrufe erhalten.
+// Anforderung #114: Das Kontosymbol öffnet den Dialog auch bei bestehender Redaktionssitzung.
 // Feature „Anmeldung“ (app/docs/testbestand.md): Hauptablauf im Dialog, wichtigste Fehlermeldung und Direktaufruf.
 // Sollwerte stammen aus der Spezifikation im Ticket. Texte DE/EN und Meldung je Ablehnungsgrund prüfen
 // app/frontend/src/lib/editorialLogin.test.ts und app/frontend/src/components/AccountLogin.test.tsx, den Schutz
@@ -121,7 +122,7 @@ test('REQ-109-AC3: abgelehnte Anmeldung zeigt eine Meldung, der Dialog bleibt of
   expect((await page.request.get('/api/auth/me')).status()).toBe(401);
 });
 
-test('REQ-109-AC4: Direktaufruf von /redaktion zeigt ohne Sitzung die eigenständige Anmeldeseite und führt mit Sitzung in die Redaktion', async ({ page, context }) => {
+test('REQ-109-AC4 REQ-114-AC1 REQ-114-AC2: Direktaufruf von /redaktion zeigt ohne Sitzung die Anmeldeseite und führt mit Sitzung in die Redaktion; das Kontosymbol öffnet auch mit Sitzung den Dialog', async ({ page, context }) => {
   await page.goto('/redaktion');
   await expect(page).toHaveURL(/\/redaktion\/anmelden$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Anmelden' })).toBeVisible();
@@ -143,9 +144,12 @@ test('REQ-109-AC4: Direktaufruf von /redaktion zeigt ohne Sitzung die eigenstän
   await expect(page).toHaveURL(EDITOR_START);
   expect((await page.goto('/redaktion/benutzer'))?.status(), 'Benutzerverwaltung bleibt Admins vorbehalten').toBe(403);
 
-  // Annahme A1: Das Kontosymbol führt mit bestehender Sitzung ohne Dialog in die Redaktion
-  await page.goto('/de/blog');
-  await page.getByRole('button', { name: TEXT.account }).click();
-  await expect(page).toHaveURL(EDITOR_START);
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  // REQ-114-AC1 REQ-114-AC2: Auch mit bestehender Sitzung öffnet das Kontosymbol den Dialog; Schließen lässt Seite und Sitzung bestehen
+  const { url, dialog, email, close } = await openDialog(page);
+  await expect(email).toBeFocused();
+  await stillSamePage(page, url);
+  await close.click();
+  await expect(dialog).toHaveCount(0);
+  await stillSamePage(page, url);
+  expect((await page.request.get('/api/auth/me')).status(), 'bestehende Sitzung bleibt gültig').toBe(200);
 });

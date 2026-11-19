@@ -7,7 +7,8 @@ import { editorial } from '../lib/editorialLogin';
 import { LangContext, type Lang } from '../lib/lang';
 import { AccountLogin } from './AccountLogin';
 
-// Fidelity-Tests auf Komponentenebene zu REQ-109-AC1 bis REQ-109-AC3 (Ticket #109) mit simulierter API.
+// Fidelity-Tests auf Komponentenebene zu REQ-109-AC1 bis REQ-109-AC3 (Ticket #109) und REQ-114-AC1 (Ticket #114)
+// mit simulierter API.
 // Sollwerte und Texte stammen aus der Spezifikation im Ticket. Das Zusammenspiel mit echtem Backend, Sitzung und
 // Weiterleitung prüft app/e2e/tests/109-anmeldedialog.spec.ts, die Meldung je Ablehnungsgrund lib/editorialLogin.test.ts.
 
@@ -204,13 +205,15 @@ describe.each(['de', 'en'] as const)('Anmeldedialog am Kontosymbol (%s)', (lang)
     expect(opened).not.toHaveBeenCalled();
   });
 
-  it('Annahme A1: mit bestehender Sitzung öffnet das Kontosymbol ohne Dialog die Redaktion', async () => {
+  it('REQ-114-AC1: Kontosymbol öffnet den Dialog auch mit bestehender Sitzung, ohne die Sitzung abzufragen', async () => {
     sessionStatus = 200;
     render(lang);
-    act(() => account().click());
-    await until(() => expect(opened).toHaveBeenCalledTimes(1));
-    expect(dialog()).toBeNull();
-    expect(sessionChecks).toBe(1);
+    await open();
+    expect(field(T.email), 'derselbe Dialog wie ohne Sitzung').not.toBeNull();
+    expect(field(T.password)).not.toBeNull();
+    expect(button(T.close)).toBeDefined();
+    expect(opened, 'kein Wechsel in die Redaktion').not.toHaveBeenCalled();
+    expect(sessionChecks, 'beim Öffnen wird keine Sitzung abgefragt').toBe(0);
     expect(logins).toHaveLength(0);
   });
 });

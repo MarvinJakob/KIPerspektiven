@@ -1,16 +1,16 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react';
-import { hasEditorialSession, loginEditorial } from '../api/client';
+import { loginEditorial } from '../api/client';
 import { editorial, loginErrorKey } from '../lib/editorialLogin';
 import { useLang } from '../lib/lang';
 import { Icon } from './Icon';
 
 /**
- * Kontosymbol der Kopfzeile mit Anmeldedialog für die Redaktion (Ticket #109).
+ * Kontosymbol der Kopfzeile mit Anmeldedialog für die Redaktion (Tickets #109 und #114).
  *
- * Ohne Redaktionssitzung öffnet das Symbol einen modalen Dialog auf der aktuellen Seite. Er schließt über
+ * Das Symbol öffnet immer einen modalen Dialog auf der aktuellen Seite, auch wenn bereits eine Redaktionssitzung
+ * besteht (#114); eine Sitzung wird dafür nicht abgefragt. Er schließt über
  * „Schließen“ oder `Esc`; der Fokus kehrt dann zum Symbol zurück und die Eingaben sind verworfen. Eine
  * erfolgreiche Anmeldung öffnet die Redaktion, eine abgelehnte zeigt eine Meldung und lässt den Dialog offen.
- * Besteht bereits eine Sitzung, führt das Symbol wie zuvor direkt in die Redaktion.
  *
  * Das native `<dialog>` liegt im Top-Layer. So bleibt es von der Glasfläche der Kopfzeile unberührt, der
  * Browser hält den Fokus im Dialog und sperrt die Seite dahinter.
@@ -25,7 +25,6 @@ export function AccountLogin({ onOpen }: { onOpen?: () => void }) {
   const opener = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const emailInput = useRef<HTMLInputElement>(null);
-  const checking = useRef(false);
   // Zählt Öffnen und Schließen. Antworten auf eine Anmeldung aus einem bereits geschlossenen Dialog verfallen.
   const visit = useRef(0);
   const id = useId();
@@ -38,15 +37,8 @@ export function AccountLogin({ onOpen }: { onOpen?: () => void }) {
     emailInput.current?.focus();
   }, [open]);
 
-  const activate = async () => {
-    if (open || checking.current) return;
-    checking.current = true;
-    const signedIn = await hasEditorialSession();
-    checking.current = false;
-    if (signedIn) {
-      editorial.open();
-      return;
-    }
+  const activate = () => {
+    if (open) return;
     onOpen?.();
     setOpen(true);
   };
@@ -97,7 +89,7 @@ export function AccountLogin({ onOpen }: { onOpen?: () => void }) {
         aria-haspopup="dialog"
         aria-label={t('nav.account')}
         title={t('nav.account')}
-        onClick={() => void activate()}
+        onClick={activate}
       >
         <Icon name="user" />
       </button>
