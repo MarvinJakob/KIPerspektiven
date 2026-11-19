@@ -92,7 +92,7 @@ Gekürzte Specs (Tests vorher → nachher):
 
 | Feature | Fidelity | Unit |
 |---|---|---|
-| Anmeldung im Dialog am Kontosymbol und über die Anmeldeseite (#109) | `109-anmeldedialog` (4): Dialog öffnen und schließen, Anmeldung im Dialog, abgelehnte Anmeldung, Direktaufruf von `/redaktion`; `support/auth.setup.ts` (3), `21-redaktion-beitraege` REQ-21-AC1 | `lib/editorialLogin`, `AccountLogin`, Go `TestREQ109AC4…`, `TestREQ64…` |
+| Anmeldung im Dialog am Kontosymbol und über die Anmeldeseite (#109, #114) | `109-anmeldedialog` (4): Dialog öffnen und schließen, Anmeldung im Dialog, abgelehnte Anmeldung, Direktaufruf von `/redaktion` samt Dialog bei bestehender Sitzung; `support/auth.setup.ts` (3), `21-redaktion-beitraege` REQ-21-AC1 | `lib/editorialLogin`, `AccountLogin`, Go `TestREQ109AC4…`, `TestREQ64…` |
 | Beiträge schreiben, veröffentlichen, zurücknehmen, Titelbild | `21-redaktion-beitraege` (6) | `PostParts` |
 | Veröffentlichung auf die Minute planen | `84-minuten` (1): Termin im Editor | Go `TestREQ84…` |
 | Benutzer, Rollen, Autorenprofil | `28-benutzer` (4), `64-rollen-profile` (5), `06-passwort-maskieren` (1) | `permissions`, Go `TestREQ64…` |
