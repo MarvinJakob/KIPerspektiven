@@ -13,8 +13,8 @@ Stand: Anforderung #111 (19.11.2026). Die Tests prüfen die Features der Seite. 
 
 | Suite | Ausgang `86b4419` | Nach #111 | Entfernt |
 |---|---|---|---|
-| Fidelity (Playwright) | 373 Tests in 40 Specs | 88 Tests in 28 Specs (einschließlich 3 Anmeldungen im Setup) | 285 Tests, 12 Specs |
-| Vitest `app/frontend` | 127 Testdeklarationen in 20 Dateien | 93 in 13 Dateien | 34 Tests, 7 Dateien |
+| Fidelity (Playwright) | 373 Tests in 40 Specs, mit #110 weitere 11 in `108-browsertitel` | 92 Tests in 29 Specs (einschließlich 3 Anmeldungen im Setup) | 292 Tests, 12 Specs |
+| Vitest `app/frontend` | 127 Testdeklarationen in 20 Dateien, mit #110 weitere 11 in `lib/page.test.tsx` | 104 in 14 Dateien | 34 Tests, 7 Dateien |
 | Vitest `app/frontend-redaktion` | 34 in 5 Dateien | unverändert | – |
 | Go `app/backend` | 73 Testfunktionen | unverändert | – |
 | Prozesswerkzeuge `tools` | 51 Tests | unverändert | – |
@@ -37,6 +37,7 @@ Gekürzte Specs (Tests vorher → nachher):
 | Spec | Tests | Entfernt |
 |---|---|---|
 | `06-passwort-maskieren` | 9 → 1 | Touch, Tastatur, Fokusverlust, Wiederholung, leeres Feld, Breiten |
+| `108-browsertitel` | 11 → 4 | Fehlerseite, Weiterleitung von „/“, Themenartikel und Dimension, Titel während des Ladens, Social-Media-Titel (Regeln in `lib/page.test.tsx`, `web/meta_test.go`) |
 | `104-ninja-design` | 28 → 3 | Typografie- und Kontrastmessungen, Layoutverschiebung, Breiten, erzwungene Farben, Redaktion; Tokens bleiben in `design.test.ts` |
 | `16-darstellung` | 8 → 3 | Redaktionsvariante, ohne Einwilligung, blockierter Speicher, Tastatur, mobil |
 | `17-profil` | 6 → 2 | Reihenfolge der Abschnitte, Sprachwechsel, Breiten |
@@ -82,6 +83,7 @@ Gekürzte Specs (Tests vorher → nachher):
 | Beratungsanfrage | `27-beratung` (4): Anfrage, Feldfehler, Zugriffsschutz, Verwaltung mit Löschen | Go `TestREQ90AC5…` |
 | Kontaktformular mit Zeichenzähler | `22-kontakt` (4): Senden, Feldfehler, Zugriffsschutz, Eingang; `77-zeichenzaehler` (2) | `messageLength` |
 | Sprache | `24-sprache` (4): Präfix, Wechsel, Browsersprache, gespeicherte Wahl | – |
+| Browsertitel | `108-browsertitel` (4): Direktaufruf DE/EN, Inhaltstitel, Seiten- und Sprachwechsel | `lib/page`, Go `web/meta_test.go` |
 | Darstellung hell/dunkel und Ninja-Design | `16-darstellung` (3), `104-ninja-design` (3): Farben hell/dunkel, Schriften vom eigenen Server | `theme`, `design` |
 | Cookie-Dialog und Speicherwahl | `78-speicherwahl` (2) | `consentTexts` |
 | Footer und Datenschutzerklärung | `54-footer` (2), `74-datenschutz` (2) | `footer`, `content/legal/datenschutz` |
