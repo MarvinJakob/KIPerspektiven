@@ -12,11 +12,12 @@ interface Palette {
   dot: string;
 }
 
-// cimt × Apple (DESIGN_CIMT.md): Alle Grafiken stehen auf dunklem Blau mit orangefarbenen und blaugrauen
-// Lichtern. Die Themen unterscheiden sich über Mischung und Lage der Lichter sowie ihr Symbol.
+// Ninja-Design (DESIGN.md, Ticket #104): Alle Grafiken und Menüsymbole stehen auf einem Verlauf von Navy nach
+// #182433 mit orangefarbenen und hellgrauen Lichtern. Die Themen unterscheiden sich über Mischung und Lage
+// der Lichter sowie ihr Symbol. Es gelten nur Farben der Ninja-Palette.
 const PALETTES: Record<string, Palette> = {
-  software: { c1: 'rgba(220,110,20,.7)', c2: 'rgba(144,165,184,.35)', c3: 'rgba(245,166,107,.4)', b1: '#12263a', b2: '#1d3a54', dot: '#dc6e14' },
-  audit: { c1: 'rgba(144,165,184,.45)', c2: 'rgba(220,110,20,.55)', c3: 'rgba(95,125,149,.5)', b1: '#0f2131', b2: '#23455f', dot: '#5f7d95' },
+  software: { c1: '#dc6e14b3', c2: '#bfc9d359', c3: '#f39b5666', b1: '#12263a', b2: '#182433', dot: '#dc6e14' },
+  audit: { c1: '#bfc9d373', c2: '#dc6e148c', c3: '#2a5a8c80', b1: '#0a121b', b2: '#182433', dot: '#2a5a8c' },
 };
 
 const TOPICS: Record<string, { palette: keyof typeof PALETTES; icon: IconName }> = {

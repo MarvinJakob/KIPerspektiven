@@ -34,11 +34,16 @@ async function contrast(page: Page, selector: string) {
   });
 }
 
-test('REQ-16-AC1: ohne gespeicherte Wahl erscheint die helle Darstellung, auch bei dunkler Systemeinstellung', async ({ page }) => {
-  await page.emulateMedia({ colorScheme: 'dark' });
+// Seit #104 (Entscheidung vom 19.11.2026, REQ-104-AC10) folgt die Webseite ohne gespeicherte Wahl der Systemeinstellung.
+test('REQ-16-AC1 REQ-104-AC10: ohne gespeicherte Wahl folgt die Darstellung der Systemeinstellung', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
   await page.goto('/de');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByRole('button', { name: 'Dunkle Darstellung' })).toHaveAttribute('aria-pressed', 'false');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.getByRole('button', { name: 'Dunkle Darstellung' })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('REQ-16-AC2: Umschalten auf der Webseite wechselt die Darstellung und erhält Seite und Formularwerte', async ({ page }) => {

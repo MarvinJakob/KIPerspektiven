@@ -207,7 +207,7 @@ test('REQ-34-AC5: „Selbsteinschätzung starten“ bei Frage 1, während des Ch
   await expect(page.locator('main [data-placeholder]')).toHaveCount(0);
 });
 
-test('REQ-34-AC6 REQ-25-AC6: typografische Hierarchie, Systemschrift, cimt-Orange, deckende Kurzcheck-Fläche und keine Bilder in Hell und Dunkel', async ({ page }) => {
+test('REQ-34-AC6 REQ-25-AC6: typografische Hierarchie, Source Sans 3 (#104), cimt-Orange, deckende Kurzcheck-Fläche und keine Bilder in Hell und Dunkel', async ({ page }) => {
   await page.goto('/de');
   for (const theme of ['light', 'dark'] as const) {
     if (theme === 'dark') {
@@ -233,7 +233,7 @@ test('REQ-34-AC6 REQ-25-AC6: typografische Hierarchie, Systemschrift, cimt-Orang
     });
     expect(s.h1, `${theme}: Hero ist die größte Schrift`).toBeGreaterThanOrEqual(2 * s.h2);
     expect(s.h2).toBeGreaterThan(s.h3);
-    expect(s.font).toMatch(/-apple-system|system-ui|Segoe UI/);
+    expect(s.font, 'Fließtext in Source Sans 3 (REQ-104-AC5)').toMatch(/^"?Source Sans 3"?,/);
     expect(s.brand).toBe('rgb(220, 110, 20)');
     expect(s.number).toBe('rgb(220, 110, 20)');
     expect(s.rowBorder, 'Themenzeilen sind durch Linien getrennt').toBe('solid');

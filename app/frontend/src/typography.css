@@ -1,0 +1,153 @@
+/* ==========================================================================
+   Typografie „Magazin-Kontrast“ (DESIGN.md, Abschnitt 3; Ticket #104)
+
+   Playfair Display für Überschriften, Hervorhebungen, Zitate und Ziffern; Source Sans 3 für Fließtext,
+   Navigation, Buttons, Formulare und Labels. Größen, Raster und Umbrüche stehen in styles.css; hier
+   ändern sich nur Schriftfamilie, Gewicht, Stil, Laufweite und Zeilenhöhe. Wird nach styles.css geladen.
+
+   Die Schriften liegen in assets/fonts (SIL Open Font License 1.1, Lizenztexte daneben) und werden nur
+   vom eigenen Server geladen. Nur die lateinische Teilmenge (inkl. Umlaute, ß und typografische
+   Anführungszeichen) als variable WOFF2-Datei; der Browser lädt einen Schnitt erst, wenn er gebraucht wird.
+   ========================================================================== */
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("./assets/fonts/playfair-display-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: italic;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("./assets/fonts/playfair-display-latin-wght-italic.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("./assets/fonts/source-sans-3-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("./assets/fonts/source-sans-3-latin-wght-italic.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Rückfallschriften mit angeglichener Laufbreite: Bis die Webschrift geladen ist, umbricht der Text gleich,
+   sodass sich das Layout beim Wechsel nicht sichtbar verschiebt (REQ-104-AC7). size-adjust ist das gemessene
+   Verhältnis der Laufbreite eines deutschen Mustertexts (Webschrift / lokale Schrift, Chromium, 19.11.2026).
+   Fehlt Georgia (etwa unter Linux), greift die angeglichene Times- bzw. Liberation-Serif-Variante. */
+@font-face {
+  font-family: "Playfair Display Fallback";
+  font-style: normal;
+  font-weight: 400 900;
+  src: local("Georgia Bold"), local("Georgia-Bold");
+  size-adjust: 88%;
+}
+@font-face {
+  font-family: "Playfair Display Fallback";
+  font-style: italic;
+  font-weight: 400 900;
+  src: local("Georgia Italic"), local("Georgia-Italic");
+  size-adjust: 95%;
+}
+@font-face {
+  font-family: "Playfair Display Fallback Serif";
+  font-style: normal;
+  font-weight: 400 900;
+  src: local("Times New Roman Bold"), local("TimesNewRomanPS-BoldMT"), local("Liberation Serif Bold"), local("LiberationSerif-Bold");
+  size-adjust: 105.5%;
+}
+@font-face {
+  font-family: "Playfair Display Fallback Serif";
+  font-style: italic;
+  font-weight: 400 900;
+  src: local("Times New Roman Italic"), local("TimesNewRomanPS-ItalicMT"), local("Liberation Serif Italic"), local("LiberationSerif-Italic");
+  size-adjust: 107%;
+}
+@font-face {
+  font-family: "Source Sans 3 Fallback";
+  font-style: normal;
+  font-weight: 200 549;
+  src: local("Arial"), local("ArialMT"), local("Liberation Sans"), local("LiberationSans");
+  size-adjust: 93%;
+}
+@font-face {
+  font-family: "Source Sans 3 Fallback";
+  font-style: normal;
+  font-weight: 550 900;
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold");
+  size-adjust: 89.5%;
+}
+
+:root {
+  --font: "Source Sans 3", "Source Sans 3 Fallback", system-ui, sans-serif;
+  --font-display: "Playfair Display", "Playfair Display Fallback", "Playfair Display Fallback Serif", Georgia, serif;
+}
+
+/* Alle Regeln haben über :root:root:root :where(…) dieselbe Spezifität (0,3,0). Sie übersteuern damit die Komponentenregeln
+   aus styles.css und den Seiten-Stylesheets; innerhalb dieser Datei gewinnt die spätere Regel. */
+
+/* Große Überschriften, Untertitel und Wortmarke */
+:root:root:root :where(h1, h2, .home-title, .page-title, .home-section-title, .section-title, .article-head h1, .article-body h2,
+  .prose h2, .landing h2, .profile h2, .home h2, .vc-split-head h2, .profile-headline, .article-subtitle, .topic-subtitle,
+  .brand-mark, .brand-name, .footer-brand) {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -.02em;
+}
+:root:root:root :where(.home-title, .article-head h1) { letter-spacing: -.03em; }
+:root:root:root :where(.article-subtitle, .profile-headline) { font-weight: 500; }
+
+/* Zwischenüberschriften und Titel in Listen */
+:root:root:root :where(h3, h4, .home-topics h3, .landing h3, .profile h3, .prose h3, .menu-title, .related-title, .post-title, .vc-index strong) {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -.005em;
+}
+
+/* Hervorgehobener zweiter Gedanke im Titel („Sinnvoll einsetzen.“, „KI in der Praxis nutzen.“) */
+:root:root:root :where(.home-title span, .profile-headline span) {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Zitate */
+:root:root:root :where(.vc-quote p, .quote-heading) {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -.01em;
+}
+:root:root:root :where(.quote-heading small) { font-family: var(--font); font-style: normal; }
+
+/* Labels: Eyebrows, Kicker, Footer-Überschriften, Profil-Tags */
+:root:root:root :where(.eyebrow, .home-topic-kicker, .footer-head, .related-label, .vc-example figcaption, .toc-title, .profile-offer dt,
+  .profile-tags li) {
+  font-family: var(--font);
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+/* Ziffern: Themen, Perspektiven, Profil-Fakten, Angebotsnummern, Anführungszeichen */
+:root:root:root :where(.topic-number, .home-topics .topic-number, .vc-number, .profile-facts dt, .profile-offer-number, .quote-mark) {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -.03em;
+}
+
+/* Fließtext in Artikeln */
+:root:root:root :where(.article-body p, .vc-body p) { line-height: 1.75; }

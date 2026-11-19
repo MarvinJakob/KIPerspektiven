@@ -1,14 +1,14 @@
-# Design-Konzept: cimt × Apple
+# Design-Konzept: Ninja-Design (cimt × Apple)
 
-> **Stand:** 2026-11-09 · **Referenz:** [Klickbarer Mock](.mock/design_cimt/index.html) · **Projekt:** KI Perspektiven
+> **Stand:** 2026-11-19 · **Ticket:** [#104](https://github.com/MarvinJakob/KIPerspektiven/issues/104) · **Projekt:** KI Perspektiven
 
-Diese Anleitung beschreibt, wie das Layout von `design_cimt` nachgebaut und erweitert wird. Es verbindet die Farben und die sachliche Ausrichtung von cimt mit einer eigenständigen Interpretation der Apple Human Interface Guidelines (HIG). Es ist kein offizielles Designsystem von cimt oder Apple.
+Diese Anleitung beschreibt Aufbau, Farben und Typografie der öffentlichen Webseite (`app/frontend`). Aufteilung, Abstände, Radien und Komponenten stammen aus dem Entwurf `design_cimt` („cimt × Apple“, Ticket #93). Seit Ticket #104 gelten die **Ninja-Farbpalette** in cimt-Farben und die Typografie **„Magazin-Kontrast“** (Playfair Display und Source Sans 3). Es ist kein offizielles Designsystem von cimt oder Apple. Das Redaktionssystem (`app/frontend-redaktion`) behält seine eigenen Farben und die Systemschrift.
 
-Der beschriebene Stand ist im statischen Mock umgesetzt. Die Anwendung unter `app/` wird durch dieses Dokument nicht verändert. Die Dokumentation der ursprünglichen Designvariante liegt im Git-Verlauf (`DESIGN.md` vor Commit `f9cd407`).
+Die Werte stehen als Tokens am Anfang von `app/frontend/src/styles.css`; die Typografie steht in `app/frontend/src/typography.css`. Die frühere Systemschrift und Palette sind im Git-Verlauf dokumentiert (`DESIGN.md` vor Ticket #104).
 
 ## 1. Leitidee und feste Entscheidungen
 
-**cimt gibt die Farbe vor. Apple inspiriert Klarheit, Hierarchie und Bedienung.**
+**cimt gibt die Farbe vor. Apple inspiriert Klarheit, Hierarchie und Bedienung. Die Typografie gibt der Seite einen redaktionellen Charakter.**
 
 Die cimt-Website dient als Referenz für dunkle Blautöne, helle Flächen, orange Akzente und die Verbindung von Strategie und Umsetzung. Die genaue Unternehmensfarbe `#dc6e14` ist eine Vorgabe für diesen Entwurf. [Q1]
 
@@ -20,8 +20,8 @@ Folgende Entscheidungen beim Nachbauen beibehalten:
 - **Inhalte bleiben opak:** Themenkarten, Beiträge, Audit-Flächen und Dialoge sind nicht durchsichtig.
 - **Keine zusätzliche obere Textleiste:** Der Schriftzug „Perspektiven für die digitale Zukunft.“ und die frühere Mock-Leiste entfallen.
 - **Kein Liquid-Glass-Schalter:** Es gibt weder einen Slider noch eine gespeicherte Ein/Aus-Wahl.
-- **Hell und Dunkel bleiben umschaltbar.** Der Mock startet hell; die Wahl wird nur im Arbeitsspeicher gehalten.
-- **Keine externen Schrift- oder Bildabrufe.** Grafiken und Symbole entstehen lokal mit CSS und SVG.
+- **Hell und Dunkel bleiben umschaltbar.** Ohne gespeicherte Wahl folgt die Seite der Systemeinstellung `prefers-color-scheme`; ohne Auskunft startet sie hell. Eine Wahl wird nur mit Einwilligung in den Cookie-Einstellungen gespeichert und hat dann Vorrang.
+- **Keine externen Schrift- oder Bildabrufe.** Die Schriften liegen als WOFF2 im Repository und werden nur vom eigenen Server geladen. Grafiken und Symbole entstehen lokal mit CSS und SVG.
 
 ## 2. Dateien und Vorgehen
 
@@ -49,47 +49,71 @@ Redaktionelle Themenartikel folgen der Vorlage in Abschnitt 8.
 
 ### Farben
 
-Alle Farben als CSS-Variablen in `:root` definieren. Für die dunkle Darstellung die variablen Werte unter `:root[data-theme="dark"]` überschreiben.
+Alle Farben als CSS-Variablen in `:root` definieren. Für die dunkle Darstellung die variablen Werte unter `:root[data-theme="dark"]` überschreiben. Komponenten verwenden nur die semantischen Rollen (`--text`, `--text-2`, `--surface`, `--accent` …), die auf diese Tokens verweisen.
 
-| Token | Hell | Dunkel | Verwendung |
+| Token | Dunkel | Hell | Verwendung |
 | --- | --- | --- | --- |
-| `--brand` | `#dc6e14` | unverändert | Primärbuttons, Akzente, grafische Hervorhebungen. |
-| `--brand-ink` | `#a64b08` | `#f39b56` | Orangefarbener Text mit besserem Kontrast zur jeweiligen Fläche. |
-| `--ink` | `#12263a` | `#eef2f5` | Haupttext und Überschriften. |
-| `--muted` | `#596777` | `#b2bfcc` | Beschreibungen, Metadaten und Nebeninformationen. |
-| `--paper` | `#ffffff` | `#0d1d2b` | Grundfläche und Dialoge. |
-| `--soft` | `#f5f6f7` | `#162a3b` | Themenkarten und dezente Bedienflächen. |
-| `--warm` | `#fcf8f3` | `#1c292f` | Hero und warme Hervorhebungen. |
-| `--line` | `#dde2e6` | `#344756` | Trennlinien und Ränder. |
-| `--navy` | `#12263a` | unverändert | Hero-Grafik, Audit-Abschnitt und dunkle Kontaktbuttons. |
-| `--on-brand` | `#12263a` | unverändert | Dunkler Text auf dem orangefarbenen Primärbutton. |
+| `--paper` | `#0a121b` | `#f8f7f5` | Seitenhintergrund. |
+| `--surface` | `#111b26` | `#ffffff` | Karten, Menüs, Dialoge, Formularfelder. |
+| `--soft` | `#182433` | `#f1efec` | Füllflächen, Sprachwahl, Chips. |
+| `--warm` | `#111b26` | `#fcf1e6` | Hero und Hinweisflächen. |
+| `--line` | `#ffffff26` | `#12263a29` | Linien und Ränder. |
+| `--ink` | `#f6f8fa` | `#12263a` | Haupttext und Überschriften. |
+| `--muted` | `#bfc9d3` | `#4d5b6b` | Beschreibungen, Metadaten. |
+| `--brand` | `#dc6e14` | `#dc6e14` | Primärflächen, Linien, große Ziffern. |
+| `--brand-ink` | `#f39b56` | `#a64b08` | Orangefarbene Schrift. |
+| `--brand-hover` | `#f39b56` | `#c35f0e` | Hover des Primärbuttons. |
+| `--navy`, `--on-brand` | `#12263a` | `#12263a` | Text auf Orange, dunkle Flächen. |
 
-Die Unternehmensfarbe nicht pauschal als Textfarbe auf Weiß einsetzen. Für kleinere orangefarbene Schrift `--brand-ink` verwenden. Auf orangefarbenen Buttons steht dunkler Text, nicht Weiß. Kontraste in beiden Darstellungen und insbesondere auf der transparenten Navigation prüfen. [Q4]
+Weitere feste Werte:
 
-### Typografie
+| Element | Dunkel | Hell |
+| --- | --- | --- |
+| Navigation (Glas), Hintergrund | `#0a121bcc` | `#f8f7f5cc` |
+| Navigation (Glas), Rand | `#ffffff26` | `#12263a17` |
+| Hero der Startseite, Farbfeld oben rechts | `#dc6e14` mit 28 % | `#dc6e14` mit 20 % |
+| Hero der Startseite, Farbfeld unten links | Blau `#2a5a8c` mit 33 % | Navy `#12263a` mit 11 % |
+| Menüsymbole und Grafiken | Verlauf `#12263a` → `#182433` mit Lichtern in `#dc6e14`, `#bfc9d3`, `#f39b56` | wie dunkel |
+| Fazit „Vibe Coding“ | Fläche `#111b26` mit Rand `--line`, Text `#f6f8fa` / `#bfc9d3` | Fläche `--navy`, Text `#f6f8fa` / `#bfc9d3` |
+| Meinungsbutton | `--navy`, Hover `#182433`, Text `#f6f8fa` | wie dunkel |
+| Abdunklung des Cookie-Dialogs | `#0a121bb8` | `#0a121bb8` |
 
-Eine gemeinsame Systemschrift verwenden:
+Nur Farben aus diesen beiden Tabellen verwenden, gegebenenfalls mit Transparenz; Ausnahmen sind `transparent`, `currentColor` und die Systemfarben für erzwungene Farben. Schatten sind navyfarben bzw. `#0a121b`, nie Schwarz. Die Unternehmensfarbe nicht pauschal als Textfarbe einsetzen: Für orangefarbene Schrift `--brand-ink` verwenden. Auf orangefarbenen Flächen steht dunkler Text (`--on-brand`), nicht Weiß. Fließtext braucht mindestens 4,5:1, große Schrift mindestens 3:1 Kontrast zur jeweiligen Fläche. [Q4]
+
+### Typografie „Magazin-Kontrast“
+
+Zwei Schriften, beide unter der SIL Open Font License 1.1 und selbst gehostet (`app/frontend/src/assets/fonts`, Lizenztexte daneben):
 
 ```css
---font: -apple-system, BlinkMacSystemFont, "Segoe UI Variable",
-        "Segoe UI", Helvetica, Arial, sans-serif;
+--font: "Source Sans 3", "Source Sans 3 Fallback", system-ui, sans-serif;
+--font-display: "Playfair Display", "Playfair Display Fallback", Georgia, serif;
 ```
 
-Auf unterstützten Apple-Geräten wird die Systemschrift genutzt, unter Windows die passende Segoe-UI-Variante. SF Pro nicht als Webfont einbetten. Die HIG empfehlen wenige Schriftfamilien, klare Hierarchien und gut lesbare Schriftgrößen. [Q2]
+Geladen werden nur variable WOFF2-Dateien der lateinischen Teilmenge (Umlaute, ß und typografische Anführungszeichen sind enthalten): Playfair Display normal und kursiv, Source Sans 3 normal und – nur bei Bedarf – kursiv. Alle Schriften nutzen `font-display: swap`; Text ist sofort in der Rückfallschrift sichtbar. Die Rückfallschriften (`… Fallback`, lokal Georgia bzw. Arial) sind per `size-adjust` an die Laufbreite der Webschriften angeglichen, damit sich das Layout beim Wechsel nicht sichtbar verschiebt. Keine Schriften von Google Fonts oder anderen fremden Hosts laden. [Q7] [Q8]
 
-| Element | Ausgangswert im breiten Layout |
+Größen, Raster und Zeilenumbrüche stehen in `styles.css`. Die Typografie ändert Schriftfamilie, Gewicht, Stil, Laufweite und Zeilenhöhe:
+
+| Element | Schrift | Gewicht / Stil | Laufweite |
+| --- | --- | --- | --- |
+| H1, H2, Abschnitts- und Artikeltitel, Profil-Headline, Untertitel, Wortmarke | Playfair Display | 600 (Untertitel und Profil-Headline 500) | −0,02 em, Hero und Artikeltitel −0,03 em |
+| Hervorhebung im Titel („Sinnvoll einsetzen.“, „KI in der Praxis nutzen.“) | Playfair Display | 400 *kursiv* | wie Titel |
+| Zitate und Zitat-Überschriften | Playfair Display | 500 *kursiv* | −0,01 em |
+| H3, Themenfragen, Menütitel, Weiterlesen-Titel | Playfair Display | 600 | −0,005 em |
+| Eyebrows, Kicker, Footer-Überschriften, Labels, Profil-Tags | Source Sans 3 | 600, Großbuchstaben | 0,18 em |
+| Ziffern (01/02, Perspektiven, Profil-Fakten, Angebotsnummern, Anführungszeichen) | Playfair Display | 400 *kursiv* | −0,03 em; Themenziffern auf der Startseite `3rem` |
+| Fließtext, Navigation, Buttons, Formulare | Source Sans 3 | 400 (Bedienelemente 600–650) | normal |
+
+Grundgröße des Fließtexts ist `1.125rem` mit Zeilenhöhe `1.65`, in Artikeln `1.75`. Serifen nie im Fließtext einsetzen. Die Regeln in `typography.css` haben eine einheitliche Spezifität (`:root:root:root :where(…)`), übersteuern damit die Komponentenregeln und folgen untereinander der Reihenfolge in der Datei.
+
+| Element | Größe im breiten Layout |
 | --- | --- |
-| Grundschrift | `1.0625rem`, Zeilenhöhe `1.65`. |
-| Hero-Überschrift | `clamp(3.5rem, 5.65vw, 5rem)`, Gewicht `700`. |
-| Abschnittsüberschrift | `clamp(2rem, 3.4vw, 3rem)`, Gewicht `700`. |
-| Große Überschriften | Zeilenhöhe `1.08`, Laufweite `-.045em`. |
-| Hero-Beschreibung | `1.0625rem`, Zeilenhöhe `1.75`, maximal `480px` breit. |
-| Kartentitel | Etwa `20–25px`, Gewicht `650`. |
-| Beitragsüberschriften | `1.5rem`, Gewicht `650`, Zeilenhöhe `1.3`. |
-| Beitragstext im Dialog | `1rem`, Zeilenhöhe `1.85`. |
+| Hero-Überschrift | `clamp(3rem, 9vw, 8rem)`, Zeilenhöhe `1`. |
+| Abschnittsüberschrift | `clamp(2rem, 3.4vw, 3rem)`, Zeilenhöhe `1.08`. |
+| Artikeltitel | `clamp(3.6rem, 8vw, 7rem)`, Zeilenhöhe `1`. |
+| Kartentitel und Themenfragen | Etwa `20–28px`. |
 | Primärbutton | `.9375rem`, Gewicht `650`. |
 
-Überschriften mit `text-wrap: balance` setzen. Lange deutsche Kartentitel mit `hyphens: auto` und `overflow-wrap: anywhere` vor Überlaufen schützen. Die kleineren Ansichten besitzen zusätzliche Schriftgrößen-Regeln in `styles.css`.
+Überschriften mit `text-wrap: balance` setzen. Lange deutsche Titel mit `hyphens: auto` und `overflow-wrap` vor Überlaufen schützen. Die kleineren Ansichten besitzen zusätzliche Schriftgrößen-Regeln in `styles.css`.
 
 ### Formen und Tiefe
 
@@ -99,8 +123,8 @@ Auf unterstützten Apple-Geräten wird die Systemschrift genutzt, unter Windows 
 | Formulargruppen und kleinere Innenflächen | Radius `16px`. |
 | Buttons, Filter und breite Navigationskapsel | Radius `999px`. |
 | Hero-Grafik | Radius `36px`, Inhalt an der Rundung abschneiden. |
-| Standard-Schatten hell | `0 8px 32px -18px rgba(18, 38, 58, .2)`. |
-| Standard-Schatten dunkel | `0 8px 32px -16px rgba(0, 0, 0, .5)`. |
+| Standard-Schatten hell | `0 8px 32px -18px #12263a33`. |
+| Standard-Schatten dunkel | `0 8px 32px -16px #0a121b80`. |
 
 Weiche Schatten trennen die Ebenen, ohne jede Karte optisch schweben zu lassen. Die orangefarbene Kontur einer ausgewählten Themenkarte kommt zusätzlich zum semantischen Zustand `aria-pressed`.
 
@@ -213,7 +237,7 @@ Der äußere Header erhält keinen eigenen Blur-Filter. Keine verschachtelten Gl
 | Funktion | Verhalten |
 | --- | --- |
 | Mobiles Menü | Button mit `aria-expanded` und `aria-controls`. Schließt bei Linkwahl, Klick außerhalb, Fokuswechsel aus dem Header und `Esc`. Bei `Esc` Fokus zum Menübutton zurückgeben. |
-| Hell/Dunkel | `data-theme` auf dem HTML-Element wechseln und `aria-pressed` sowie die Beschriftung des Buttons aktualisieren. Kein Cookie oder Local Storage. |
+| Hell/Dunkel | `data-theme` auf dem HTML-Element wechseln und `aria-pressed` aktualisieren. Ohne gespeicherte Wahl gilt `prefers-color-scheme` (`public/theme.js` vor dem ersten Zeichnen). Gespeichert wird nur mit Einwilligung in den Cookie-Einstellungen. |
 | Themenauswahl | Genau eine Karte mit `aria-pressed="true"`. Titel und Beschreibung der gemeinsamen Detailfläche aktualisieren; Änderungen über `aria-live="polite"` ankündigen. |
 | Passende Beiträge | Den Filter auf das gewählte Thema setzen und zum Wissensabschnitt springen. |
 | Beitragsfilter | Nicht passende Karten mit `hidden` ausblenden. Filterzustand mit `aria-pressed` und Trefferzahl über eine Statusmeldung vermitteln. |
@@ -281,18 +305,18 @@ Ohne Untertitel folgt der Autorenblock direkt auf den Titel. Eine nummerierte Th
 
 ### Typografie
 
-Systemschrift `--font` wie im übrigen Auftritt.
+Typografie „Magazin-Kontrast“ wie im übrigen Auftritt (Abschnitt 3): Titel, Überschriften, Zitate und Ziffern in Playfair Display, Fließtext und Beschriftungen in Source Sans 3.
 
 | Element | Wert |
 | --- | --- |
 | Titel | siehe Artikelkopf. |
 | Abschnittsüberschrift `h2` „Vibe Coding“ | `clamp(1.9rem, 2.7vw, 2.5rem)`, Zeilenhöhe `1.15`; mobil `27px`. |
 | Abschnittsüberschrift `h2` „Softwareentwicklung“ | `clamp(1.75rem, 2.6vw, 2.25rem)`, Zeilenhöhe `1.15`, Laufweite `-.035em`. |
-| Kennzeile über `h2` (`.eyebrow`) | `.75rem`, Gewicht `650`, Laufweite `.12em`, Großbuchstaben, `--accent`, mit `28px` breitem orangefarbenem Strich davor. Nur in Abschnitten, die eine Kategorie nennen (Perspektivenname, „Fazit“). |
-| Perspektivennummer `.vc-number` | `clamp(3.5rem, 5vw, 4.75rem)`, Gewicht `250`, `--accent`, dekorativ (`aria-hidden`). |
-| Fließtext | „Vibe Coding“: `16.5px`, Zeilenhöhe `1.85`, `--text-2`; erster Absatz der Einleitung `19px` in `--text`. „Softwareentwicklung“: `1.0625rem`, Zeilenhöhe `1.85`, `hyphens: auto`; Leitabsatz `1.1875rem`; mobil `1rem` bzw. `1.0625rem`. |
-| Zitat `.vc-quote` | `clamp(1.9rem, 3.6vw, 2.75rem)`, Gewicht `700`, Zeilenhöhe `1.15`, Laufweite `-.045em`, zentriert. |
-| Beschriftungen (Beispielkasten, Weiterlesen) | `11px` bzw. `.625rem`, Gewicht `650`, Laufweite `.12em`, Großbuchstaben, `--accent`. |
+| Kennzeile über `h2` (`.eyebrow`) | `.75rem`, Source Sans 3, Gewicht `600`, Laufweite `.18em`, Großbuchstaben, `--accent`, mit `28px` breitem orangefarbenem Strich davor. Nur in Abschnitten, die eine Kategorie nennen (Perspektivenname, „Fazit“). |
+| Perspektivennummer `.vc-number` | `clamp(3.5rem, 5vw, 4.75rem)`, Playfair Display 400 kursiv, `--accent`, dekorativ (`aria-hidden`). |
+| Fließtext | „Vibe Coding“: `16.5px`, Zeilenhöhe `1.75`, `--text-2`; erster Absatz der Einleitung `19px` in `--text`. „Softwareentwicklung“: `1.0625rem`, Zeilenhöhe `1.75`, `hyphens: auto`; Leitabsatz `1.1875rem`; mobil `1rem` bzw. `1.0625rem`. |
+| Zitat `.vc-quote` | `clamp(1.9rem, 3.6vw, 2.75rem)`, Playfair Display 500 kursiv, Zeilenhöhe `1.15`, Laufweite `-.01em`, zentriert. |
+| Beschriftungen (Beispielkasten, Weiterlesen) | `11px` bzw. `.625rem`, Source Sans 3, Gewicht `600`, Laufweite `.18em`, Großbuchstaben, `--accent`. |
 
 ### Farben
 
@@ -303,9 +327,9 @@ Es gelten die Tokens aus Abschnitt 3; Artikel verwenden nur semantische Rollen (
 | Artikelkopf | `--warm`. |
 | Einleitung und Abschnitte der Softwareentwicklung | `--paper`. |
 | Perspektivenbereich „Vibe Coding“ | `--soft`; Beispielkästen darin `--paper`, außerhalb `--warm`. |
-| Fazit „Vibe Coding“ | `--navy`, Text weiß, Fließtext `#bdcbd7`, Kennzeile `#f39b56`. |
-| Meinungsaufruf „Softwareentwicklung“ | `--brand` mit `--on-brand`; Button `--navy` mit weißem Text. |
-| Grafikrahmen `.article-figure` | Immer Weiß (`#fff`), auch im Dark Mode, damit transparente Diagramme lesbar bleiben (#41). |
+| Fazit „Vibe Coding“ | Hell `--navy`, dunkel `#111b26` mit Rand `--line`; Text `#f6f8fa`, Fließtext `#bfc9d3`, Kennzeile `#f39b56`. |
+| Meinungsaufruf „Softwareentwicklung“ | `--brand` mit `--on-brand`; Button `--navy` mit Text `#f6f8fa`, Hover `#182433`. |
+| Grafikrahmen `.article-figure` | Immer Weiß (`#ffffff`), auch im Dark Mode, damit transparente Diagramme lesbar bleiben (#41). |
 | Akzentlinien | Beispielkasten und Weiterlesen-Verweis mit `3px` linker Linie in `--brand`. |
 
 ### Abstände
@@ -383,6 +407,7 @@ Auf keiner Breite entsteht horizontaler Bildlauf; Text wird nicht abgeschnitten 
 - Bei `1440px`, `768px`, `390px` und `320px` entsteht kein horizontaler Scrollbalken. Sehr schmale Ansichten zusätzlich prüfen.
 - Menü, Themenauswahl, Filter, Lesedialoge und Demo-Check funktionieren mit Tastatur; Dialoge stellen den Fokus nach dem Schließen wieder her.
 - Der Check verlangt drei Antworten, zeigt passende Impulse und löscht Antworten beim Schließen.
+- Farben entsprechen Abschnitt 3 in hell und dunkel; Playfair Display und Source Sans 3 kommen als WOFF2 vom eigenen Server.
 - Die Seite lädt keine externen Schriftarten, Bilder oder Tracking-Skripte. Externe Inhalte werden erst durch bewusste Linkwahl geöffnet.
 
 ## 10. Quellen
@@ -397,6 +422,8 @@ Die Quellen wurden für den Entwurf am **2026-11-09** herangezogen. Aussagen und
 | [Q4: Apple HIG – Accessibility][Q4] | Kontrast, Tastatur- und alternative Bedienung, große Bedienflächen und anpassbare Darstellung. |
 | [Q5: cimt – n8n-Beratung][Q5] | Workflow-Automatisierung, menschliche Freigaben, Guardrails und Governance. |
 | [Q6: cimt – Langdock-Beratung][Q6] | KI-Adoption und Einbindung von KI in den Unternehmensalltag. |
+| [Q7: Playfair Display][Q7] | Überschriften-, Zitat- und Ziffernschrift (SIL Open Font License 1.1), seit Ticket #104. |
+| [Q8: Source Sans 3][Q8] | Text- und Bedienschrift (SIL Open Font License 1.1), seit Ticket #104. |
 
 [Q1]: https://www.cimt-ag.de/
 [Q2]: https://developer.apple.com/design/human-interface-guidelines/typography
@@ -404,3 +431,5 @@ Die Quellen wurden für den Entwurf am **2026-11-09** herangezogen. Aussagen und
 [Q4]: https://developer.apple.com/design/human-interface-guidelines/accessibility
 [Q5]: https://www.cimt-ag.de/n8n-beratung/
 [Q6]: https://www.cimt-ag.de/langdock-beratung/
+[Q7]: https://fonts.google.com/specimen/Playfair+Display
+[Q8]: https://fonts.google.com/specimen/Source+Sans+3
