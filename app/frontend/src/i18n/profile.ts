@@ -8,7 +8,6 @@ interface ProfileOffer {
 }
 
 interface ProfileContent {
-  title: string;
   description: string;
   label: string;
   linkedinLabel: string;
@@ -39,10 +38,9 @@ export const PROFILE_MAIL = 'mail@marvinjakob.de';
 // Inhalte nach content/Persona.md (Ticket #124). Die deutschen Texte sind wortgleich, nur „ - “ ist als
 // Gedankenstrich „ – “ gesetzt; profile.test.tsx prüft die Übereinstimmung. Persona.md nennt für den Kontakt nur
 // „LinkedIn“ und „Mail“: Das LinkedIn-Ziel stammt aus Ticket #123, die Mailadresse aus dem Impressum.
-// Seitentitel und Beschreibung stehen gleichlautend in backend/internal/web/meta.go.
+// Die Beschreibung steht gleichlautend in backend/internal/web/meta.go.
 export const profile: Record<Lang, ProfileContent> = {
   de: {
-    title: 'Marvin Jakob – Profil',
     description: 'Marvin Jakob, Creative IT Specialist: Technologie verstehen. KI in der Praxis nutzen. Beratung zu KI-Einsatz, Datenstrategie und Agentic AI.',
     label: 'Die Person hinter der Perspektive',
     linkedinLabel: 'LinkedIn (öffnet in neuem Tab)',
@@ -95,7 +93,6 @@ export const profile: Record<Lang, ProfileContent> = {
     ],
   },
   en: {
-    title: 'Marvin Jakob – Profile',
     description: 'Marvin Jakob, Creative IT Specialist: understand technology. Use AI in practice. Consulting on AI adoption, data strategy and agentic AI.',
     label: 'The person behind the perspective',
     linkedinLabel: 'LinkedIn (opens in new tab)',

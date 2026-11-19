@@ -27,7 +27,8 @@ export function Home() {
   const c = home[lang];
   const articles = useArticles(lang);
   const h1 = usePageFocus<HTMLHeadingElement>();
-  useHead(c.title, c.description);
+  // Die Startseite hat keinen Seitennamen: Im Tab steht nur „KI Perspektiven“ (REQ-108-AC2).
+  useHead('', c.description);
 
   return (
     <div className="home">
