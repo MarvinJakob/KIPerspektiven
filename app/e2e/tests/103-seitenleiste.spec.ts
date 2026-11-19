@@ -117,6 +117,9 @@ test.describe('Desktop', () => {
     test('REQ-103-AC4: Umschalter und Ziele per Tastatur mit sichtbarem Fokus', async ({ page }) => {
       await page.goto('/redaktion/benutzer');
       const toggle = sidebarToggle(page);
+      // Vom Seitenanfang aus tabben (die Seite fokussiert sonst ihre Überschrift im Inhalt).
+      await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+      await page.getByRole('link', { name: 'Zum Inhalt springen' }).focus();
       let reached = false;
       for (let i = 0; i < 12 && !reached; i++) {
         await page.keyboard.press('Tab');

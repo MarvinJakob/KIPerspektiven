@@ -111,7 +111,19 @@ test.describe('Einstellungen', () => {
       };
       await page.goto('/redaktion/benutzer');
       const nav = page.getByRole('navigation', { name: 'Redaktion' });
-      await keyboardTo(nav.getByRole('link', { name: 'Einstellungen' }), 'Einstellungen', /\/redaktion\/einstellungen$/);
+      if (width < 900) {
+        // Schmale Ansicht (Ticket #103): die Navigation öffnet sich erst über die Schaltfläche „Navigation“.
+        await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+        await page.getByRole('button', { name: 'Navigation', exact: true }).focus();
+        await page.keyboard.press('Enter');
+        const link = nav.getByRole('link', { name: 'Einstellungen' });
+        await link.focus();
+        await page.keyboard.press('Enter');
+        await expect(page).toHaveURL(/\/redaktion\/einstellungen$/);
+        await expect(page.getByRole('heading', { level: 1, name: 'Einstellungen' })).toBeVisible();
+      } else {
+        await keyboardTo(nav.getByRole('link', { name: 'Einstellungen' }), 'Einstellungen', /\/redaktion\/einstellungen$/);
+      }
       await keyboardTo(page.getByRole('link', { name: 'Social Media' }), 'Social Media', /\/einstellungen\/social-media$/);
       await keyboardTo(page.getByRole('link', { name: /LinkedIn/ }), 'LinkedIn', new RegExp(`${SETTINGS}$`));
       await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
