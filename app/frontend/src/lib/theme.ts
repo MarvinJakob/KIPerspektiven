@@ -4,6 +4,7 @@ import { canPersistPreferences } from './consent';
 /**
  * Helle und dunkle Darstellung (Ticket #20). Die Wahl bleibt nur im Browser gespeichert und gilt
  * für die öffentliche Webseite und die Redaktion (gleicher Schlüssel, gleiche Herkunft).
+ * Ohne gespeicherte Wahl folgt die Webseite der Systemeinstellung (Ticket #104); die Redaktion startet hell.
  * public/theme.js setzt das Attribut schon vor dem ersten Zeichnen mit derselben Regel.
  */
 export type Theme = 'light' | 'dark';
@@ -21,9 +22,18 @@ export function storedTheme(): Theme | null {
   }
 }
 
+/** Systemeinstellung prefers-color-scheme; ohne Auskunft hell (Ticket #104). */
+export function systemTheme(): Theme {
+  try {
+    return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+}
+
 export function currentTheme(): Theme {
   const attr = document.documentElement.getAttribute('data-theme');
-  return isTheme(attr) ? attr : storedTheme() ?? 'light';
+  return isTheme(attr) ? attr : storedTheme() ?? systemTheme();
 }
 
 export function applyTheme(theme: Theme) {

@@ -4,12 +4,12 @@ import { completeAssessment, expect, expectNoHorizontalScroll, test } from '../s
 
 // Anforderung #61: Titel aller Themenartikel vereinheitlichen und Brotkrumennavigation entfernen.
 // Sollwerte der Titeltypografie aus dem Referenzstand 0bf4b0f (VibeCoding.css, `.vc-hero h1`):
-// font-size clamp(3.6rem, 8vw, 7rem), line-height 1, letter-spacing -.06em, font-weight 700 (styles.css, h1).
+// font-size clamp(3.6rem, 8vw, 7rem), line-height 1. Seit #104 (REQ-104-AC5) Playfair Display 600 mit Laufweite -0,03 em.
 const ARTICLES = ['vibe-coding', 'softwareentwicklung'] as const;
 const LANGS = ['de', 'en'] as const;
 const REFERENCE = {
-  1280: { fontSize: 102.4, lineHeight: 102.4, letterSpacing: -6.144, fontWeight: '700' },
-  1440: { fontSize: 112, lineHeight: 112, letterSpacing: -6.72, fontWeight: '700' },
+  1280: { fontSize: 102.4, lineHeight: 102.4, letterSpacing: -3.072, fontWeight: '600' },
+  1440: { fontSize: 112, lineHeight: 112, letterSpacing: -3.36, fontWeight: '600' },
 } as const;
 const SUBTITLE = {
   de: 'Willkommen beim Vibe Coding: Dem einfachsten Weg, SLOP zu erzeugen.',

@@ -4,6 +4,7 @@ import { createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { Providers, createQueryClient, routes } from './App';
 import './styles.css';
+import './typography.css';
 
 const router = createBrowserRouter(routes);
 const queryClient = createQueryClient();

@@ -30,10 +30,12 @@
 .vc-perspective:last-child { padding-bottom: 104px; }
 .vc-perspectives .vc-example { background: var(--paper); }
 .vc-number { display: block; font-size: clamp(3.5rem, 5vw, 4.75rem); font-weight: 250; line-height: .9; color: var(--accent); margin-bottom: 22px; }
-.vc-conclusion { padding: 64px; margin-block: 64px 32px; background: var(--navy); color: #fff; border-radius: 32px; gap: 72px; }
+.vc-conclusion { padding: 64px; margin-block: 64px 32px; background: var(--navy); color: #f6f8fa; border: 1px solid transparent; border-radius: 32px; gap: 72px; }
+/* Dunkel: eigene Fläche mit Rand statt Navy auf fast schwarzem Grund (Ticket #104). */
+:root[data-theme="dark"] .vc-conclusion { background: #111b26; border-color: var(--line); }
 .vc-conclusion .vc-split-head { position: static; }
 .vc-conclusion .eyebrow { color: #f39b56; }
-.vc-conclusion .vc-body p { color: #bdcbd7; }
+.vc-conclusion .vc-body p { color: #bfc9d3; }
 @media (max-width: 1180px) {
   .vc-split { gap: 56px; }
   .vc-conclusion { padding: 52px 44px; }
