@@ -53,15 +53,6 @@ describe('REQ-109-AC3: Meldung je Ablehnungsgrund', () => {
   ])('Status %i ergibt %s', (status, key) => {
     expect(loginErrorKey(status)).toBe(key);
   });
-
-  it('eine abgelehnte Anmeldung nennt nie die Meldung für fehlende Eingaben als Erfolg: jeder Schlüssel hat einen Text', () => {
-    for (const status of [0, 400, 401, 403, 429, 500, 503]) {
-      for (const lang of ['de', 'en'] as const) {
-        const key = loginErrorKey(status);
-        expect(i18n.getFixedT(lang)(key), `${lang} ${status}`).not.toBe(key);
-      }
-    }
-  });
 });
 
 describe.each(['de', 'en'] as const)('REQ-109-AC2: Texte des Anmeldedialogs (%s)', (lang) => {

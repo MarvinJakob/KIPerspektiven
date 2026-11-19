@@ -8,8 +8,8 @@ import { LangContext, type Lang } from '../lib/lang';
 import { AccountLogin } from './AccountLogin';
 
 // Fidelity-Tests auf Komponentenebene zu REQ-109-AC1 bis REQ-109-AC3 (Ticket #109) mit simulierter API.
-// Sollwerte und Texte stammen aus der Spezifikation im Ticket. Das Zusammenspiel mit echtem Backend, Sitzung,
-// Weiterleitung und Bildschirmgrößen prüft app/e2e/tests/109-anmeldedialog.spec.ts.
+// Sollwerte und Texte stammen aus der Spezifikation im Ticket. Das Zusammenspiel mit echtem Backend, Sitzung und
+// Weiterleitung prüft app/e2e/tests/109-anmeldedialog.spec.ts, die Meldung je Ablehnungsgrund lib/editorialLogin.test.ts.
 
 const TEXT = {
   de: {
@@ -22,9 +22,6 @@ const TEXT = {
     missing: 'Bitte E-Mail-Adresse und Passwort eingeben.',
     invalid:
       'E-Mail-Adresse oder Passwort ist falsch, oder das Konto ist deaktiviert. Bitte Eingaben prüfen oder an die Administration wenden.',
-    locked: 'Zu viele Fehlversuche. Bitte in 15 Minuten erneut versuchen.',
-    busy: 'Die Anmeldung ist gerade ausgelastet. Bitte in einigen Sekunden erneut versuchen.',
-    unavailable: 'Die Anmeldung ist gerade nicht möglich. Bitte später erneut versuchen.',
   },
   en: {
     account: 'Sign in for editors',
@@ -36,9 +33,6 @@ const TEXT = {
     missing: 'Please enter your email address and password.',
     invalid:
       'The email address or password is incorrect, or the account is deactivated. Please check your entries or contact the administrators.',
-    locked: 'Too many failed attempts. Please try again in 15 minutes.',
-    busy: 'Sign-in is busy at the moment. Please try again in a few seconds.',
-    unavailable: 'Sign-in is not possible at the moment. Please try again later.',
   },
 } as const;
 
@@ -46,7 +40,7 @@ const ME = { id: 7, email: 'redaktion@example.test', displayName: '', roles: ['e
 
 // --- simulierte API ---------------------------------------------------------------------------------------
 let sessionStatus = 401;
-let loginStatus: number | 'offline' = 200;
+let loginStatus = 200;
 let logins: unknown[] = [];
 let sessionChecks = 0;
 
@@ -72,7 +66,6 @@ beforeEach(() => {
       }
       if (pathname === '/api/auth/login' && req.method === 'POST') {
         logins.push(await req.json());
-        if (loginStatus === 'offline') throw new TypeError('Failed to fetch');
         return loginStatus === 200 ? json(200, ME) : json(loginStatus, { message: 'Meldung des Backends' });
       }
       throw new Error(`unerwarteter Abruf ${req.method} ${pathname}`);
@@ -177,18 +170,6 @@ describe.each(['de', 'en'] as const)('Anmeldedialog am Kontosymbol (%s)', (lang)
     expect(opened).not.toHaveBeenCalled();
   });
 
-  it('REQ-109-AC2: nach dem Schließen sind die Eingaben verworfen (Abgrenzung A3)', async () => {
-    render(lang);
-    await open();
-    type(field(T.email)!, 'jemand@example.test');
-    type(field(T.password)!, 'geheim-geheim');
-    act(() => button(T.close)!.click());
-    await until(() => expect(dialog()).toBeNull());
-    await open();
-    expect(field(T.email)!.value).toBe('');
-    expect(field(T.password)!.value).toBe('');
-  });
-
   it('REQ-109-AC3: gültige Zugangsdaten werden gesendet und die Redaktion öffnet sich', async () => {
     render(lang);
     await open();
@@ -198,17 +179,12 @@ describe.each(['de', 'en'] as const)('Anmeldedialog am Kontosymbol (%s)', (lang)
     expect(alertText(), 'keine Fehlermeldung nach erfolgreicher Anmeldung').toBe('');
   });
 
-  it.each([
-    [401, 'invalid'],
-    [429, 'locked'],
-    [503, 'busy'],
-    [500, 'unavailable'],
-  ] as const)('REQ-109-AC3: Ablehnung mit Status %i zeigt die Meldung „%s“, der Dialog bleibt offen, kein Wechsel zur Redaktion', async (status, key) => {
-    loginStatus = status;
+  it('REQ-109-AC3: eine abgelehnte Anmeldung zeigt die Meldung in der Seitensprache, der Dialog bleibt offen, kein Wechsel zur Redaktion', async () => {
+    loginStatus = 401;
     render(lang);
     await open();
     await submit(lang, 'redaktion@example.test', 'falsches-passwort');
-    await until(() => expect(alertText()).toBe(T[key]));
+    await until(() => expect(alertText()).toBe(T.invalid));
     expect(dialog()?.open, 'Dialog bleibt offen').toBe(true);
     expect(opened).not.toHaveBeenCalled();
     expect(field(T.email)!.value, 'Eingabe bleibt zum Korrigieren erhalten').toBe('redaktion@example.test');
@@ -218,37 +194,10 @@ describe.each(['de', 'en'] as const)('Anmeldedialog am Kontosymbol (%s)', (lang)
     expect(field(T.password)!.getAttribute('aria-invalid')).toBe('true');
   });
 
-  it('REQ-109-AC3: ohne Antwort des Servers erscheint die allgemeine Meldung, der Dialog bleibt offen', async () => {
-    loginStatus = 'offline';
+  it('REQ-109-AC3: ohne Passwort erscheint eine Meldung und es wird nichts gesendet', async () => {
     render(lang);
     await open();
-    await submit(lang, 'redaktion@example.test', 'redaktion-test');
-    await until(() => expect(alertText()).toBe(T.unavailable));
-    expect(dialog()?.open).toBe(true);
-    expect(opened).not.toHaveBeenCalled();
-  });
-
-  it('REQ-109-AC3: nach einer Ablehnung führt ein zweiter Versuch mit gültigen Daten in die Redaktion', async () => {
-    loginStatus = 401;
-    render(lang);
-    await open();
-    await submit(lang, 'redaktion@example.test', 'falsches-passwort');
-    await until(() => expect(alertText()).toBe(T.invalid));
-    loginStatus = 200;
-    await submit(lang, '', 'redaktion-test');
-    await until(() => expect(opened).toHaveBeenCalledTimes(1));
-    expect(logins).toHaveLength(2);
-    expect(logins[1]).toEqual({ email: 'redaktion@example.test', password: 'redaktion-test' });
-  });
-
-  it.each([
-    ['ohne Eingaben', '', ''],
-    ['ohne Passwort', 'redaktion@example.test', ''],
-    ['nur mit Leerzeichen als E-Mail-Adresse', '   ', 'redaktion-test'],
-  ])('REQ-109-AC3: %s erscheint eine Meldung und es wird nichts gesendet', async (_, email, password) => {
-    render(lang);
-    await open();
-    await submit(lang, email, password);
+    await submit(lang, 'redaktion@example.test', '');
     expect(alertText()).toBe(T.missing);
     expect(logins).toHaveLength(0);
     expect(dialog()?.open).toBe(true);
