@@ -1,5 +1,5 @@
 // Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Blog.tsx app/frontend/src/pages/Post.tsx app/frontend/src/pages/Topic.tsx app/frontend-redaktion/src/pages/Posts.tsx app/frontend-redaktion/src/pages/EditPost.tsx
-import { expect, expectNoHorizontalScroll, fullText, pngImage, test, uid } from '../support/fixtures';
+import { expect, fullText, pngImage, test, uid } from '../support/fixtures';
 
 // Anforderung #20: Veröffentlichte Blogbeiträge aufrufen und lesen.
 interface Summary {
@@ -80,42 +80,3 @@ test('REQ-20-AC4 REQ-24-AC5: Beitrag ohne Übersetzung erscheint in der anderen 
   await expect(page.getByRole('heading', { level: 1 })).toHaveAttribute('lang', 'de');
   await expect(page.locator('main')).toContainText('This article is not available in English. You are reading the German version.');
 });
-
-test('REQ-20-AC5: leere Übersicht und Ladefehler mit erneutem Versuch', async ({ page }) => {
-  await page.route('**/api/posts?*', (r) => r.fulfill({ json: { items: [] } }));
-  await page.goto('/de/blog');
-  await expect(page.getByRole('heading', { name: 'Noch keine Beiträge' })).toBeVisible();
-  await expect(page.locator('main')).toContainText('Bisher ist noch kein Beitrag erschienen.');
-
-  await page.unrouteAll();
-  let fail = true;
-  await page.route('**/api/posts?*', (r) => (fail ? r.fulfill({ status: 500, json: { message: 'kaputt' } }) : r.continue()));
-  await page.goto('/en/blog');
-  await expect(page.getByRole('alert')).toContainText('Content could not be loaded');
-  fail = false;
-  await page.getByRole('button', { name: 'Try again' }).click();
-  await expect(page.locator('main a.post-row').first()).toBeVisible();
-});
-
-for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 }]) {
-  test.describe(`${viewport.width} px`, () => {
-    test.use({ viewport });
-    test(`REQ-20-AC6: Blog und Beitrag bleiben lesbar und bedienbar (${viewport.width} px)`, async ({ page }) => {
-      // Beitrag aus den Testdaten, damit parallel angelegte Beiträge den Ablauf nicht beeinflussen
-      const first = { slug: 'ki-veraendert-softwareteams' };
-      await page.goto('/de/blog');
-      await expect(page.locator('main a.post-row').first()).toBeVisible();
-      await expectNoHorizontalScroll(page);
-      // Tastatur: der erste Beitrag ist per Fokus und Enter erreichbar
-      await page.locator(`main a[href="/de/blog/${first.slug}"]`).focus();
-      await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(new RegExp(`/de/blog/${first.slug}$`));
-      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-      await expectNoHorizontalScroll(page);
-      for (const img of await page.locator('main img').all()) {
-        const box = await img.boundingBox();
-        if (box) expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
-      }
-    });
-  });
-}

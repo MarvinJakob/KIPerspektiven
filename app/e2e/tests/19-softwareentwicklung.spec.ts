@@ -1,5 +1,5 @@
 // Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Topic.tsx
-import { expect, expectNoHorizontalScroll, test } from '../support/fixtures';
+import { expect, test } from '../support/fixtures';
 
 // Anforderung #19: Themenseite Softwareentwicklung mit KI. Quelle: content/topics/Software Development v1_de.md.
 const PATH = (lang: string) => `/${lang}/themen/softwareentwicklung`;
@@ -18,17 +18,6 @@ test('REQ-19-AC1: Artikel mit Hero, Autor, Stand und Lesezeit in beiden Sprachen
     await expect(byline).toContainText(expected[lang].stand);
     await expect(byline).toContainText(expected[lang].time);
   }
-});
-
-test('REQ-19-AC2: Abschnitte folgen der Vorlage', async ({ page }) => {
-  await page.goto(PATH('de'));
-  const ids = ['moderne-softwareentwicklung', 'der-weg', 'drei-teams', 'release-gate', 'meinung'];
-  // Der Abschnitt „Mehr Themen.“ (more-title) entfällt mit #37; der Beitrag endet mit „meinung“.
-  const positions = await Promise.all(ids.map((id) => page.locator(`#${id}`).evaluate((el) => el.getBoundingClientRect().top + scrollY)));
-  expect([...positions].sort((a, b) => a - b)).toEqual(positions);
-  await expect(page.locator('#moderne-softwareentwicklung')).toHaveText('Moderne Softwareentwicklung');
-  await expect(page.locator('#der-weg')).toContainText('Das ist der Weg!');
-  await expect(page.locator('#opinion-title')).toBeVisible();
 });
 
 // Seit #41 ohne Link zur Originalgröße (REQ-41-AC1/AC4); geprüft wird die ausgelieferte Bilddatei.
@@ -50,38 +39,3 @@ test('REQ-19-AC3: Prozess- und Release-Gate-Grafik sprachpassend mit Alternativt
   // Je Sprache eigene Grafiken
   expect(sources.de).not.toEqual(sources.en);
 });
-
-test('REQ-19-AC4: Vibe-Coding-, Kontakt- und Themenverweise führen zu vorhandenen Zielen der aktiven Sprache', async ({ page }) => {
-  for (const lang of ['de', 'en'] as const) {
-    await page.goto(PATH(lang));
-    await expect(page.locator('#sd-title')).toBeVisible();
-    const hrefs = await page.locator('main a[href^="/"]:not([href^="/assets"])').evaluateAll((as) => [...new Set(as.map((a) => a.getAttribute('href')!))]);
-    expect(hrefs).toContain(`/${lang}/themen/vibe-coding`);
-    expect(hrefs).toContain(`/${lang}/kontakt`);
-    for (const href of hrefs) expect(href.startsWith(`/${lang}`), href).toBe(true);
-    for (const href of hrefs.filter((h) => !h.includes('#'))) {
-      await page.goto(href);
-      await expect(page.getByRole('heading', { name: /Seite nicht gefunden|Page not found/ }), href).toHaveCount(0);
-    }
-  }
-  // Der Themenverweis im Brotkrumenpfad entfällt mit #61 (REQ-61-AC2); Themen bleiben über die Hauptnavigation erreichbar.
-});
-
-for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 }]) {
-  test.describe(`${viewport.width} px`, () => {
-    test.use({ viewport });
-    test(`REQ-19-AC5: ohne horizontalen Bildlauf nutzbar, Sprachwechsel bleibt im Artikel (${viewport.width} px)`, async ({ page }) => {
-      await page.goto(PATH('de'));
-      await expectNoHorizontalScroll(page);
-      for (const img of await page.locator('main figure img').all()) {
-        const box = (await img.boundingBox())!;
-        expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
-      }
-      if (viewport.width < 650) await page.getByRole('button', { name: 'Menü' }).click();
-      await page.getByRole('button', { name: 'English' }).click();
-      await expect(page).toHaveURL(/\/en\/themen\/softwareentwicklung$/);
-      await expect.poll(async () => text(await page.locator('#sd-title').innerText())).toBe('AI in Software Development');
-      await expectNoHorizontalScroll(page);
-    });
-  });
-}

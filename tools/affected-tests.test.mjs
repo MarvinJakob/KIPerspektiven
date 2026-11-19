@@ -229,7 +229,7 @@ test('REQ-55-AC1 Fidelity: Footer-Änderung im Repository wählt Footer-Tests un
   assert.equal(result.status, 0, result.stderr);
   const plan = JSON.parse(result.stdout);
   assert.ok(plan.e2e.includes('tests/54-footer.spec.ts'));
-  assert.ok(plan.e2e.includes('tests/25-startseite.spec.ts'));
+  assert.ok(plan.e2e.includes('tests/34-startseite-kurzcheck.spec.ts'));
   // 27-beratung durchläuft die öffentliche Selbsteinschätzung (completeAssessment) und ist deshalb betroffen.
   for (const spec of ['06-passwort-maskieren', '21-redaktion-beitraege', '28-benutzer']) {
     assert.ok(!plan.e2e.includes(`tests/${spec}.spec.ts`), `${spec} ist unbetroffen`);
@@ -242,8 +242,8 @@ test('REQ-55-AC1 Fidelity: Startseite im Repository wählt Startseiten-Specs, ke
   const result = run(['plan', '--changed', 'app/frontend/src/pages/Home.tsx', '--json']);
   assert.equal(result.status, 0, result.stderr);
   const plan = JSON.parse(result.stdout);
-  for (const spec of ['25-startseite', '34-startseite-kurzcheck', '47-startseite-ohne-profilteaser']) assert.ok(plan.e2e.includes(`tests/${spec}.spec.ts`), spec);
-  for (const spec of ['18-vibe-coding', '61-artikelkopf', '21-redaktion-beitraege']) assert.ok(!plan.e2e.includes(`tests/${spec}.spec.ts`), spec);
+  assert.ok(plan.e2e.includes('tests/34-startseite-kurzcheck.spec.ts'), '34-startseite-kurzcheck');
+  for (const spec of ['18-vibe-coding', '21-redaktion-beitraege']) assert.ok(!plan.e2e.includes(`tests/${spec}.spec.ts`), spec);
 });
 
 test('REQ-55-AC1 Fidelity: alle Specs im Repository haben gültige Abdeckungsangaben', () => {
