@@ -349,7 +349,7 @@ svg { display: block; }
 .landing .sources a, .topic-sources a { color: var(--accent); }
 
 /* ==========================================================================
-   Startseite nach dem Home-Mock mock/home/ (Ticket #34): rein typografisch, ohne Bilder. Alles unter .home.
+   Startseite nach dem Home-Mock .mock/home/ (Ticket #34): rein typografisch, ohne Bilder. Alles unter .home.
    Große Hero-Schrift, Trennlinien, nummerierte Themenzeilen, deckende Kurzcheck-Fläche, kompakter Profilabschnitt.
    ========================================================================== */
 .home h2 { letter-spacing: -.045em; }
@@ -773,7 +773,7 @@ svg { display: block; }
 /* ==========================================================================
    Footer und Cookie-Dialog
    ========================================================================== */
-/* Variante „Kompakt mit Themen“ (Ticket #54, mock/footer/index.html): Marke und Kurztext links,
+/* Variante „Kompakt mit Themen“ (Ticket #54, .mock/footer/index.html): Marke und Kurztext links,
    Themen rechts; darunter nach einer Trennlinie Jahr und Marke sowie die Seitenlinks. */
 .site-footer { margin-top: 104px; padding-top: 32px; border-top: 1px solid var(--border); background: var(--bg); }
 .footer-main { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(0, 1.85fr); gap: 20px 32px; align-items: start; }
@@ -995,7 +995,7 @@ svg { display: block; }
 }
 
 /* ==========================================================================
-   Themenseite Softwareentwicklung (#7, mock/software_development/styles.css)
+   Themenseite Softwareentwicklung (#7, .mock/software_development/styles.css)
    ========================================================================== */
 .byline { display: flex; align-items: center; gap: 14px; }
 .byline img { flex: none; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; object-position: center 30%; }

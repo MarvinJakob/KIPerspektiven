@@ -1,6 +1,6 @@
 # Design-Konzept: cimt × Apple
 
-> **Stand:** 2026-11-09 · **Referenz:** [Klickbarer Mock](mock/design_cimt/index.html) · **Projekt:** KI Perspektiven
+> **Stand:** 2026-11-09 · **Referenz:** [Klickbarer Mock](.mock/design_cimt/index.html) · **Projekt:** KI Perspektiven
 
 Diese Anleitung beschreibt, wie das Layout von `design_cimt` nachgebaut und erweitert wird. Es verbindet die Farben und die sachliche Ausrichtung von cimt mit einer eigenständigen Interpretation der Apple Human Interface Guidelines (HIG). Es ist kein offizielles Designsystem von cimt oder Apple.
 
@@ -27,9 +27,9 @@ Folgende Entscheidungen beim Nachbauen beibehalten:
 
 | Datei | Aufgabe |
 | --- | --- |
-| [mock/design_cimt/index.html](mock/design_cimt/index.html) | Semantischer Seitenaufbau, Navigation, SVG-Grafiken, Karten, Dialoge und Quellen. |
-| [mock/design_cimt/styles.css](mock/design_cimt/styles.css) | Design-Tokens, Materialeffekt, Komponenten, responsive Regeln und Barrierefreiheits-Fallbacks. |
-| [mock/design_cimt/script.js](mock/design_cimt/script.js) | Mobiles Menü, Hell/Dunkel-Wechsel, Themenauswahl, Beitragsfilter, Lesedialoge und Demo-KI-Check. |
+| [.mock/design_cimt/index.html](.mock/design_cimt/index.html) | Semantischer Seitenaufbau, Navigation, SVG-Grafiken, Karten, Dialoge und Quellen. |
+| [.mock/design_cimt/styles.css](.mock/design_cimt/styles.css) | Design-Tokens, Materialeffekt, Komponenten, responsive Regeln und Barrierefreiheits-Fallbacks. |
+| [.mock/design_cimt/script.js](.mock/design_cimt/script.js) | Mobiles Menü, Hell/Dunkel-Wechsel, Themenauswahl, Beitragsfilter, Lesedialoge und Demo-KI-Check. |
 
 Die HTML-Datei lässt sich direkt im Browser öffnen. Es werden weder ein Build noch ein Backend oder zusätzliche Pakete benötigt. Für die Profilverlinkung die vorhandene Ordnerstruktur beibehalten.
 

@@ -1,4 +1,4 @@
-/* #29: scoped layout based on mock/thema_vibe_coding; shared theme tokens handle light and dark. */
+/* #29: scoped layout based on .mock/thema_vibe_coding; shared theme tokens handle light and dark. */
 .vc-page { overflow-wrap: break-word; }
 /* Der Artikelkopf ist mit #61 der gemeinsame Kopf aller Themenartikel (styles.css, .article-head). */
 .vc-intro { padding-block: 96px 104px; }

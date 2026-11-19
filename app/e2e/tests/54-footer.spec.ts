@@ -2,7 +2,7 @@
 import type { Locator, Page } from '@playwright/test';
 import { expect, expectNoHorizontalScroll, expectVisibleKeyboardFocus, test } from '../support/fixtures';
 
-// Anforderung #54: Öffentlicher Footer nach der Mock-Variante „Kompakt mit Themen“ (mock/footer/index.html).
+// Anforderung #54: Öffentlicher Footer nach der Mock-Variante „Kompakt mit Themen“ (.mock/footer/index.html).
 // Unit-Tests der Texte, Reihenfolgen und Pfade: app/frontend/src/components/footer.test.ts.
 
 const SOLL = {

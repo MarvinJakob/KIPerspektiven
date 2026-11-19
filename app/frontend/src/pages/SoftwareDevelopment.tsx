@@ -25,7 +25,7 @@ export const softwareDevelopmentImages: Record<Lang, { process: string; release:
 };
 
 /**
- * Themenseite Softwareentwicklung nach mock/software_development (#7): gemeinsamer Artikelkopf mit Autor, Stand und
+ * Themenseite Softwareentwicklung nach .mock/software_development (#7): gemeinsamer Artikelkopf mit Autor, Stand und
  * Lesezeit (#61, ohne Brotkrumen) → Artikel mit beiden Grafiken → Meinungsaufruf. Ohne Verweise auf weitere Themen
  * am Beitragsende (#37).
  * #57/#66: Die Abschnitte nutzen den vollen Inhaltsrahmen von „Vibe Coding“. Zwischenüberschrift, Zitat, Absätze und

@@ -11,13 +11,13 @@ import { useHead, usePageFocus } from '../lib/page';
 /** Sprungziele der Hero-Einstiege: Überschrift der Themenliste und aktuelle Überschrift des Kurzchecks. */
 const TOPICS_ID = 'themen-title';
 const CHECK_ID = 'kurzcheck-title';
-/** Dauer der Überblendung zwischen zwei Leitfragen (mock/home/script.js). */
+/** Dauer der Überblendung zwischen zwei Leitfragen (.mock/home/script.js). */
 const SWITCH_MS = 300;
 
 const number = (i: number) => String(i + 1).padStart(2, '0');
 
 /**
- * Startseite nach dem Home-Mock mock/home/ (Ticket #34): typografischer Hero, zwei nummerierte Themenzeilen,
+ * Startseite nach dem Home-Mock .mock/home/ (Ticket #34): typografischer Hero, zwei nummerierte Themenzeilen,
  * KI-Readiness-Kurzcheck (Variante 7) als letzter Abschnitt. Den Profilteaser „Über mich“ hat #47 entfernt; das Profil
  * bleibt über die Hauptnavigation erreichbar. Ohne Bilder und Illustrationen.
  * Sprunglinks nutzen jumpTo: Sie scrollen zur Überschrift und setzen dort den Fokus, ohne die URL zu ändern.
@@ -101,7 +101,7 @@ export function Home() {
 }
 
 /**
- * Kurzcheck mit den acht Leitfragen (mock/home/script.js, Variante 7). Ja, Nein oder Überspringen führt genau einen
+ * Kurzcheck mit den acht Leitfragen (.mock/home/script.js, Variante 7). Ja, Nein oder Überspringen führt genau einen
  * Schritt weiter; nur Ja zählt. Die Antworten bleiben im Arbeitsspeicher der Seite und werden weder gespeichert
  * noch übertragen. Nach jeder Antwort liegt der Fokus auf der nächsten Leitfrage bzw. dem Ergebnis.
  */
