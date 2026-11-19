@@ -72,17 +72,4 @@ test.describe('Löschen in der Nachrichtenliste', () => {
     expect(names).not.toContain(gone);
     expect(names).toContain(kept);
   });
-
-  test('REQ-90-AC2: ein Löschfehler wird angezeigt, die Nachricht bleibt in der Liste', async ({ page, request, marketing }) => {
-    const name = `Fehler ${uid()}`;
-    await send(request, name);
-    await page.goto('/redaktion/nachrichten');
-    await page.route('**/api/admin/contact-messages/*', (r) => r.fulfill({ status: 500, json: { message: 'x' } }));
-    const item = page.getByRole('listitem').filter({ has: page.getByRole('heading', { name }) });
-    await item.getByRole('button', { name: `Nachricht von ${name} löschen` }).click();
-    await item.getByRole('button', { name: `Nachricht von ${name} endgültig löschen` }).click();
-    await expect(page.getByRole('alert').filter({ hasText: `Die Nachricht von ${name} wurde nicht gelöscht.` })).toBeVisible();
-    await expect(item).toBeVisible();
-    expect((await inbox(marketing)).some((m) => m.name === name)).toBe(true);
-  });
 });

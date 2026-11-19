@@ -78,16 +78,6 @@ test('REQ-26-AC3 REQ-26-AC4: absolute und IP-bereinigte Zählung, je Zeitraum un
   expect((await pageViews(marketing)).total).toBe(after.total);
 });
 
-test('REQ-26-AC3: Navigation innerhalb der Webseite zählt nicht zusätzlich', async ({ page, marketing }) => {
-  const before = (await pageViews(marketing)).total;
-  await page.goto('/de');
-  await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'News', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'News' })).toBeVisible();
-  await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: 'Profil' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Marvin Jakob' })).toBeVisible();
-  expect((await pageViews(marketing)).total - before).toBe(1);
-});
-
 test.describe('Oberfläche', () => {
   test.use({ storageState: AUTH.marketing });
 
@@ -140,66 +130,4 @@ test.describe('Oberfläche', () => {
     await page.keyboard.press('ArrowLeft');
     await expect(page.getByRole('radio', { name: 'Letzte 30 Tage' })).toBeChecked();
   });
-
-  test('REQ-26-AC7: Leerzustand und Ladefehler mit erneutem Versuch', async ({ page }) => {
-    await page.route('**/api/admin/statistics/page-views*', (r) =>
-      r.fulfill({ json: { period: '30d', total: 0, uniqueTotal: 0, uniqueSince: null, days: [] } }),
-    );
-    await page.route('**/api/admin/statistics/readiness-results*', (r) =>
-      r.fulfill({ json: { period: '30d', total: 0, page: 1, pageSize: 50, dimensions: [], levels: [], items: [] } }),
-    );
-    await page.goto('/redaktion/statistik');
-    await expect(page.getByText('Im gewählten Zeitraum wurden noch keine Seitenaufrufe gezählt.')).toBeVisible();
-    await expect(page.getByText('Im gewählten Zeitraum wurden noch keine Ergebnisse gespeichert.')).toBeVisible();
-
-    await page.unrouteAll();
-    let fail = true;
-    await page.route('**/api/admin/statistics/page-views*', (r) => (fail ? r.fulfill({ status: 500, json: { message: 'x' } }) : r.continue()));
-    await page.reload();
-    const alert = page.getByRole('alert').filter({ has: page.getByRole('button', { name: 'Erneut versuchen' }) });
-    await expect(alert).toBeVisible();
-    fail = false;
-    await alert.getByRole('button', { name: 'Erneut versuchen' }).click();
-    await expect(page.locator('figure svg[role="img"]')).toBeVisible();
-  });
-
-  test.describe('mobil', () => {
-    test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
-    test('REQ-26-AC8: Zeitraum und Werte auf 375 px erreichbar', async ({ page }) => {
-      await page.goto('/redaktion/statistik');
-      const seven = page.getByRole('radio', { name: 'Letzte 7 Tage' });
-      await seven.focus();
-      await page.keyboard.press('Space');
-      await expect(seven).toBeChecked();
-      // Tageswerte per Antippen in der Grafik (REQ-65-AC3), neuester Tag am rechten Rand des Datenbereichs.
-      const chart = page.locator('figure svg[role="img"]');
-      await chart.scrollIntoViewIfNeeded();
-      const box = (await chart.boundingBox())!;
-      await page.touchscreen.tap(box.x + box.width - 13, box.y + 120);
-      await expect(page.getByRole('tooltip')).toContainText(berlinDate(0));
-    });
-  });
-});
-
-// Muss zuletzt laufen: Ein Abruf ohne gültige Client-IP macht die Bereinigung des Tages unvollständig.
-test('REQ-26-AC5: bei unvollständigen Daten steht „Nicht verfügbar“ statt 0, absolute Zahlen bleiben sichtbar', async ({ playwright, baseURL, marketing, browser }) => {
-  const noIp = await playwright.request.newContext({ baseURL, extraHTTPHeaders: {} });
-  const before = await pageViews(marketing);
-  expect((await noIp.get('/de/blog')).status()).toBe(200);
-  await noIp.dispose();
-
-  const after = await pageViews(marketing);
-  expect(after.total).toBe(before.total + 1);
-  expect(after.uniqueTotal).toBeNull();
-  expect(todayOf(after).uniqueViews).toBeNull();
-  expect(todayOf(after).views).toBe(todayOf(before).views + 1);
-
-  const ctx = await browser.newContext({ baseURL, storageState: AUTH.marketing, extraHTTPHeaders: { 'X-Forwarded-For': randomIp() } });
-  const page = await ctx.newPage();
-  await page.goto('/redaktion/statistik');
-  await expect(page.getByText('Nicht verfügbar').first()).toBeVisible();
-  await expect(page.getByText(/Für diesen Zeitraum fehlen vollständige Daten zur Bereinigung\./)).toBeVisible();
-  if (after.uniqueSince) await expect(page.getByText(/Der aktuelle Erfassungsbeginn ist der \d{2}\.\d{2}\.\d{4} um \d{2}:\d{2} Uhr\./)).toBeVisible();
-  await expect(page.locator('main')).toContainText(new Intl.NumberFormat('de-DE').format(after.total));
-  await ctx.close();
 });

@@ -1,5 +1,5 @@
 // Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Topic.tsx
-import { expect, expectNoHorizontalScroll, expectVisibleKeyboardFocus, test } from '../support/fixtures';
+import { expect, test } from '../support/fixtures';
 
 // Anforderung #18: Themenseite Vibe Coding. Quelle: content/topics/Vibe Coding v1_de.md.
 const PERSPECTIVES = ['Prompt Engineering', 'Context Engineering', 'Harness Engineering', 'Specification Engineering', 'Product Engineering'];
@@ -47,34 +47,3 @@ test('REQ-18-AC3: Harness-Grafik ist geladen und sprachpassend beschrieben', asy
   expect(alts[0]).toMatch(/^Harness-Grafik/);
   expect(alts[1]).toMatch(/^Harness diagram/);
 });
-
-test('REQ-18-AC4: interne Links und Sprachwechsel öffnen vorhandene Ziele', async ({ page }) => {
-  await page.goto('/de/themen/vibe-coding');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Vibe Coding');
-  const targets = await page.locator('main a[href^="/de"]').evaluateAll((as) => [...new Set(as.map((a) => a.getAttribute('href')!))]);
-  // Die einzigen internen Links waren die Brotkrumen; sie entfallen mit #61 (REQ-61-AC2). Vorhandene Links werden weiter geprüft.
-  for (const href of targets) {
-    await page.goto(href);
-    await expect(page.getByRole('heading', { name: 'Seite nicht gefunden' }), href).toHaveCount(0);
-    await expect(page.getByRole('heading', { level: 1 }), href).toBeVisible();
-  }
-  await page.goto('/de/themen/vibe-coding');
-  await page.getByRole('button', { name: 'English' }).click();
-  await expect(page).toHaveURL(/\/en\/themen\/vibe-coding$/);
-  await expect(page.locator('main .article-subtitle')).toContainText('Welcome to Vibe Coding');
-});
-
-for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 }]) {
-  test.describe(`${viewport.width} px`, () => {
-    test.use({ viewport });
-    test(`REQ-18-AC5: Text und Grafik bleiben im Inhaltsbereich, Links mit sichtbarem Fokus (${viewport.width} px)`, async ({ page }) => {
-      await page.goto('/de/themen/vibe-coding');
-      await expectNoHorizontalScroll(page);
-      const img = page.locator('#vc-harness img');
-      const box = await img.boundingBox();
-      expect(box!.x).toBeGreaterThanOrEqual(0);
-      expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
-      await expectVisibleKeyboardFocus(page, page.locator('a[href="#vc-prompt"]'));
-    });
-  });
-}

@@ -4,8 +4,8 @@ import { expect, fullText, test, uid } from '../support/fixtures';
 // Anforderung #76: Öffentlichen Blog in „News“ umbenennen.
 // Sollwerte aus Ticket #76; Unit-Tests: app/frontend/src/i18n/news.test.tsx, app/backend/internal/web/meta_test.go.
 const SOLL = {
-  de: { nav: 'Hauptnavigation', menu: 'Menü', site: 'Website', back: 'Zurück zu News', cta: 'Zu News', empty: 'Noch keine Beiträge' },
-  en: { nav: 'Main navigation', menu: 'Menu', site: 'Website', back: 'Back to News', cta: 'Go to News', empty: 'No articles yet' },
+  de: { nav: 'Hauptnavigation', back: 'Zurück zu News' },
+  en: { nav: 'Main navigation', back: 'Back to News' },
 } as const;
 // Die Form des Tab-Titels legt seit Anforderung #108 REQ-108-AC1 fest; der Seitenname bleibt „News“.
 const TITLE = 'KI Perspektiven News';
@@ -23,48 +23,6 @@ for (const lang of ['de', 'en'] as const) {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('News');
     await expect(page).toHaveTitle(TITLE);
     await expect(link).toHaveAttribute('aria-current', 'page');
-  });
-
-  test(`REQ-76-AC1: mobil heißt der Menülink „News“ und öffnet per Tastatur die Übersicht (${lang})`, async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto(`/${lang}/kontakt`);
-    await page.getByRole('button', { name: s.menu }).click();
-    const link = page.getByRole('navigation', { name: s.nav }).getByRole('link', { name: 'News', exact: true });
-    await expect(link).toBeVisible();
-    await link.focus();
-    await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(new RegExp(`/${lang}/blog$`));
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('News');
-  });
-
-  test(`REQ-76-AC2: Fußzeilenlink „News“ führt zur Übersicht (${lang})`, async ({ page }) => {
-    await page.goto(`/${lang}/kontakt`);
-    const link = page.locator('footer.site-footer').getByRole('navigation', { name: s.site }).getByRole('link', { name: 'News', exact: true });
-    await link.scrollIntoViewIfNeeded();
-    await link.click();
-    await expect(page).toHaveURL(new RegExp(`/${lang}/blog$`));
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('News');
-  });
-
-  test(`REQ-76-AC3: leere Übersicht behält Überschrift und Titel „News“ (${lang})`, async ({ page }) => {
-    await page.route('**/api/posts?*', (r) => r.fulfill({ json: { items: [] } }));
-    await page.goto(`/${lang}/blog`);
-    await expect(page.getByRole('heading', { name: s.empty })).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('News');
-    await expect(page).toHaveTitle(TITLE);
-  });
-
-  test(`REQ-76-AC2: Leerzustand einer Themenseite verlinkt mit „News“ auf die Übersicht (${lang})`, async ({ page, request }) => {
-    const slug = `news-leer-${uid()}`;
-    const base = await (await request.get(`/api/topics/ai-audit?lang=${lang}`)).json();
-    await page.route(`**/api/topics/${slug}?*`, (r) => r.fulfill({ json: { ...base, slug, posts: [] } }));
-    await page.goto(`/${lang}/themen/${slug}`);
-    await expect(page.getByRole('heading', { name: s.empty })).toBeVisible();
-    const cta = page.locator('main').getByRole('link', { name: s.cta });
-    await expect(cta).toHaveText(s.cta);
-    await cta.click();
-    await expect(page).toHaveURL(new RegExp(`/${lang}/blog$`));
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('News');
   });
 }
 

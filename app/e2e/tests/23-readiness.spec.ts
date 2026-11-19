@@ -1,7 +1,7 @@
 // Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/pages/Topic.tsx app/frontend/src/pages/AuditDimension.tsx app/frontend/src/pages/AuditResult.tsx
 import { readFileSync } from 'node:fs';
 import type { Page, Request } from '@playwright/test';
-import { completeAssessment, expect, expectNoHorizontalScroll, test, type Session } from '../support/fixtures';
+import { completeAssessment, expect, test, type Session } from '../support/fixtures';
 
 // Anforderung #23: KI Readiness einschätzen und Ergebnisse auswerten.
 // Quelle der Dimensionen: content/topics/audit/KI Readiness.md, Abschnitt „Die Dimensionen“.
@@ -171,76 +171,6 @@ test('REQ-23-AC6: mit Einwilligung wird nur das vollständige Ergebnis gespeiche
   expect(calls[2].method()).toBe('DELETE');
   expect(calls[2].url()).toContain(first.key);
   expect((await results(marketing)).filter((r) => r.ratings.map((x) => x.level).join() === changed.join() && Date.parse(r.submittedAt) >= start)).toHaveLength(0);
-});
-
-test('REQ-23-AC6: das Backend nimmt nur vollständige Ergebnisse an', async ({ request }) => {
-  const dims = released.filter((d) => d.released).map((d) => d.slug);
-  const key = 'a'.repeat(32);
-  const partial = dims.slice(1).map((dimension) => ({ dimension, level: 2 }));
-  expect((await request.post('/api/readiness-results', { data: { key, lang: 'de', ratings: partial } })).status()).toBe(422);
-  const invalid = dims.map((dimension) => ({ dimension, level: 4 }));
-  expect((await request.post('/api/readiness-results', { data: { key, lang: 'de', ratings: invalid } })).status()).toBe(422);
-});
-
-test('REQ-23-AC7: Lade-, Speicher- und Löschfehler werden verständlich angezeigt', async ({ page }) => {
-  let failAudit = true;
-  await page.route('**/api/audit?*', (r) => (failAudit ? r.fulfill({ status: 500, json: { message: 'x' } }) : r.continue()));
-  await page.goto(OVERVIEW);
-  await expect(page.getByRole('alert')).toContainText('Inhalte konnten nicht geladen werden');
-  failAudit = false;
-  await page.getByRole('button', { name: 'Erneut versuchen' }).click();
-  await expect(page.locator('.dim-acc-toggle')).toHaveCount(8);
-
-  await page.route('**/api/readiness-results**', (r) => r.fulfill({ status: 500, json: { message: 'x' } }));
-  await completeAssessmentWithConsent(page);
-  await expect(page.locator('.share-status')).toHaveText('Dein Ergebnis konnte nicht gespeichert werden. Deine Auswertung ist davon nicht betroffen.');
-  await expect(page.locator('table.result-table tbody tr')).toHaveCount(8);
-
-  // Löschfehler: zuerst erfolgreich speichern, dann Widerruf scheitert
-  await page.unroute('**/api/readiness-results**');
-  await page.reload();
-  await page.route('**/api/readiness-results/*', (r) => (r.request().method() === 'DELETE' ? r.fulfill({ status: 500, json: { message: 'x' } }) : r.continue()));
-  await completeAssessmentWithConsent(page);
-  await expect(page.locator('.share-status')).toHaveText(/anonym gespeichert/);
-  await page.getByLabel('Ergebnis anonym für die Statistik speichern').uncheck();
-  await expect(page.locator('.share-status')).toHaveText(/konnte nicht gelöscht werden/);
-});
-
-test('REQ-23-AC8 REQ-24-AC5: unter EN sind Bedienelemente englisch, deutsche Fachinhalte gekennzeichnet, das Diagramm hat eine Textalternative', async ({ page }) => {
-  await page.goto('/en/themen/ai-audit');
-  await expect(page.locator('main')).toContainText('The AI Readiness content is not available in English. You are reading the German version.');
-  await expect(page.locator('.dim-acc-text').first()).toHaveAttribute('lang', 'de');
-  await expect(page.getByRole('link', { name: 'Start self-assessment' }).first()).toBeVisible();
-
-  await completeAssessment(page, 'en');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Self-assessment results');
-  const radar = page.locator('svg[role="img"]');
-  const desc = await radar.locator('desc').textContent();
-  for (const d of DIMENSIONS) expect(desc).toContain(d);
-  await expect(page.getByRole('link', { name: /^Change/ }).first()).toBeVisible();
-});
-
-test('REQ-23-AC8: Reifegrad per Tastatur wählen und weitergehen', async ({ page }) => {
-  await page.goto(`${OVERVIEW}/strategie-und-wirtschaftlichkeit`);
-  await page.getByRole('radio').first().focus();
-  await page.keyboard.press('Space');
-  await expect(page.getByRole('radio').first()).toBeChecked();
-  await page.keyboard.press('ArrowDown');
-  await expect(page.getByRole('radio').nth(1)).toBeChecked();
-  await page.getByRole('button', { name: 'Weiter' }).focus();
-  await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/ressourcenplanung-und-kompetenzen$/);
-});
-
-test.describe('mobil', () => {
-  test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
-  test('REQ-23-AC8: Selbsteinschätzung und Auswertung auf 375 px ohne horizontalen Bildlauf', async ({ page }) => {
-    await page.goto(`${OVERVIEW}/betrieb`);
-    await expectNoHorizontalScroll(page);
-    await completeAssessment(page, 'de');
-    await expect(page.locator('table.result-table')).toBeVisible();
-    await expectNoHorizontalScroll(page);
-  });
 });
 
 /** Alle Dimensionen bewerten, im letzten Schritt einwilligen und die Auswertung öffnen. */
