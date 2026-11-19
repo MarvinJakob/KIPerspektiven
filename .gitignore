@@ -5,13 +5,12 @@
 
 # Archiv: alte Agenten-Vorgaben und Konzepte bleiben nur lokal und gelten nicht mehr (AGENTS.md).
 # Nicht versioniert, damit sie in den Worktrees der Agenten gar nicht erst auftauchen.
-/content/archive/
 /archive/
 
-# Lokale Arbeitsordner mit Punkt-Präfix: Mocks, Recherchen und Präsentationen bleiben nur lokal.
+# Lokale Arbeitsordner mit Punkt-Präfix: Mocks und redaktionelle Inhalte (Textvorlagen, Recherchen,
+# Präsentationen, Druckvorlagen) bleiben nur lokal.
 /.mock/
-/content/.research/
-/content/.presentation/
+/.content/
 
 # Parallele Agenten: ein Git-Worktree pro Aufgabe (AGENTS.md, „Aufgabe übernehmen“)
 /.worktrees/
@@ -46,7 +45,7 @@ statistics-ip.key
 *.db-wal
 *.db-shm
 # Laufzeitdaten der Anwendung (Standard DATABASE_PATH=data/app.db). Nur unter app/, damit
-# Inhaltsordner wie content/topics/data/ versioniert bleiben.
+# andere Ordner namens data/ nicht erfasst werden.
 /app/**/data/
 
 # Logs
