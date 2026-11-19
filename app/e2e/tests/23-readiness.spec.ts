@@ -126,11 +126,11 @@ test('REQ-115-AC1 REQ-115-AC3 REQ-115-AC4 REQ-23-AC1: Übersicht in Mock-Reihenf
   expect(released.filter((d) => d.released)).toHaveLength(DIMENSIONS.length);
 
   // AC1: Hero, Fähigkeiten mit Einordnung, Dimensionen; keine weiteren Abschnitte
-  await expect(main.getByRole('heading')).toHaveText([...OVERVIEW_HEADINGS, ...DIMENSIONS.map((d) => new RegExp(`^\d?\s*${d}\s`))]);
+  await expect(main.getByRole('heading')).toHaveText([...OVERVIEW_HEADINGS, ...DIMENSIONS.map((d) => new RegExp(`^\\d?\\s*${d}\\s`))]);
   await expect(main.getByRole('heading', { level: 1 })).toHaveText('KI Readiness');
 
   // AC3: anfangs geschlossen, mit Nummer, Titel und Leitfrage in fester Reihenfolge
-  await expect(toggles).toHaveText(DIMENSIONS.map((d, i) => new RegExp(`^\s*${i + 1}\s*${d}\s+\S.*\?\s*$`)));
+  await expect(toggles).toHaveText(DIMENSIONS.map((d, i) => new RegExp(`^\\s*${i + 1}\\s*${d}\\s+\\S.*\\?\\s*$`)));
   for (const t of await toggles.all()) await expect(t).toHaveAttribute('aria-expanded', 'false');
   const detail = (name: string) => main.getByRole('link', { name: `Reifegrade und Prüffragen: ${name}` });
   await expect(detail('Betrieb')).toBeHidden();
@@ -185,6 +185,8 @@ test('REQ-115-AC2: deutscher Hauptinhalt entspricht bei geöffneten Dimensionen 
   const text = await page.evaluate(() => {
     const main = document.querySelector('main')!;
     for (const el of main.querySelectorAll<HTMLElement>('[aria-hidden="true"]')) el.style.display = 'none';
+    // Großschreibung der Labels ist Gestaltung (text-transform), nicht Wortlaut.
+    for (const el of main.querySelectorAll<HTMLElement>('*')) el.style.textTransform = 'none';
     return main.innerText.replace(/\s+/g, ' ').trim();
   });
   expect(text).toBe(OVERVIEW_TEXT.join(' '));
