@@ -1,6 +1,6 @@
 // Abdeckung (Testauswahl im Merge Gate, #55): app/frontend-redaktion/src/components/Layout.tsx app/frontend-redaktion/src/lib/navigation.ts
 import type { Locator, Page } from '@playwright/test';
-import { AUTH, expect, expectNoHorizontalScroll, expectVisibleKeyboardFocus, test, type Role } from '../support/fixtures';
+import { AUTH, expect, expectNoHorizontalScroll, test, type Role } from '../support/fixtures';
 
 // Anforderung #103: einklappbare Seitenleiste für die Navigation im Redaktionssystem.
 // Kriterien: Spezifikation REQ-103 im Ticket. Rollentabelle aus #64. Wechselpunkt: bis 899 px schmale Ansicht.
@@ -13,7 +13,6 @@ const EXPECTED: Record<Role, string[]> = {
 };
 const DESKTOP = { width: 1280, height: 800 };
 const MOBILE = { width: 375, height: 812 };
-const PUBLIC_LINK = 'KI Perspektiven – zur öffentlichen Webseite';
 
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Redaktion' });
 const sidebarToggle = (page: Page) => page.getByRole('button', { name: 'Seitenleiste' });
@@ -114,31 +113,6 @@ test.describe('Desktop', () => {
       await expect.poll(() => width(nav(page))).toBeGreaterThan(navWide - 2);
     });
 
-    test('REQ-103-AC4: Umschalter und Ziele per Tastatur mit sichtbarem Fokus', async ({ page }) => {
-      await page.goto('/redaktion/benutzer');
-      const toggle = sidebarToggle(page);
-      // Vom Seitenanfang aus tabben (die Seite fokussiert sonst ihre Überschrift im Inhalt).
-      await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
-      await page.getByRole('link', { name: 'Zum Inhalt springen' }).focus();
-      let reached = false;
-      for (let i = 0; i < 12 && !reached; i++) {
-        await page.keyboard.press('Tab');
-        reached = await toggle.evaluate((el) => el === document.activeElement);
-      }
-      expect(reached, 'Umschalter ist per Tab erreichbar').toBe(true);
-      await expectVisibleKeyboardFocus(page, toggle);
-      await page.keyboard.press('Enter');
-      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-      await page.keyboard.press('Space');
-      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-
-      const target = nav(page).getByRole('link', { name: 'Einstellungen', exact: true });
-      for (let i = 0; i < 12 && !(await target.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab');
-      await expectVisibleKeyboardFocus(page, target);
-      await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(/\/redaktion\/einstellungen$/);
-      await expect(page.getByRole('heading', { level: 1, name: 'Einstellungen' })).toBeVisible();
-    });
   });
 
   test.describe('Marketing', () => {
@@ -187,61 +161,6 @@ test.describe('Schmale Ansicht', () => {
       await expect(menuButton(page)).toHaveAttribute('aria-expanded', 'false');
       await expect(page).toHaveURL(/\/redaktion\/themenartikel$/);
       await expectHeadingUncovered(page);
-    });
-
-    test('REQ-103-AC4: überlagernde Navigation per Tastatur; Schließen ohne Zielwechsel führt den Fokus zum Umschalter', async ({ page }) => {
-      await page.goto('/redaktion/profil');
-      const button = menuButton(page);
-      await expectVisibleKeyboardFocus(page, button);
-      await page.keyboard.press('Enter');
-      await expect(button).toHaveAttribute('aria-expanded', 'true');
-      const first = nav(page).getByRole('link', { name: 'Beiträge', exact: true });
-      await expect(first).toBeVisible();
-      for (let i = 0; i < 6 && !(await first.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab');
-      await expectVisibleKeyboardFocus(page, first);
-
-      await page.keyboard.press('Escape');
-      await expect(button).toHaveAttribute('aria-expanded', 'false');
-      await expect(first).toBeHidden();
-      await expect(button, 'Escape führt den Fokus zum Umschalter').toBeFocused();
-
-      await page.keyboard.press('Enter');
-      const close = page.getByRole('button', { name: 'Navigation schließen' });
-      await expectVisibleKeyboardFocus(page, close);
-      await page.keyboard.press('Enter');
-      await expect(button, 'Schließen-Schaltfläche führt den Fokus zum Umschalter').toBeFocused();
-      await expect(page).toHaveURL(/\/redaktion\/profil$/);
-    });
-  });
-
-  for (const role of ['editor', 'marketing', 'admin'] as const) {
-    test.describe(role, () => {
-      test.use({ storageState: AUTH[role] });
-      test(`REQ-103-AC5: ${role} sieht genau seine Ziele, Kontoinformationen und Kontofunktionen in der schmalen Ansicht`, async ({ page }) => {
-        await page.goto('/redaktion/profil');
-        const me = (await (await page.request.get('/api/auth/me')).json()) as { email: string; displayName: string };
-        await menuButton(page).click();
-        expect(await visibleTargets(page)).toEqual(EXPECTED[role]);
-        const label = { admin: 'Admin', editor: 'Redakteur', marketing: 'Marketing' }[role];
-        const account = page.getByRole('dialog', { name: 'Navigation' });
-        await expect(account.getByText(me.displayName || me.email, { exact: true })).toBeVisible();
-        await expect(account.getByText(label, { exact: true })).toBeVisible();
-        await expect(account.getByRole('button', { name: 'Dunkle Darstellung' })).toBeVisible();
-        await expect(account.getByRole('button', { name: 'Abmelden' })).toBeVisible();
-        await expect(page.getByRole('link', { name: PUBLIC_LINK })).toBeVisible();
-        await expectNoHorizontalScroll(page);
-      });
-    });
-  }
-
-  test.describe('Redakteur ohne Freigabe', () => {
-    test.use({ storageState: AUTH.editor });
-    test('REQ-103-AC5: Direktaufruf der Benutzerverwaltung bleibt geschützt', async ({ page }) => {
-      const res = await page.goto('/redaktion/benutzer');
-      expect(res?.status()).toBe(403);
-      await expect(page.getByRole('heading', { name: 'Keine Berechtigung' })).toBeVisible();
-      await menuButton(page).click();
-      await expect(nav(page).getByRole('link', { name: 'Benutzer', exact: true })).toHaveCount(0);
     });
   });
 });

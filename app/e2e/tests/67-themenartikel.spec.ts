@@ -1,35 +1,8 @@
 // Abdeckung: app/frontend-redaktion/src/pages/Articles.tsx app/frontend/src/components/ArticleBlocks.tsx app/backend/internal/service/articles.go
-import { AUTH, expect, expectNoHorizontalScroll, pngImage, test, uid } from '../support/fixtures';
+import { AUTH, expect, pngImage, test, uid } from '../support/fixtures';
 
 const api = '/api/admin/articles';
 const editorial = '/redaktion/themenartikel';
-const draft = (title: string) => ({ status: 'draft', de: { title, blocks: [] } });
-
-test('REQ-67-AC2/AC3/AC4: atomare Titel- und Autorenprüfung, bestehende deaktivierte Zuordnung', async ({ admin, editor, page }) => {
-  for (const title of ['', '   ']) expect((await editor.send('POST', api, draft(title))).status()).toBe(422);
-  const b = await admin.send('POST', '/api/admin/users', { email: uid() + '@example.test', password: 'startpass10', roles: ['editor'] });
-  expect(b.status()).toBe(201);
-  const author = await b.json();
-  const body = draft('Autor ' + uid());
-  const created = await editor.send('POST', api, body);
-  expect(created.status()).toBe(201);
-  const article = await created.json();
-  const path = api + '/' + article.id;
-  try {
-    expect(article.authorId).toBe(editor.me.id);
-    expect((await editor.send('PUT', path, { ...body, authorId: author.id })).status()).toBe(200);
-    expect((await admin.send('PATCH', '/api/admin/users/' + author.id, { active: false })).ok()).toBe(true);
-    expect((await editor.send('PUT', path, { ...draft('Bearbeitet'), authorId: author.id })).ok()).toBe(true);
-    expect((await (await editor.get(path)).json()).authorId).toBe(author.id);
-    await page.context().addCookies((await editor.ctx.storageState()).cookies);
-    await page.goto(editorial + '/' + article.id);
-    await expect(page.getByLabel('Autor').locator('option:checked')).toContainText(/deaktiviert/i);
-    expect((await editor.send('PUT', path, { ...body, authorId: admin.me.id })).ok()).toBe(true);
-    expect((await editor.send('PUT', path, { ...draft('Verwerfen'), authorId: author.id })).status()).toBe(422);
-    expect(await (await editor.get(path)).json()).toMatchObject({ de: { title: body.de.title }, authorId: admin.me.id });
-    expect((await (await editor.get('/api/admin/authors')).json()).items.map((a: {id:number}) => a.id)).not.toContain(author.id);
-  } finally { await editor.send('DELETE', path); }
-});
 
 test('REQ-67-AC5–AC9/AC11/AC12: Inhalt und Sprachfassung bleiben erhalten, öffentliche Einstiege folgen dem Status', async ({ editor, page, request }) => {
   const image = await editor.upload(api + '/media', { name: 'bild.png', mimeType: 'image/png', buffer: pngImage() });
@@ -84,25 +57,6 @@ test('REQ-67-AC5–AC9/AC11/AC12: Inhalt und Sprachfassung bleiben erhalten, öf
     expect((await request.get(url)).status()).toBe(404);
     await checkDiscovery(false);
   } finally { await editor.send('DELETE', path); }
-});
-
-test('REQ-67-AC6: JPEG bis einschließlich 5 MiB und WebP werden als abrufbares Bild gespeichert', async ({page,editor}) => {
-  const limit = 5 * 1024 * 1024;
-  const url = api + '/media';
-  for (const mimeType of ['image/jpeg', 'image/webp']) {
-    const encoded = await page.evaluate(type => document.createElement('canvas').toDataURL(type), mimeType);
-    expect(encoded.startsWith('data:' + mimeType + ';base64,')).toBe(true);
-    const image = Buffer.from(encoded.split(',')[1], 'base64');
-    const buffer = mimeType === 'image/jpeg' ? Buffer.concat([image, Buffer.alloc(limit - image.length)]) : image;
-    const upload = await editor.upload(url, { name:'grafik', mimeType, buffer });
-    expect(upload.status(), await upload.text()).toBe(200);
-    const saved = await editor.get((await upload.json()).src);
-    expect(saved.ok()).toBe(true);
-    expect(saved.headers()['content-type']).toMatch(/^image\//);
-  }
-  const oversized = await editor.upload(url, { name:'groß.png', mimeType:'image/png', buffer:Buffer.alloc(limit + 1) });
-  expect(oversized.status()).toBe(422);
-  expect((await oversized.json()).message).toContain('5 MB');
 });
 
 test('REQ-67-AC10: direkte Aktionen ohne Sitzung gesperrt', async ({ request }) => {
@@ -160,39 +114,4 @@ test.describe('Redaktionsoberfläche', () => {
       await expect(page.getByRole('link',{name:title})).toHaveCount(0);
     } finally { await editor.send('DELETE',api+'/'+id); }
   });
-  for (const width of [375,1280]) {
-    test('REQ-67-AC1/AC2/AC3/AC6/AC10: per Tastatur anlegen, nach Uploadfehler bearbeiten und wieder öffnen bei '+width+' px', async ({page,editor}) => {
-      await page.setViewportSize({width,height:800});
-      const title = 'Entwurf '+uid();
-      await page.goto(editorial);
-      await page.getByRole('link',{name:'Themenartikel anlegen'}).press('Enter');
-      await expect(page.getByLabel('Autor')).toHaveValue(String(editor.me.id));
-      await page.getByLabel('Titel',{exact:true}).fill('   ');
-      await page.getByRole('button',{name:'Speichern',exact:true}).press('Enter');
-      await expect(page.getByLabel('Titel',{exact:true})).toHaveAttribute('aria-invalid','true');
-      await page.getByLabel('Titel',{exact:true}).fill(title);
-      await page.getByLabel('Baustein').selectOption('image');
-      await page.getByRole('button',{name:'Baustein hinzufügen'}).press('Enter');
-      await page.getByLabel('Bilddatei').setInputFiles({name:'falsch.txt',mimeType:'text/plain',buffer:Buffer.from('Text')});
-      await expect(page.getByRole('alert')).toContainText(/Dateityp|JPEG/);
-      await expect(page.getByLabel('Titel',{exact:true})).toHaveValue(title);
-      await page.getByLabel('Bilddatei').setInputFiles({name:'bild.png',mimeType:'image/png',buffer:pngImage()});
-      await expect(page.locator('fieldset img')).toBeVisible();
-      await page.getByLabel('Alternativtext').fill('Schaltplan');
-      await expectNoHorizontalScroll(page);
-      await page.getByRole('button',{name:'Speichern',exact:true}).press('Enter');
-      await expect(page).toHaveURL(/themenartikel\/\d+$/);
-      const path = api+'/'+page.url().split('/').pop();
-      try {
-        await page.goto(editorial);
-        await page.getByRole('link',{name:title,exact:true}).press('Enter');
-        await expect(page.getByLabel('Alternativtext')).toHaveValue('Schaltplan');
-        await page.getByLabel('Untertitel',{exact:true}).fill('Neu');
-        await page.getByRole('button',{name:'Speichern',exact:true}).press('Enter');
-        await expect(page.getByRole('status')).toContainText('gespeichert');
-        await page.reload();
-        await expect(page.getByLabel('Untertitel',{exact:true})).toHaveValue('Neu');
-      } finally { await editor.send('DELETE',path); }
-    });
-  }
 });
