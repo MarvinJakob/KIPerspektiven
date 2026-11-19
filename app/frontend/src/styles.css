@@ -1,34 +1,39 @@
 /* ==========================================================================
-   Design-Tokens: cimt × Apple (DESIGN_CIMT.md, Abschnitt 3; Ticket #93)
+   Design-Tokens: Ninja-Design (DESIGN.md, Abschnitt 3; Tickets #93, #104)
 
-   Die primitiven Tokens tragen die Werte aus der Anleitung. Die Komponenten verwenden die
+   Die primitiven Tokens tragen die Werte der Ninja-Palette. Die Komponenten verwenden die
    semantischen Rollen darunter (--text, --surface, --accent …); diese verweisen ausschließlich
    auf die Primitiven. So ändert die dunkle Darstellung nur die Primitiven.
+   Schriften und Typografie „Magazin-Kontrast“ stehen in typography.css.
    ========================================================================== */
 :root {
   color-scheme: light;
 
-  /* Farben */
-  --brand: #dc6e14;        /* Unternehmensfarbe: Flächen, Linien, grafische Akzente */
-  --brand-hover: #ee8b3c;
-  --brand-ink: #a64b08;    /* Orangefarbener Text mit ausreichendem Kontrast zur Fläche */
-  --ink: #12263a;
-  --muted: #596777;
-  --paper: #ffffff;
-  --soft: #f5f6f7;
-  --warm: #fcf8f3;
-  --line: #dde2e6;
-  --navy: #12263a;
+  /* Farben (hell) */
+  --brand: #dc6e14;        /* Unternehmensfarbe: Flächen, Linien, große Ziffern */
+  --brand-hover: #c35f0e;  /* Hover des Primärbuttons */
+  --brand-ink: #a64b08;    /* Orangefarbene Schrift mit ausreichendem Kontrast zur Fläche */
+  --ink: #12263a;          /* Haupttext, Überschriften */
+  --muted: #4d5b6b;        /* Beschreibungen, Metadaten */
+  --paper: #f8f7f5;        /* Seitenhintergrund */
+  --surface: #ffffff;      /* Karten, Menüs, Dialoge */
+  --soft: #f1efec;         /* Füllflächen, Sprachwahl, Chips */
+  --warm: #fcf1e6;         /* Hero, Hinweisflächen */
+  --line: #12263a29;       /* Linien und Ränder */
+  --navy: #12263a;         /* Dunkle Flächen */
   --on-brand: #12263a;     /* Dunkler Text auf orangefarbenen Flächen, nie Weiß */
+  --hero-glow-brand: #dc6e1433; /* Hero: Orange oben rechts, 20 % */
+  --hero-glow-cool: #12263a1c;  /* Hero: Navy unten links, 11 % */
 
-  /* Typografie, Formen, Tiefe */
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Helvetica, Arial, sans-serif;
+  /* Formen, Tiefe */
   --radius: 28px;          /* Karten, Inhaltsflächen, Dialoge */
   --radius-small: 16px;    /* Formulargruppen und kleinere Innenflächen */
   --radius-visual: 36px;   /* Große Grafiken */
   --pill: 999px;           /* Buttons, Filter, Navigationskapsel */
-  --shadow: 0 8px 32px -18px rgba(18, 38, 58, .2);
-  --shadow-raised: 0 24px 60px -36px rgba(18, 38, 58, .55);
+  --shadow: 0 8px 32px -18px #12263a33;
+  --shadow-raised: 0 24px 60px -36px #12263a8c;
+  --shadow-small: 0 2px 6px -2px #12263a40;
+  --shadow-dialog: 0 28px 90px -24px #0a121b73;
   --ease-out: cubic-bezier(.22, 1, .36, 1);
   --dur-fast: .16s;
   --dur-base: .3s;
@@ -36,7 +41,6 @@
 
   /* Semantische Rollen */
   --bg: var(--paper);
-  --surface: var(--paper);
   --surface-2: var(--soft);
   --text: var(--ink);
   --text-2: var(--muted);
@@ -54,33 +58,40 @@
   --navigation-border: var(--line);
 }
 
-/* Dunkel: Das Startskript theme.js setzt data-theme aus der gespeicherten Wahl; ohne Wahl gilt hell. */
+/* Dunkel: Das Startskript theme.js setzt data-theme aus der gespeicherten Wahl, sonst aus der
+   Systemeinstellung prefers-color-scheme (Ticket #104). */
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --brand-hover: #f39b56;
   --brand-ink: #f39b56;
-  --ink: #eef2f5;
-  --muted: #b2bfcc;
-  --paper: #0d1d2b;
-  --soft: #162a3b;
-  --warm: #1c292f;
-  --line: #344756;
-  --shadow: 0 8px 32px -16px rgba(0, 0, 0, .5);
-  --shadow-raised: 0 24px 60px -30px rgba(0, 0, 0, .8);
+  --ink: #f6f8fa;
+  --muted: #bfc9d3;
+  --paper: #0a121b;
+  --surface: #111b26;
+  --soft: #182433;
+  --warm: #111b26;
+  --line: #ffffff26;
+  --hero-glow-brand: #dc6e1447; /* 28 % */
+  --hero-glow-cool: #2a5a8c55;  /* Blau, 33 % */
+  --shadow: 0 8px 32px -16px #0a121b80;
+  --shadow-raised: 0 24px 60px -30px #0a121bcc;
+  --shadow-small: 0 2px 6px -2px #0a121b80;
+  --shadow-dialog: 0 28px 90px -24px #0a121bcc;
 }
 
-/* Liquid Glass ausschließlich für die Navigation, ohne Schalter und ohne JavaScript (DESIGN_CIMT.md, Abschnitt 5).
+/* Liquid Glass ausschließlich für die Navigation, ohne Schalter und ohne JavaScript (DESIGN.md, Abschnitt 5).
    Die Fallbacks für Barrierefreiheit und Druck stehen am Dateiende und übersteuern diese Regeln. */
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   :root {
-    --navigation-bg: rgba(255, 255, 255, .88);
+    --navigation-bg: #f8f7f5cc;
     --navigation-filter: blur(24px) saturate(140%);
-    --navigation-sheen: linear-gradient(135deg, rgba(255, 255, 255, .45), transparent 60%);
-    --navigation-border: rgba(255, 255, 255, .7);
+    --navigation-sheen: linear-gradient(135deg, #ffffff73, transparent 60%);
+    --navigation-border: #12263a17;
   }
   :root[data-theme="dark"] {
-    --navigation-bg: rgba(13, 29, 43, .9);
-    --navigation-sheen: linear-gradient(135deg, rgba(255, 255, 255, .08), transparent 60%);
-    --navigation-border: #506171;
+    --navigation-bg: #0a121bcc;
+    --navigation-sheen: linear-gradient(135deg, #ffffff14, transparent 60%);
+    --navigation-border: #ffffff26;
   }
 }
 
@@ -92,7 +103,7 @@ html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--header-h) 
 body {
   margin: 0; min-height: 100vh;
   background: var(--bg); color: var(--text);
-  font: 400 1.0625rem/1.65 var(--font);
+  font: 400 1.125rem/1.65 var(--font); /* Grundgröße für Source Sans 3 (Ticket #104) */
   -webkit-font-smoothing: antialiased;
 }
 h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
@@ -122,7 +133,7 @@ svg { display: block; }
 .press:active:not(:disabled) { transform: scale(.97); }
 
 /* ==========================================================================
-   Kopfzeile: schwebende Glaskapsel (DESIGN_CIMT.md, Abschnitte 4 bis 6)
+   Kopfzeile: schwebende Glaskapsel (DESIGN.md, Abschnitte 4 bis 6)
    ========================================================================== */
 .site-header { position: sticky; top: 0; z-index: 50; padding-block: 12px; }
 .header-inner {
@@ -184,7 +195,7 @@ svg { display: block; }
 .lang-thumb {
   position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px);
   border-radius: var(--pill); background: var(--paper);
-  box-shadow: 0 0 0 1px var(--border), 0 2px 6px -2px rgba(18, 38, 58, .25);
+  box-shadow: 0 0 0 1px var(--border), var(--shadow-small);
   transition: transform var(--dur-base) var(--ease-out);
 }
 .lang-switch[data-lang="en"] .lang-thumb { transform: translateX(100%); }
@@ -205,7 +216,7 @@ svg { display: block; }
 .menu-link { display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: center; padding: 10px; border-radius: var(--radius-small); text-decoration: none; }
 .menu-link:hover, .menu-link:focus-visible, .menu-link[aria-current="page"] { background: var(--fill); }
 .menu-link[aria-current="page"] .menu-title { color: var(--accent); }
-.menu-icon { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: #fff; }
+.menu-icon { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: #f6f8fa; }
 .menu-icon svg { width: 22px; height: 22px; }
 .menu-title { display: block; font-weight: 650; font-size: .9375rem; line-height: 1.3; }
 .menu-desc { display: block; font-size: .8125rem; color: var(--text-2); line-height: 1.35; margin-top: 2px; }
@@ -263,7 +274,7 @@ svg { display: block; }
   content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .18; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
-.art-icon { position: absolute; right: -6%; bottom: -16%; width: 62%; max-width: 360px; aspect-ratio: 1; color: rgba(245, 166, 107, .32); }
+.art-icon { position: absolute; right: -6%; bottom: -16%; width: 62%; max-width: 360px; aspect-ratio: 1; color: #f39b5652; }
 .art-icon svg { width: 100%; height: 100%; stroke-width: 1.1; }
 .art-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
@@ -357,7 +368,14 @@ svg { display: block; }
 .home [tabindex="-1"]:focus:not(:focus-visible) { outline: none; }
 
 /* Hero: der negative Abstand gleicht den Innenabstand von #main aus. */
-.home-hero { margin-top: -24px; padding-block: 80px 96px; background: var(--warm); }
+/* Zwei weiche Farbfelder über --warm: Orange oben rechts, Blau bzw. Navy unten links (Ticket #104). */
+.home-hero {
+  margin-top: -24px; padding-block: 80px 96px;
+  background:
+    radial-gradient(60% 80% at 92% 0%, var(--hero-glow-brand), transparent 70%),
+    radial-gradient(50% 70% at 0% 100%, var(--hero-glow-cool), transparent 70%),
+    var(--warm);
+}
 .home-title { margin-top: 28px; font-size: clamp(3rem, 9vw, 8rem); font-weight: 700; line-height: 1; letter-spacing: -.055em; overflow-wrap: break-word; }
 .home-title span { color: var(--accent); }
 .home-hero-foot {
@@ -378,7 +396,7 @@ svg { display: block; }
 }
 .home-topics li:last-child { border-bottom: 1px solid var(--border); }
 .home-topics li:hover, .home-topics li:focus-within { background: var(--soft); }
-.home-topics .topic-number { padding: 0; border: 0; font-size: 2.5rem; font-weight: 700; letter-spacing: -.05em; line-height: 1; color: var(--brand); font-variant-numeric: tabular-nums; }
+.home-topics .topic-number { padding: 0; border: 0; font-size: 3rem; font-weight: 700; letter-spacing: -.05em; line-height: 1; color: var(--brand); font-variant-numeric: tabular-nums; }
 .home-topic-copy { display: grid; gap: 10px; max-width: 760px; min-width: 0; }
 .home-topic-kicker { font-size: .8125rem; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); }
 .home-topics h3 { font-size: clamp(1.35rem, 2.2vw, 1.75rem); font-weight: 650; line-height: 1.25; letter-spacing: -.025em; hyphens: auto; overflow-wrap: break-word; }
@@ -809,11 +827,11 @@ svg { display: block; }
 /* Modal-Abdunklung, die Dialogfläche selbst bleibt opak. */
 .consent-backdrop {
   position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-end; justify-content: center;
-  padding: 16px; background: rgba(7, 19, 33, .72); overflow-y: auto;
+  padding: 16px; background: #0a121bb8; overflow-y: auto;
 }
 .consent {
   width: min(680px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 32px;
-  display: grid; gap: 12px; font-size: .9375rem; box-shadow: 0 28px 90px -24px rgba(0, 0, 0, .45);
+  display: grid; gap: 12px; font-size: .9375rem; box-shadow: var(--shadow-dialog);
 }
 .consent h2 { font-size: 1.5rem; }
 .consent h3 { font-size: 1rem; }
@@ -824,7 +842,7 @@ svg { display: block; }
 .consent-status { color: var(--text-2); }
 
 /* ==========================================================================
-   Responsiv (Breakpoints aus DESIGN_CIMT.md, Abschnitt 7, kumulativ)
+   Responsiv (Breakpoints aus DESIGN.md, Abschnitt 7, kumulativ)
    ========================================================================== */
 @media (max-width: 1180px) {
   .container { width: calc(100% - 64px); }
@@ -1033,8 +1051,8 @@ svg { display: block; }
 .opinion-icon { width: 36px; height: 36px; }
 .opinion h2 { font-size: clamp(1.5rem, 2.2vw, 1.875rem); margin-bottom: 6px; }
 .article-body .opinion p { font-size: .9375rem; line-height: 1.6; }
-.opinion-button { background: var(--navy); color: #fff; }
-.opinion-button:hover { background: #203d56; transform: translateY(-2px); }
+.opinion-button { background: var(--navy); color: #f6f8fa; }
+.opinion-button:hover { background: #182433; transform: translateY(-2px); }
 
 @media (max-width: 850px) {
   .article-layout { padding-block: 56px 72px; }
@@ -1057,7 +1075,7 @@ svg { display: block; }
 }
 
 /* ==========================================================================
-   Systemeinstellungen und Fallbacks (stehen bewusst am Ende, DESIGN_CIMT.md, Abschnitte 5 und 7)
+   Systemeinstellungen und Fallbacks (stehen bewusst am Ende, DESIGN.md, Abschnitte 5 und 7)
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   .check.is-switching .check-question { opacity: 1; transform: none; }

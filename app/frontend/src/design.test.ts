@@ -118,7 +118,7 @@ function colors(name: string, text: string): string[] {
   if (name.endsWith('.css')) {
     for (const [, value] of stripComments(text).matchAll(/:([^;{}]*)(?=[;}])/g)) {
       for (const m of value.matchAll(/#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)/gi)) found.push(m[0]);
-      for (const m of value.matchAll(/\b(white|black|gr[ae]y|navy|orange)\b/gi)) found.push(m[0]);
+      for (const m of value.matchAll(/(?<![\w-])(white|black|gr[ae]y|navy|orange)(?![\w-])/gi)) found.push(m[0]);
     }
   } else {
     for (const [, value] of text.matchAll(/(['"`])((?:(?!\1).)*)\1/g)) {
@@ -190,7 +190,8 @@ describe('REQ-104-AC6/AC7: selbst gehostete Schriften', () => {
     const fallbacks = faces.filter((f) => /src:\s*local\(/.test(f));
     expect(fallbacks.map(family)).toEqual(expect.arrayContaining(['Playfair Display Fallback', 'Source Sans 3 Fallback']));
     for (const f of fallbacks) expect(f).toMatch(/size-adjust:\s*[\d.]+%/);
-    expect(TYPOGRAPHY).toMatch(/"Playfair Display",\s*"Playfair Display Fallback",\s*Georgia,\s*serif/);
+    // Weitere angeglichene Rückfallfamilien (z. B. für Systeme ohne Georgia) dürfen vor Georgia, serif stehen.
+    expect(TYPOGRAPHY).toMatch(/"Playfair Display",\s*"Playfair Display Fallback",(?:\s*"[^"]+ Fallback[^"]*",)*\s*Georgia,\s*serif/);
     expect(TYPOGRAPHY).toMatch(/"Source Sans 3",\s*"Source Sans 3 Fallback",\s*system-ui,\s*sans-serif/);
   });
 });

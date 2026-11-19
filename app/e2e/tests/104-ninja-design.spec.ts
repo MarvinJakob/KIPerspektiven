@@ -129,7 +129,8 @@ for (const theme of ['dark', 'light'] as const) {
     await page.emulateMedia({ colorScheme: theme });
     await page.goto('/de');
     const hero = await style(page, '.home-hero');
-    const glows = [...hero.bgImage.matchAll(/radial-gradient\((.*?)\btransparent/g)].map((m) => rgba(m[1].match(/rgba?\([^)]*\)/)![0]));
+    // Erste Farbe je radial-gradient (der Verlauf endet in transparent, berechnet als rgba(0, 0, 0, 0)).
+    const glows = hero.bgImage.split('radial-gradient(').slice(1).map((g) => rgba(g.match(/rgba?\([^)]*\)/)![0]));
     expect(glows, `zwei Farbfelder: ${hero.bgImage}`).toHaveLength(2);
     const [warmGlow, coolGlow] = glows;
     const want = theme === 'dark' ? [hex('#dc6e1447'), hex('#2a5a8c55')] : [hex('#dc6e1433'), hex('#12263a1c')];
@@ -243,7 +244,8 @@ test('REQ-104-AC7: Text ist sofort in der Rückfallschrift sichtbar, wenn Schrif
   await expect(page.locator('#hero-title')).toBeVisible();
   const box = await page.locator('#hero-title').boundingBox();
   expect(box!.height, 'Hero-Titel hat Höhe').toBeGreaterThan(40);
-  const displays = await page.evaluate(() => [...document.fonts].filter((f) => /Playfair|Source Sans/.test(f.family)).map((f) => f.display));
+  // Nur die Webschriften; die lokalen Rückfallschriften („… Fallback“) brauchen kein font-display.
+  const displays = await page.evaluate(() => [...document.fonts].filter((f) => /Playfair|Source Sans/.test(f.family) && !/Fallback/.test(f.family)).map((f) => f.display));
   expect(displays.length).toBeGreaterThan(0);
   expect(new Set(displays)).toEqual(new Set(['swap']));
   await expectNoHorizontalScroll(page);
@@ -287,7 +289,8 @@ for (const path of PAGES) {
         await expectNoHorizontalScroll(page);
         const overflowing = await page.locator('main h1, main h2, main h3').evaluateAll((hs) =>
           hs
-            .filter((h) => (h as HTMLElement).offsetParent !== null)
+            // Sichtbare Überschriften; visuell versteckte Screenreader-Überschriften (.sr-only) zählen nicht.
+            .filter((h) => (h as HTMLElement).offsetParent !== null && !h.closest('.sr-only'))
             .filter((h) => h.scrollWidth > h.clientWidth + 1 || h.getBoundingClientRect().right > document.documentElement.clientWidth + 0.5)
             .map((h) => h.textContent!.slice(0, 50)),
         );
@@ -308,8 +311,9 @@ for (const theme of ['light', 'dark'] as const) {
     ];
     for (const [path, selectors] of checks) {
       await page.goto(path);
+      await expect(page.locator('main h1').first()).toBeVisible();
       for (const sel of selectors) {
-        if (!(await page.locator(sel).count())) throw new Error(`${path}: ${sel} fehlt`);
+        await expect(page.locator(sel).first(), `${path}: ${sel}`).toBeAttached();
         expect(await contrast(page, sel), `${theme} ${path} ${sel}`).toBeGreaterThanOrEqual(4.5);
       }
     }
