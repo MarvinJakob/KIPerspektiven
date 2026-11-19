@@ -56,11 +56,7 @@ export const en: Messages = {
     cta: 'Go to home page',
   },
   audit: {
-    eyebrow: 'AI Readiness',
-    title: 'Why assess your readiness?',
-    levelsTitle: 'Three maturity levels',
     dimensionsTitle: 'The dimensions at a glance',
-    dimensionsSub: 'All {{count}} dimensions in the order of the self-assessment. Open a dimension to read what it covers.',
     toDimension: 'Maturity levels and questions: {{title}}',
     start: 'Start self-assessment',
     category: { organizational: 'Organisational', business: 'Business', technical: 'Technical' },
