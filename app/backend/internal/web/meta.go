@@ -14,8 +14,11 @@ const SiteName = "KI Perspektiven"
 
 // Meta beschreibt die Angaben im <head> einer öffentlichen Seite (ARCHITECTURE.md, Abschnitt 6).
 type Meta struct {
-	Lang        service.Lang
-	Title       string
+	Lang service.Lang
+	// Title steht im Browser-Tab (Anforderung #108): Websitename, danach der Seitenname.
+	Title string
+	// SocialTitle steht in og:title und twitter:title für Vorschauen in sozialen Medien.
+	SocialTitle string
 	Description string
 	Canonical   string
 	OGType      string
@@ -50,7 +53,7 @@ var headTmpl = template.Must(template.New("head").Parse(`<title>{{.Title}}</titl
 {{- end}}
     <meta property="og:site_name" content="` + SiteName + `">
     <meta property="og:type" content="{{.OGType}}">
-    <meta property="og:title" content="{{.Title}}">
+    <meta property="og:title" content="{{.SocialTitle}}">
     <meta property="og:description" content="{{.Description}}">
 {{- if .Canonical}}
     <meta property="og:url" content="{{.Canonical}}">
@@ -63,7 +66,7 @@ var headTmpl = template.Must(template.New("head").Parse(`<title>{{.Title}}</titl
 {{- else}}
     <meta name="twitter:card" content="summary">
 {{- end}}
-    <meta name="twitter:title" content="{{.Title}}">
+    <meta name="twitter:title" content="{{.SocialTitle}}">
     <meta name="twitter:description" content="{{.Description}}">`))
 
 const (
@@ -88,12 +91,16 @@ func render(index []byte, m Meta) ([]byte, error) {
 }
 
 // texts enthält die Seitentitel und Beschreibungen für Seiten ohne Datenbankinhalt.
-// Die Startseitentexte stehen gleichlautend in frontend/src/i18n/home.ts (title, description), die Profiltexte in
+// Die Beschreibungen von Startseite und Profil stehen gleichlautend in frontend/src/i18n/home.ts und
 // frontend/src/i18n/profile.ts, die Texte der Readiness-Auswertung in frontend/src/i18n/{de,en}.ts
-// (assess.resultTitle, assess.resultMeta). Tests prüfen das, damit der Seitentitel nach dem Laden nicht wechselt
-// (Bug #126).
+// (assess.resultTitle, assess.resultMeta). Der Seitentitel soll nach dem Laden nicht wechseln (Bug #126).
+//
+// <seite>.title steht in der Social-Media-Vorschau. Für den Browser-Tab (Anforderung #108) gilt <seite>.name,
+// die kurze Bezeichnung aus der Navigation (frontend: nav.profile); ohne diesen Schlüssel gilt <seite>.title.
+// Die Startseite hat im Tab keinen Seitennamen.
 var texts = map[service.Lang]map[string]string{
 	service.DE: {
+		"profile.name":          "Profil",
 		"profile.title":         "Marvin Jakob – Profil",
 		"profile.desc":          "Marvin Jakob, Creative IT Specialist: Technologie verstehen. KI in der Praxis nutzen. Beratung zu KI-Einsatz, Datenstrategie und Agentic AI.",
 		"home.title":            "KI verstehen. Sinnvoll einsetzen.",
@@ -116,6 +123,7 @@ var texts = map[service.Lang]map[string]string{
 		"notFound.desc":         "Diese Seite gibt es nicht oder sie ist nicht öffentlich.",
 	},
 	service.EN: {
+		"profile.name":          "Profile",
 		"profile.title":         "Marvin Jakob – Profile",
 		"profile.desc":          "Marvin Jakob, Creative IT Specialist: understand technology. Use AI in practice. Consulting on AI adoption, data strategy and agentic AI.",
 		"home.title":            "Understand AI. Use it wisely.",
@@ -139,7 +147,26 @@ var texts = map[service.Lang]map[string]string{
 
 func text(l service.Lang, key string) string { return texts[l][key] }
 
-func pageTitle(t string) string { return t + " · " + SiteName }
+// pageName liefert den Seitennamen einer Seite ohne Datenbankinhalt für den Browser-Tab.
+func pageName(l service.Lang, key string) string {
+	if name := text(l, key+".name"); name != "" {
+		return name
+	}
+	return text(l, key+".title")
+}
+
+// tabTitle bildet den Titel im Browser-Tab (Anforderung #108): Websitename, genau ein Leerzeichen, Seitenname.
+// Ohne Seitennamen, etwa auf der Startseite, bleibt der Websitename. Gleichlautend in frontend/src/lib/page.ts.
+func tabTitle(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return SiteName
+	}
+	return SiteName + " " + name
+}
+
+// socialTitle bildet den Titel für Vorschauen in sozialen Medien (og:title, twitter:title).
+func socialTitle(t string) string { return t + " · " + SiteName }
 
 // excerpt kürzt einen Text für die Meta-Beschreibung an einer Wortgrenze.
 func excerpt(s string, limit int) string {

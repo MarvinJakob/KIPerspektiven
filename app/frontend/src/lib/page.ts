@@ -1,14 +1,39 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 import type { Lang } from './lang';
 
 const SITE = 'KI Perspektiven';
 
-/** Setzt Titel und Beschreibung im <head> beim Seitenwechsel (Erstaufruf: Backend). */
-export function useHead(title: string | undefined, description?: string) {
+/**
+ * Titel im Browser-Tab (Anforderung #108): Websitename, genau ein Leerzeichen, Seitenname. Ohne Seitennamen,
+ * etwa auf der Startseite, bleibt der Websitename. Gleichlautend in backend/internal/web/meta.go (tabTitle).
+ */
+export function tabTitle(name?: string): string {
+  const trimmed = name?.trim();
+  return trimmed ? `${SITE} ${trimmed}` : SITE;
+}
+
+// Der Titel aus dem HTML des Backends gilt für die zuerst geöffnete Adresse, bis die Anwendung die Seite wechselt.
+let firstHeadKey: string | null = null;
+let serverTitleValid = true;
+
+/**
+ * Setzt Titel und Beschreibung im <head> (Erstaufruf: Backend). `name` ist der Seitenname, `''` steht für die
+ * Startseite. Solange ein Inhalt lädt, ist `name` `undefined`: Nach einem Seiten- oder Sprachwechsel zeigt der
+ * Tab dann nur den Websitenamen (REQ-108-AC2). Beim Direktaufruf bleibt der Titel des Backends stehen, damit er
+ * während des Ladens nicht wechselt (REQ-108-AC3).
+ */
+export function useHead(name: string | undefined, description?: string) {
+  const { key } = useLocation();
+  // Layout-Effekt: läuft vor den Effekten, mit denen eine eingebettete Fehlerseite ihren eigenen Titel setzt.
+  useLayoutEffect(() => {
+    if (firstHeadKey === null) firstHeadKey = key;
+    else if (key !== firstHeadKey) serverTitleValid = false;
+    if (name === undefined && !serverTitleValid) document.title = SITE;
+  }, [name, key]);
   useEffect(() => {
-    if (title === undefined) return;
-    document.title = title === SITE ? SITE : `${title} · ${SITE}`;
+    if (name === undefined) return;
+    document.title = tabTitle(name);
     if (description !== undefined) {
       let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
       if (!meta) {
@@ -18,7 +43,7 @@ export function useHead(title: string | undefined, description?: string) {
       }
       meta.content = description;
     }
-  }, [title, description]);
+  }, [name, description, key]);
 }
 
 /** Schaltet die Fokusverwaltung beim Seitenwechsel ab, z. B. beim Sprachwechsel. */
