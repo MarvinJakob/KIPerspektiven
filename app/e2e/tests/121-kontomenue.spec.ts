@@ -237,7 +237,7 @@ test('REQ-121-AC8: Kontomenü und Themenmenü beziehungsweise mobiles Hauptmenü
   await account.click();
   await expectOpen(page);
   await expect(main, 'Hauptmenü schließt beim Öffnen des Kontomenüs').toHaveAttribute('aria-expanded', 'false');
-  await expect(page.getByRole('link', { name: 'News' }), 'Einträge des Hauptmenüs sind ausgeblendet').toBeHidden();
+  await expect(page.locator('.site-header').getByRole('link', { name: 'News', exact: true }), 'Einträge des Hauptmenüs sind ausgeblendet').toBeHidden();
   await main.click();
   await expect(main).toHaveAttribute('aria-expanded', 'true');
   await expectClosed(page);
