@@ -179,10 +179,11 @@ func (s *Site) resolve(r *http.Request, parts []string) (int, Meta, error) {
 		if err != nil {
 			return 0, Meta{}, err
 		}
-		return http.StatusOK, Meta{Lang: service.Lang(article.Lang),
+		m := Meta{Lang: service.Lang(article.Lang),
 			Title: tabTitle(article.Content.Title), SocialTitle: socialTitle(article.Content.Title),
 			Description: excerpt(article.Content.Subtitle, 160), OGType: "article",
-			Canonical: s.url(service.Lang(article.Lang), "/themenartikel/"+strconv.FormatInt(id, 10))}, nil
+			Canonical: s.url(service.Lang(article.Lang), "/themenartikel/"+strconv.FormatInt(id, 10))}
+		return http.StatusOK, s.describe(m, s.webPage(m, article.Content.Title)), nil
 	case len(rest) == 2 && rest[0] == "blog":
 		post, err := s.svc.Post(ctx, rest[1], lang)
 		if errors.Is(err, service.ErrNotFound) {
@@ -203,7 +204,7 @@ func (s *Site) resolve(r *http.Request, parts []string) (int, Meta, error) {
 		return http.StatusOK, s.topicMeta(lang, topic), nil
 	case len(rest) == 3 && rest[0] == "themen" && rest[1] == audit.TopicSlug && rest[2] == audit.ResultSlug:
 		// Gesamtauswertung der Selbsteinschätzung: zeigt nur die Auswahl im Browser, daher nicht indexieren.
-		m := s.staticMeta(lang, "readinessResult", dimensionPath(audit.ResultSlug))
+		m := s.staticBase(lang, "readinessResult", dimensionPath(audit.ResultSlug))
 		m.NoIndex = true
 		return http.StatusOK, m, nil
 	case len(rest) == 3 && rest[0] == "themen" && rest[1] == audit.TopicSlug:
@@ -224,11 +225,12 @@ func dimensionPath(slug string) string { return "/themen/" + audit.TopicSlug + "
 
 func (s *Site) dimensionMeta(d audit.Dimension) Meta {
 	suffix := dimensionPath(d.Slug)
-	return Meta{
+	m := Meta{
 		Lang: d.Lang, Title: tabTitle(d.Title), SocialTitle: socialTitle(d.Title),
 		Description: excerpt(d.Summary+" "+strings.Join(d.Intro, " "), 160),
 		OGType:      "website", Canonical: s.url(d.Lang, suffix), Alternates: s.alternates(d.Translations, suffix),
 	}
+	return s.describe(m, s.webPage(m, d.Title))
 }
 
 func (s *Site) url(lang service.Lang, suffix string) string {
@@ -258,15 +260,26 @@ func contains(ls []service.Lang, l service.Lang) bool {
 }
 
 func (s *Site) homeMeta(lang service.Lang) Meta {
-	return Meta{
+	m := Meta{
 		// Die Startseite hat keinen Seitennamen: Im Tab steht nur der Websitename (REQ-108-AC2).
 		Lang: lang, Title: tabTitle(""), SocialTitle: socialTitle(text(lang, "home.title")),
 		Description: text(lang, "home.desc"), OGType: "website",
 		Canonical: s.url(lang, ""), Alternates: s.alternates(service.Langs, ""),
 	}
+	return s.describe(m, s.webSite(lang))
 }
 
+// staticMeta liefert die Angaben einer indexierbaren Seite ohne Datenbankinhalt samt strukturierten Daten.
 func (s *Site) staticMeta(lang service.Lang, key, suffix string) Meta {
+	m := s.staticBase(lang, key, suffix)
+	if key == "profile" {
+		return s.describe(m, s.profilePage(m, pageName(lang, key)))
+	}
+	return s.describe(m, s.webPage(m, pageName(lang, key)))
+}
+
+// staticBase liefert die Angaben ohne strukturierte Daten, etwa für nicht indexierbare Seiten.
+func (s *Site) staticBase(lang service.Lang, key, suffix string) Meta {
 	return Meta{
 		Lang: lang, Title: tabTitle(pageName(lang, key)), SocialTitle: socialTitle(text(lang, key+".title")),
 		Description: text(lang, key+".desc"), OGType: "website",
@@ -276,12 +289,13 @@ func (s *Site) staticMeta(lang service.Lang, key, suffix string) Meta {
 
 func (s *Site) topicMeta(lang service.Lang, t service.TopicDetail) Meta {
 	suffix := "/themen/" + t.Slug
-	return Meta{
+	m := Meta{
 		// Fehlt die Übersetzung, ist die vorhandene Fassung kanonisch.
 		Lang: t.Lang, Title: tabTitle(t.Title), SocialTitle: socialTitle(t.Title),
 		Description: excerpt(t.Intro, 160), OGType: "website",
 		Canonical: s.url(t.Lang, suffix), Alternates: s.alternates(t.Translations, suffix),
 	}
+	return s.describe(m, s.webPage(m, t.Title))
 }
 
 func (s *Site) postMeta(lang service.Lang, p service.Post) Meta {
@@ -290,11 +304,15 @@ func (s *Site) postMeta(lang service.Lang, p service.Post) Meta {
 		Lang: p.Lang, Title: tabTitle(p.Title), SocialTitle: socialTitle(p.Title),
 		Description: excerpt(p.Summary, 160), OGType: "article",
 		Canonical: s.url(p.Lang, suffix), Alternates: s.alternates(p.Translations, suffix),
+		PublishedTime: timestamp(p.PublishedAt), ModifiedTime: timestamp(p.UpdatedAt),
 	}
+	image := s.defaultImage()
 	if p.Cover != nil {
+		// Das Titelbild des Beitrags hat Vorrang vor dem Standard-Vorschaubild (REQ-124-AC6).
 		m.OGImage = s.baseURL + p.Cover.OGImage
+		image = m.OGImage
 	}
-	return m
+	return s.describe(m, s.blogPosting(m, p, image))
 }
 
 func (s *Site) notFoundMeta(lang service.Lang) Meta {
