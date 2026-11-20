@@ -1,9 +1,52 @@
 # Datenschutzerklärung: Abgleich und Freigabe
 
 Laufzeitdateien: `frontend/src/content/legal/datenschutz.de.md` und `datenschutz.en.md`, gerendert von `Legal.tsx`
-unter `/de/datenschutz` und `/en/datenschutz`. Der erste Teil gilt für die gekürzte Fassung aus
-[Ticket #118](https://github.com/MarvinJakob/KIPerspektiven/issues/118). Der Abgleich zur Vorgängerfassung aus
+unter `/de/datenschutz` und `/en/datenschutz`. Der erste Teil beschreibt die aktuelle Fassung aus
+[Ticket #125](https://github.com/MarvinJakob/KIPerspektiven/issues/125). Sie ändert die gekürzte Fassung aus
+[Ticket #118](https://github.com/MarvinJakob/KIPerspektiven/issues/118) nur im Abschnitt „Cookies und
+Browserspeicher“; der Abgleich zu #118 gilt im Übrigen weiter. Der Abgleich zur Vorgängerfassung aus
 [Ticket #74](https://github.com/MarvinJakob/KIPerspektiven/issues/74) steht darunter und bleibt als Verlauf erhalten.
+
+# Fassung ohne Tabelle der Browserspeicher-Einträge zu Ticket #125
+
+Stand: 20. November 2026. Ausgangsfassung: `main` @ `bb07f25`.
+
+## Änderung
+
+Im Abschnitt „Cookies und Browserspeicher“ („Cookies and browser storage“) entfällt die Tabelle mit den vier
+Einträgen `ki-perspektiven.lang`, `ki-perspektiven.theme`, `ki-perspektiven.consent` und `ki_session` ohne
+Ersatztext. Der einleitende Absatz bleibt wörtlich erhalten: Gespeichert wird nur, was für eine gewählte Funktion
+unbedingt erforderlich ist (§ 25 Abs. 2 TDDDG), eine Einwilligung ist dafür nicht nötig, und die Speicherung lässt
+sich über „Cookie-Einstellungen“ im Footer abschalten. Alle übrigen Abschnitte sind unverändert (Unit-Test
+`REQ-125-AC3`). Das Stand-Datum bleibt der 20. November 2026, weil die neue Fassung am selben Tag entsteht.
+
+| | bisher (`main` @ `bb07f25`) | neu |
+| --- | --- | --- |
+| Deutsch | 697 Wörter | 632 Wörter |
+| Englisch | 736 Wörter | 668 Wörter |
+
+Gezählt mit `wc -w` über die Markdown-Datei.
+
+## Geänderte Pflichtangaben gegenüber #118
+
+| Nr. | Angabe | Textstelle seit #125 |
+| --- | --- | --- |
+| P7 | Speicherdauer | Zeile „Speicherdauer“ in jedem Verarbeitungsabschnitt. Die Spalte „Speicherdauer“ im Browserspeicher entfällt. |
+| P14 | Speichern und Auslesen im Endgerät | „Cookies und Browserspeicher“: allgemeiner Hinweis nach § 25 Abs. 2 TDDDG und Verweis auf die Cookie-Einstellungen; Einwilligung nach § 25 Abs. 1 TDDDG in „Ergebnisse der Selbsteinschätzung“. Zweck und Speicherdauer der einzelnen Einträge stehen nicht mehr in der Erklärung. |
+
+**Bewusste Abgrenzung zu P14.** #118 führte die Information „für jeden Eintrag im Browserspeicher“. Die
+verantwortliche Stelle hat am 20. November 2026 entschieden, die Tabelle ersatzlos zu streichen (Entscheidung 1 in
+Ticket #125). Zweck und Speicherdauer der vier Einträge nennt die Erklärung damit nicht mehr. Der Dialog
+„Cookie-Einstellungen“ im Footer, auf den die Erklärung verweist, führt die Einträge weiterhin einzeln mit Zweck
+und Laufzeit auf (`frontend/src/i18n/de.ts`, `en.ts`); er ist nicht Teil der Erklärung.
+
+## Abgleich mit Anwendung und Betrieb
+
+| Verarbeitung | Ist-Stand (Quelle) | Erklärung | Befund |
+| --- | --- | --- | --- |
+| Browserspeicher | Unverändert: `ki-perspektiven.lang`, `.theme`, `.consent` (180 Tage), `ki_session` (zwölf Stunden) (`lib/lang.ts`, `lib/theme.ts`, `lib/consent.ts`, `auth`, `service.SessionTTL`). | Allgemeiner Hinweis ohne einzelne Einträge | Die Aussage „nur, was für eine von dir gewählte Funktion unbedingt erforderlich ist“ trifft auf alle vier Einträge zu. Einträge, Zwecke und Laufzeiten sind nicht mehr einzeln genannt (Abgrenzung zu P14). |
+
+An der Speicherung selbst ändert dieses Ticket nichts. Die übrigen Zeilen des Abgleichs zu #118 gelten unverändert.
 
 # Gekürzte Fassung zu Ticket #118
 

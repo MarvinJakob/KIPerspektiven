@@ -51,13 +51,6 @@ Email: [mail@marvinjakob.de](mailto:mail@marvinjakob.de)
 
 We only store in your browser what is strictly necessary for a function you choose (§ 25(2) TDDDG). This does not require consent. You can switch storage off via "Cookie settings" in the footer.
 
-| Entry | Purpose | Retention |
-| --- | --- | --- |
-| `ki-perspektiven.lang` (local storage) | Language choice | until you delete it |
-| `ki-perspektiven.theme` (local storage) | Light or dark appearance | until you delete it |
-| `ki-perspektiven.consent` (local storage) | Your cookie choice | at most 180 days |
-| `ki_session` (cookie) | Editorial sign-in | at most 12 hours |
-
 ## Recipients
 
 Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen, operates our server in Germany as a processor on our instructions.
