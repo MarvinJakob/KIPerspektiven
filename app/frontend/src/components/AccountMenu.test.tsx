@@ -32,12 +32,12 @@ let root: Root;
 let host: HTMLElement;
 let outside: HTMLButtonElement;
 let fetched: ReturnType<typeof vi.fn>;
-let onOpen: ReturnType<typeof vi.fn>;
+let onOpen: ReturnType<typeof vi.fn<() => void>>;
 
 beforeEach(() => {
   fetched = vi.fn(async () => new Response('{}', { status: 200 }));
   vi.stubGlobal('fetch', fetched);
-  onOpen = vi.fn();
+  onOpen = vi.fn<() => void>();
   host = document.createElement('div');
   outside = document.createElement('button');
   document.body.append(host, outside);

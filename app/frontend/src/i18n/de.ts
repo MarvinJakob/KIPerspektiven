@@ -196,23 +196,12 @@ export const de = {
     sessionLink: 'Zur Redaktion, um dich abzumelden',
     close: 'Schließen',
   },
-  // Anmeldedialog am Kontosymbol (Ticket #109). Die Texte entsprechen der Anmeldeseite der Redaktion.
-  login: {
+  // Kontomenü am Kontosymbol (Ticket #121)
+  account: {
+    label: 'Redaktion',
     title: 'Anmelden',
-    intro: 'Der Zugang ist Mitgliedern der Redaktion vorbehalten. Konten richtet die Administration ein.',
-    email: 'E-Mail-Adresse',
-    password: 'Passwort',
-    close: 'Schließen',
-    submit: 'Anmelden',
-    pending: 'Wird angemeldet …',
-    errors: {
-      missing: 'Bitte E-Mail-Adresse und Passwort eingeben.',
-      invalid:
-        'E-Mail-Adresse oder Passwort ist falsch, oder das Konto ist deaktiviert. Bitte Eingaben prüfen oder an die Administration wenden.',
-      locked: 'Zu viele Fehlversuche. Bitte in 15 Minuten erneut versuchen.',
-      busy: 'Die Anmeldung ist gerade ausgelastet. Bitte in einigen Sekunden erneut versuchen.',
-      unavailable: 'Die Anmeldung ist gerade nicht möglich. Bitte später erneut versuchen.',
-    },
+    desc: 'Zur Anmeldeseite der Redaktion',
+    note: 'Der Zugang ist Mitgliedern der Redaktion vorbehalten. Konten richtet die Administration ein.',
   },
 };
 
