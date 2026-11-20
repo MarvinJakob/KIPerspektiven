@@ -161,6 +161,8 @@ test.describe('Oberfläche als Admin', () => {
     const email = newEmail();
     await page.goto('/redaktion/benutzer');
     expect(await navLinks(page)).toEqual(NAV);
+    // Erst nach geladener Liste absenden: sonst steht „Wird geladen …“ als zweiter Status neben der Erfolgsmeldung.
+    await expect(page.getByText('Wird geladen …')).toHaveCount(0);
     await page.getByLabel('E-Mail-Adresse').fill(email);
     await page.getByLabel('Startpasswort').fill(PASSWORD);
     const roles = page.getByRole('group', { name: 'Rollen', exact: true });
