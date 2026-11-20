@@ -196,12 +196,11 @@ export const de = {
     sessionLink: 'Zur Redaktion, um dich abzumelden',
     close: 'Schließen',
   },
-  // Kontomenü am Kontosymbol (Ticket #121)
+  // Kontomenü am Kontosymbol (Ticket #121, seit #130 ohne Hinweis)
   account: {
     label: 'Redaktion',
     title: 'Anmelden',
     desc: 'Zur Anmeldeseite der Redaktion',
-    note: 'Der Zugang ist Mitgliedern der Redaktion vorbehalten. Konten richtet die Administration ein.',
   },
 };
 

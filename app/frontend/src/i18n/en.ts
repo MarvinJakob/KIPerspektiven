@@ -198,11 +198,10 @@ export const en: Messages = {
     sessionLink: 'Go to the editorial area to sign out',
     close: 'Close',
   },
-  // Kontomenü am Kontosymbol (Ticket #121)
+  // Kontomenü am Kontosymbol (Ticket #121, seit #130 ohne Hinweis)
   account: {
     label: 'Editorial team',
     title: 'Sign in',
     desc: 'Go to the editorial sign-in page',
-    note: 'Access is reserved for members of the editorial team. Accounts are set up by the administrators.',
   },
 };

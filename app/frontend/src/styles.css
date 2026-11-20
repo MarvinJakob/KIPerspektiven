@@ -870,10 +870,6 @@ svg { display: block; }
 .account-desc { display: block; margin-top: 2px; color: var(--text-2); font-size: .8125rem; line-height: 1.35; }
 .account-link svg { width: 18px; height: 18px; color: var(--text-2); transition: transform var(--dur-fast) var(--ease-out); }
 .account-link:hover svg, .account-link:focus-visible svg { color: var(--accent); transform: translateX(3px); }
-.account-note {
-  margin: 6px 14px 0; padding: 12px 0 8px; border-top: 1px solid var(--border);
-  color: var(--text-2); font-size: .8125rem; line-height: 1.45;
-}
 @media (max-width: 650px) {
   /* Mobil ist die Kapsel flacher: 10 px bis zum Rand, wieder 4 px Luft. */
   .account-menu { top: calc(100% + 14px); }
