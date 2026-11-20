@@ -86,7 +86,7 @@ Gekürzte Specs (Tests vorher → nachher):
 | Browsertitel | `108-browsertitel` (4): Direktaufruf DE/EN, Inhaltstitel, Seiten- und Sprachwechsel | `lib/page`, Go `web/meta_test.go` |
 | Darstellung hell/dunkel und Ninja-Design | `16-darstellung` (3), `104-ninja-design` (3): Farben hell/dunkel, Schriften vom eigenen Server | `theme`, `design` |
 | Cookie-Dialog und Speicherwahl | `78-speicherwahl` (2) | `consentTexts` |
-| Footer und Datenschutzerklärung | `54-footer` (2), `74-datenschutz` (2) | `footer`, `content/legal/datenschutz` |
+| Footer und Datenschutzerklärung | `54-footer` (2), `74-datenschutz` (4): Pflichtangaben DE/EN, Verweise aus Kontakt und Auswertung | `footer`, `content/legal/datenschutz` (nur Pflichtangaben, #128) |
 
 ### Redaktionssystem
 

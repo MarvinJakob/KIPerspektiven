@@ -2,10 +2,41 @@
 
 Laufzeitdateien: `frontend/src/content/legal/datenschutz.de.md` und `datenschutz.en.md`, gerendert von `Legal.tsx`
 unter `/de/datenschutz` und `/en/datenschutz`. Der erste Teil beschreibt die aktuelle Fassung aus
-[Ticket #125](https://github.com/MarvinJakob/KIPerspektiven/issues/125). Sie ändert die gekürzte Fassung aus
-[Ticket #118](https://github.com/MarvinJakob/KIPerspektiven/issues/118) nur im Abschnitt „Cookies und
-Browserspeicher“; der Abgleich zu #118 gilt im Übrigen weiter. Der Abgleich zur Vorgängerfassung aus
-[Ticket #74](https://github.com/MarvinJakob/KIPerspektiven/issues/74) steht darunter und bleibt als Verlauf erhalten.
+[Ticket #128](https://github.com/MarvinJakob/KIPerspektiven/issues/128). Die Abschnitte zu
+[#125](https://github.com/MarvinJakob/KIPerspektiven/issues/125),
+[#118](https://github.com/MarvinJakob/KIPerspektiven/issues/118) und
+[#74](https://github.com/MarvinJakob/KIPerspektiven/issues/74) stehen darunter und bleiben als Verlauf erhalten.
+
+# Fassung als Fließtext zu Ticket #128
+
+Stand: 20. November 2026. Ausgangsfassung: `main` @ `1d029e8`.
+
+## Änderung
+
+Die Erklärung besteht aus Überschriften und ganzen Sätzen. Die Stichpunkte „Daten“, „Zweck“, „Rechtsgrundlage“,
+„Speicherdauer“ und „Ohne diese Daten“ sowie die Aufzählung der Rechte sind in Fließtext überführt. An der
+Datenverarbeitung ändert sich nichts; der Abgleich mit Anwendung und Betrieb aus #118 und #125 gilt weiter.
+
+Inhaltlich neu ist eine Angabe: Die Ergebnisse der Selbsteinschätzung nennen als Rechtsgrundlage neben
+§ 25 Abs. 1 TDDDG auch Art. 6 Abs. 1 lit. a DSGVO, weil die Erklärung dort einen Widerruf nach Art. 7 Abs. 3 DSGVO
+zusagt. Entfallen ist der Zusatz „(freiwillig)“ am Unternehmen im Kontaktformular; der Abschnitt sagt weiterhin,
+dass alle Angaben freiwillig sind und welche für eine Antwort nötig sind.
+
+| | bisher | neu |
+| --- | --- | --- |
+| Deutsch | 632 Wörter | 655 Wörter |
+| Englisch | 668 Wörter | 689 Wörter |
+
+Gezählt mit `wc -w` über die Markdown-Datei.
+
+## Tests und Freigabe
+
+Die Tests prüfen seit #128 nur noch, ob jede rechtlich notwendige Angabe genannt ist (P1 bis P14 im Ticket):
+`frontend/src/content/legal/datenschutz.test.ts` je Angabe und Sprache, `e2e/tests/74-datenschutz.spec.ts` über
+die ausgelieferte Seite. Sollwerte zu Aufbau, Reihenfolge, Wortzahl und Wortlaut sind entfallen. Ebenso entfällt
+der Abgleich mit einem freigegebenen SHA-256-Wert: Die Datei `datenschutz.freigabe.json` ist entfernt, eine
+Textänderung braucht technisch keine neue Freigabe mehr. Die Freigaben weiter unten gelten für ihre Fassungen.
+Die Tests ersetzen keine rechtliche Prüfung.
 
 # Fassung ohne Tabelle der Browserspeicher-Einträge zu Ticket #125
 
