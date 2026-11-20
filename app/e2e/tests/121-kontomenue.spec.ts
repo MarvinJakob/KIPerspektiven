@@ -5,7 +5,9 @@ import { ACCOUNTS, AUTH, expect, test } from '../support/fixtures';
 // Anforderung #121: Das Kontosymbol öffnet ein Menü mit Link zur Anmeldeseite der Redaktion. Es löst den
 // Anmeldedialog aus #109 und #114 ab; REQ-109-AC4 (Direktaufruf von /redaktion) gilt weiter und wird hier mitgeprüft.
 // Sollwerte stammen aus dem Ticket (Tabelle „Aufbau des Menüs“, „Fläche und Lage“, Akzeptanzkriterien).
-// Englische Texte, die Zuordnung des Hinweises und die einzelnen Schließwege prüft
+// Anforderung #130 streicht Hinweis und Trennlinie aus dem Menü (REQ-130-AC1 bis -AC4); die Anmeldeseite behält
+// ihren Einleitungstext (REQ-130-AC5).
+// Englische Texte, den zugänglichen Namen des Eintrags und die einzelnen Schließwege prüft
 // app/frontend/src/components/AccountMenu.test.tsx, die Startseite je Rolle
 // app/backend/internal/web/editorial_direct_test.go.
 
@@ -14,8 +16,12 @@ const TEXT = {
   label: 'Redaktion',
   title: 'Anmelden',
   desc: 'Zur Anmeldeseite der Redaktion',
-  note: 'Der Zugang ist Mitgliedern der Redaktion vorbehalten. Konten richtet die Administration ein.',
 } as const;
+
+/** Bis #130 Hinweis im Kontomenü; steht seitdem nur noch als Einleitung auf der Anmeldeseite (REQ-130-AC5). */
+const SIGN_IN_INTRO = 'Der Zugang ist Mitgliedern der Redaktion vorbehalten. Konten richtet die Administration ein.';
+/** Innenabstand der Menüfläche in px (Ticket #121, „Fläche und Lage“). */
+const MENU_PADDING = 10;
 
 /** Startseite der Redaktion für Redakteure (Rollentabelle aus #64). */
 const EDITOR_START = /\/redaktion$/;
@@ -68,7 +74,7 @@ async function submitLogin(page: Page, submit: () => Promise<void>) {
   }
 }
 
-test('REQ-121-AC1 REQ-121-AC3 REQ-121-AC6: Kontosymbol öffnet das Menü auf derselben Seite ohne Sitzungsabfrage; Symbol, Klick außerhalb, Fokuswechsel und Esc schließen es', async ({ page, context }) => {
+test('REQ-130-AC1 REQ-130-AC3 REQ-121-AC1 REQ-121-AC3 REQ-121-AC6: Kontosymbol öffnet das Menü auf derselben Seite ohne Sitzungsabfrage; Symbol, Klick außerhalb, Fokuswechsel und Esc schließen es', async ({ page, context }) => {
   const authCalls: string[] = [];
   page.on('request', (r) => {
     const { pathname } = new URL(r.url());
@@ -79,11 +85,15 @@ test('REQ-121-AC1 REQ-121-AC3 REQ-121-AC6: Kontosymbol öffnet das Menü auf der
   await expect(account).toHaveAttribute('aria-expanded', 'false');
   await expect(link, 'geschlossen ist der Eintrag nicht sichtbar').toBeHidden();
 
-  // AC1: Inhalt in der Reihenfolge der Vorlage
+  // REQ-130-AC1: genau Kennzeile, Eintrag und Zeile darunter; der Hinweis steht auch nicht mehr im Markup
   await account.click();
   const menu = await expectOpen(page);
-  await expect(menu).toHaveText(new RegExp(`^\\s*${TEXT.label}\\s*${TEXT.title}\\s*${TEXT.desc}\\s*${TEXT.note.replace(/\./g, '\\.')}\\s*$`));
-  await expect(link).toHaveAccessibleDescription(TEXT.note);
+  await expect(menu).toHaveText(new RegExp(`^\\s*${TEXT.label}\\s*${TEXT.title}\\s*${TEXT.desc}\\s*$`));
+  expect(await menu.innerHTML(), 'Hinweis fehlt im Markup des Menüs').not.toContain('vorbehalten');
+  // REQ-130-AC3: keine Beschreibung mehr, der Name nennt Eintrag und Zeile darunter
+  await expect(link).not.toHaveAttribute('aria-describedby');
+  await expect(link).toHaveAccessibleDescription('');
+  await expect(link).toHaveAccessibleName(new RegExp(`${TEXT.title}\\s*${TEXT.desc}`));
   await stillSamePage(page, url);
 
   // AC1: Die Seite dahinter bleibt bedienbar. Der Klick erreicht den Schalter und schließt als Klick außerhalb das Menü (AC3).
@@ -122,7 +132,7 @@ test('REQ-121-AC1 REQ-121-AC3 REQ-121-AC6: Kontosymbol öffnet das Menü auf der
   expect(await sessionCookie(context), 'kein Sitzungscookie').toBeUndefined();
 });
 
-test('REQ-121-AC2: Menü liegt bei 320, 375 und 1280 px hell und dunkel rechtsbündig unter der Kapsel, deckend und vollständig im Fenster', async ({ page }) => {
+test('REQ-130-AC2 REQ-121-AC2: Menü liegt bei 320, 375 und 1280 px hell und dunkel rechtsbündig unter der Kapsel, deckend und vollständig im Fenster; unter „Anmelden“ folgen weder Trennlinie noch Leerraum', async ({ page }) => {
   for (const width of [320, 375, 1280]) {
     for (const scheme of ['light', 'dark'] as const) {
       const where = `${width} px ${scheme}`;
@@ -130,9 +140,25 @@ test('REQ-121-AC2: Menü liegt bei 320, 375 und 1280 px hell und dunkel rechtsb�
       await page.emulateMedia({ colorScheme: scheme });
       await page.goto('/de/blog');
       await expect(page.locator('html')).toHaveAttribute('data-theme', scheme);
-      const { account } = ui(page);
+      const { account, link } = ui(page);
       await account.click();
       const menu = await expectOpen(page);
+
+      // REQ-130-AC2: Der Eintrag ist das letzte Element; bis zum unteren Rand bleibt nur der Innenabstand der Fläche.
+      await expect.poll(() => menu.evaluate((el) => getComputedStyle(el).transform), `${where}: Einblenden abgeschlossen`).toBe('none');
+      const end = await menu.evaluate((el, a) => {
+        const last = el.lastElementChild!;
+        return {
+          lastIsLink: last === a,
+          gap: el.getBoundingClientRect().bottom - parseFloat(getComputedStyle(el).borderBottomWidth) - last.getBoundingClientRect().bottom,
+          lines: [...el.querySelectorAll('*')].filter(
+            (c) => c.tagName === 'HR' || parseFloat(getComputedStyle(c).borderTopWidth) > 0 || parseFloat(getComputedStyle(c).borderBottomWidth) > 0,
+          ).length,
+        };
+      }, await link.elementHandle());
+      expect(end.lastIsLink, `${where}: „Anmelden“ ist das letzte Element der Fläche`).toBe(true);
+      expect(end.lines, `${where}: keine Trennlinie`).toBe(0);
+      expect(end.gap, `${where}: Abstand vom Eintrag zum unteren Rand = Innenabstand`).toBeCloseTo(MENU_PADDING, 0);
 
       const m = (await menu.boundingBox())!;
       const a = (await account.boundingBox())!;
@@ -163,7 +189,7 @@ test('REQ-121-AC2: Menü liegt bei 320, 375 und 1280 px hell und dunkel rechtsb�
   }
 });
 
-test('REQ-121-AC4 REQ-121-AC9 REQ-109-AC4: „Anmelden“ führt im selben Tab zur Anmeldeseite und von dort zur Startseite der Rolle; es gibt keinen Anmeldedialog', async ({ page, context }) => {
+test('REQ-130-AC5 REQ-121-AC4 REQ-121-AC9 REQ-109-AC4: „Anmelden“ führt im selben Tab zur Anmeldeseite mit unverändertem Einleitungstext und von dort zur Startseite der Rolle; es gibt keinen Anmeldedialog', async ({ page, context }) => {
   // REQ-109-AC4, REQ-121-AC9: Direktaufruf ohne Sitzung zeigt die eigenständige Anmeldeseite
   await page.goto('/redaktion');
   await expect(page).toHaveURL(SIGN_IN);
@@ -184,6 +210,8 @@ test('REQ-121-AC4 REQ-121-AC9 REQ-109-AC4: „Anmelden“ führt im selben Tab z
   await expect(page).toHaveURL(SIGN_IN);
   expect(context.pages(), 'kein neuer Tab').toHaveLength(1);
   await expect(page.getByRole('heading', { level: 1, name: 'Anmelden' })).toBeVisible();
+  // REQ-130-AC5: Der Einleitungstext unter der Überschrift bleibt.
+  await expect(page.locator('h1 + p'), 'Einleitung der Anmeldeseite').toHaveText(SIGN_IN_INTRO);
   expect(await sessionCookie(context), 'der Weg zur Anmeldeseite setzt kein Sitzungscookie').toBeUndefined();
 
   await page.getByLabel('E-Mail-Adresse').fill(ACCOUNTS.editor.email);
@@ -196,13 +224,13 @@ test('REQ-121-AC4 REQ-121-AC9 REQ-109-AC4: „Anmelden“ führt im selben Tab z
 test.describe('mit Redaktionssitzung', () => {
   test.use({ storageState: AUTH.editor });
 
-  test('REQ-121-AC5: mit Sitzung erscheint dasselbe Menü; „Anmelden“ führt ohne Eingabe zur Startseite der Rolle', async ({ page }) => {
+  test('REQ-130-AC4 REQ-121-AC5: mit Sitzung erscheint dasselbe Menü; „Anmelden“ führt ohne Eingabe zur Startseite der Rolle', async ({ page }) => {
     expect((await page.request.get('/api/auth/me')).status(), 'Voraussetzung: gültige Sitzung').toBe(200);
     const url = await openPage(page);
     const { account, link } = ui(page);
     await account.click();
     const menu = await expectOpen(page);
-    await expect(menu).toHaveText(new RegExp(`^\\s*${TEXT.label}\\s*${TEXT.title}\\s*${TEXT.desc}\\s*${TEXT.note.replace(/\./g, '\\.')}\\s*$`));
+    await expect(menu).toHaveText(new RegExp(`^\\s*${TEXT.label}\\s*${TEXT.title}\\s*${TEXT.desc}\\s*$`));
     await stillSamePage(page, url);
 
     await link.click();

@@ -6,7 +6,8 @@ import { Icon } from './Icon';
 export const EDITORIAL_SIGN_IN = '/redaktion/anmelden';
 
 /**
- * Kontosymbol der Kopfzeile mit Kontomenü (Ticket #121, löst den Anmeldedialog aus #109 und #114 ab).
+ * Kontosymbol der Kopfzeile mit Kontomenü (Ticket #121, löst den Anmeldedialog aus #109 und #114 ab; seit #130
+ * ohne Hinweis und Trennlinie unter dem Eintrag).
  *
  * Das Menü ist eine Disclosure wie das Themenmenü: Button mit `aria-expanded` und eine kleine Fläche direkt am
  * Symbol. Sie nennt den Zweck des Symbols und führt mit einem Link zur Anmeldeseite der Redaktion. Zugangsdaten
@@ -24,7 +25,6 @@ export function AccountMenu({ onOpen }: { onOpen?: () => void }) {
   const linkRef = useRef<HTMLAnchorElement>(null);
   const id = useId();
   const menuId = `${id}-menue`;
-  const noteId = `${id}-hinweis`;
 
   useEffect(() => {
     if (!open) return;
@@ -77,16 +77,13 @@ export function AccountMenu({ onOpen }: { onOpen?: () => void }) {
       <div className={`account-menu${open ? ' is-open' : ''}`} id={menuId}>
         <p className="account-label">{t('account.label')}</p>
         {/* Normaler Link statt Router: Die Anmeldeseite gehört zum eigenständigen Redaktionsfrontend. */}
-        <a className="account-link" href={EDITORIAL_SIGN_IN} ref={linkRef} aria-describedby={noteId} onClick={() => setOpen(false)}>
+        <a className="account-link" href={EDITORIAL_SIGN_IN} ref={linkRef} onClick={() => setOpen(false)}>
           <span>
             <span className="account-title">{t('account.title')}</span>
             <span className="account-desc">{t('account.desc')}</span>
           </span>
           <Icon name="chevRight" strokeWidth={2} />
         </a>
-        <p className="account-note" id={noteId}>
-          {t('account.note')}
-        </p>
       </div>
     </div>
   );
