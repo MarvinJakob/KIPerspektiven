@@ -10,42 +10,23 @@ E-Mail: [mail@marvinjakob.de](mailto:mail@marvinjakob.de)
 
 ## Aufruf der Website
 
-- **Daten:** IP-Adresse, aufgerufene Adresse, Zeitpunkt, Statuscode, übertragene Datenmenge, Browsertyp und verweisende Seite. Im Zugriffsprotokoll steht die IP-Adresse nur gekürzt. Sendest du ein Formular ab, merkt sich der Server deine IP-Adresse kurzzeitig.
-- **Zweck:** Die Website ausliefern, Fehler finden und Missbrauch abwehren.
-- **Rechtsgrundlage:** Unser berechtigtes Interesse an einer sicheren und funktionsfähigen Website (Art. 6 Abs. 1 lit. f DSGVO).
-- **Speicherdauer:** Zugriffsprotokoll höchstens sieben Tage, IP-Adresse nach einem Formularversand höchstens eine Stunde.
-- **Ohne diese Daten:** Die Seite lässt sich nicht ausliefern.
+Wenn du die Website aufrufst, verarbeitet unser Server deine IP-Adresse, die aufgerufene Adresse, den Zeitpunkt, den Statuscode, die übertragene Datenmenge, den Browsertyp und die verweisende Seite. Das ist nötig, um die Website auszuliefern, Fehler zu finden und Missbrauch abzuwehren; ohne diese Daten lässt sich die Seite nicht anzeigen. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und funktionsfähigen Website (Art. 6 Abs. 1 lit. f DSGVO). Das Zugriffsprotokoll enthält die IP-Adresse nur gekürzt und reicht höchstens sieben Tage zurück. Sendest du ein Formular ab, merkt sich der Server deine IP-Adresse höchstens eine Stunde.
 
 ## Reichweitenstatistik
 
-- **Daten:** Anzahl der Seitenaufrufe je Tag. Damit wiederholte Aufrufe nur einmal zählen, bilden wir aus deiner IP-Adresse ein Pseudonym und speichern dazu den Tag des letzten Aufrufs.
-- **Zweck:** Die Reichweite der Website einschätzen.
-- **Rechtsgrundlage:** Unser berechtigtes Interesse an einer aussagekräftigen Reichweitenstatistik (Art. 6 Abs. 1 lit. f DSGVO).
-- **Speicherdauer:** Solange wir die Statistik führen. Ob das weiter nötig ist, prüfen wir jährlich.
+Wir zählen die Seitenaufrufe je Tag, um die Reichweite der Website einzuschätzen; daran haben wir ein berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO). Damit wiederholte Aufrufe nur einmal zählen, bilden wir aus deiner IP-Adresse ein Pseudonym und speichern dazu den Tag des letzten Aufrufs. Wir speichern diese Daten, solange wir die Statistik führen, und prüfen jährlich, ob das weiter nötig ist.
 
 ## Kontaktformular
 
-- **Daten:** Name, Unternehmen (freiwillig), E-Mail-Adresse, Nachricht, Sprache der Seite und Zeitpunkt des Eingangs.
-- **Zweck:** Deine Nachricht bearbeiten und dir per E-Mail antworten.
-- **Rechtsgrundlage:** Unser berechtigtes Interesse, Anfragen zu beantworten (Art. 6 Abs. 1 lit. f DSGVO). Zielt deine Nachricht auf einen Vertrag mit uns, gilt Art. 6 Abs. 1 lit. b DSGVO.
-- **Speicherdauer:** Wir löschen die Nachricht spätestens sechs Monate nach Eingang.
-- **Ohne diese Daten:** Die Angaben sind freiwillig. Ohne Name, E-Mail-Adresse und Nachricht können wir dir nicht antworten.
+Schreibst du uns über das Kontaktformular, speichern wir deinen Namen, dein Unternehmen, deine E-Mail-Adresse, deine Nachricht, die Sprache der Seite und den Zeitpunkt des Eingangs, um dir per E-Mail zu antworten. Rechtsgrundlage ist unser berechtigtes Interesse, Anfragen zu beantworten (Art. 6 Abs. 1 lit. f DSGVO); zielt deine Nachricht auf einen Vertrag mit uns, gilt Art. 6 Abs. 1 lit. b DSGVO. Die Angaben sind freiwillig, ohne Name, E-Mail-Adresse und Nachricht können wir dir aber nicht antworten. Wir löschen die Nachricht spätestens sechs Monate nach Eingang.
 
 ## Anfrage für ein Beratungsgespräch
 
-- **Daten:** E-Mail-Adresse, Sprache der Seite und Zeitpunkt der Anfrage.
-- **Zweck:** Uns per E-Mail bei dir melden und einen Termin abstimmen.
-- **Rechtsgrundlage:** Schritte vor einem möglichen Vertrag, die auf deine Anfrage erfolgen (Art. 6 Abs. 1 lit. b DSGVO).
-- **Speicherdauer:** Wir löschen die Anfrage, sobald der Termin abgestimmt ist, spätestens aber sechs Monate nach deiner letzten Anfrage.
-- **Ohne diese Daten:** Die Anfrage ist freiwillig. Ohne E-Mail-Adresse können wir uns nicht bei dir melden.
+Fragst du ein Beratungsgespräch an, speichern wir deine E-Mail-Adresse, die Sprache der Seite und den Zeitpunkt der Anfrage, um uns per E-Mail bei dir zu melden und einen Termin abzustimmen. Rechtsgrundlage sind Schritte vor einem möglichen Vertrag, die auf deine Anfrage erfolgen (Art. 6 Abs. 1 lit. b DSGVO). Die Anfrage ist freiwillig, ohne E-Mail-Adresse können wir uns aber nicht bei dir melden. Wir löschen sie, sobald der Termin abgestimmt ist, spätestens aber sechs Monate nach deiner letzten Anfrage.
 
 ## Ergebnisse der Selbsteinschätzung
 
-- **Daten:** Nur wenn du in der KI-Readiness-Selbsteinschätzung den Haken zum Speichern setzt: gewählter Reifegrad je Dimension, Sprache der Seite, Zeitpunkt und der Hashwert einer zufälligen Kennung. Die Kennung besteht nur, solange das Browserfenster geöffnet ist.
-- **Zweck:** Den Bedarf unserer Zielgruppe einschätzen und die Inhalte weiterentwickeln.
-- **Rechtsgrundlage:** Deine Einwilligung (§ 25 Abs. 1 TDDDG).
-- **Speicherdauer:** Solange wir die Ergebnisse für diese Auswertung benötigen. Entfernst du den Haken, solange das Fenster geöffnet ist, widerrufst du deine Einwilligung und wir löschen dein Ergebnis sofort. Danach können wir es dir nicht mehr zuordnen.
-- **Ohne diese Daten:** Du siehst deine Auswertung trotzdem vollständig.
+Nur wenn du in der KI-Readiness-Selbsteinschätzung den Haken zum Speichern setzt, speichern wir den gewählten Reifegrad je Dimension, die Sprache der Seite, den Zeitpunkt und den Hashwert einer zufälligen Kennung, die nur besteht, solange das Browserfenster geöffnet ist. Damit schätzen wir den Bedarf unserer Zielgruppe ein und entwickeln die Inhalte weiter. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG). Sie ist freiwillig, deine Auswertung siehst du auch ohne sie vollständig. Entfernst du den Haken, solange das Fenster geöffnet ist, widerrufst du deine Einwilligung und wir löschen dein Ergebnis sofort. Danach können wir es dir nicht mehr zuordnen und speichern es, solange wir es für diese Auswertung benötigen.
 
 ## Cookies und Browserspeicher
 
@@ -57,17 +38,7 @@ Die Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen, betreibt unseren 
 
 ## Deine Rechte
 
-Du hast folgende Rechte hinsichtlich deiner personenbezogenen Daten:
-
-- Auskunft (Art. 15 DSGVO)
-- Berichtigung (Art. 16 DSGVO)
-- Löschung (Art. 17 DSGVO)
-- Einschränkung der Verarbeitung (Art. 18 DSGVO)
-- Datenübertragbarkeit (Art. 20 DSGVO)
-- Widerruf einer Einwilligung mit Wirkung für die Zukunft (Art. 7 Abs. 3 DSGVO)
-- Beschwerde bei einer Datenschutzaufsichtsbehörde (Art. 77 DSGVO), zum Beispiel bei der für uns zuständigen: Der Hessische Beauftragte für Datenschutz und Informationsfreiheit, [datenschutz.hessen.de](https://datenschutz.hessen.de)
-
-Um deine Rechte auszuüben, schreib uns über die Kontaktdaten der verantwortlichen Stelle.
+Du kannst von uns Auskunft über deine Daten (Art. 15 DSGVO), ihre Berichtigung (Art. 16 DSGVO), ihre Löschung (Art. 17 DSGVO), die Einschränkung ihrer Verarbeitung (Art. 18 DSGVO) und ihre Übertragung (Art. 20 DSGVO) verlangen. Eine Einwilligung kannst du jederzeit mit Wirkung für die Zukunft widerrufen (Art. 7 Abs. 3 DSGVO). Schreib uns dazu an die oben genannten Kontaktdaten. Außerdem kannst du dich bei einer Datenschutzaufsichtsbehörde beschweren (Art. 77 DSGVO), zum Beispiel bei der für uns zuständigen: Der Hessische Beauftragte für Datenschutz und Informationsfreiheit, [datenschutz.hessen.de](https://datenschutz.hessen.de).
 
 ## Widerspruchsrecht
 
