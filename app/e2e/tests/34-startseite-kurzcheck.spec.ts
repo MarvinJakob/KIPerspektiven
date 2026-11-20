@@ -39,7 +39,6 @@ const UI = {
     count: (n: number) => `Frage ${n} von 8`,
     result: (n: number) => `${n} von 8 Leitfragen mit Ja.`,
     start: 'Selbsteinschätzung starten',
-    topics: 'Themen entdecken',
     check: 'KI Readiness einschätzen',
   },
   en: {
@@ -47,7 +46,6 @@ const UI = {
     count: (n: number) => `Question ${n} of 8`,
     result: (n: number) => `${n} of 8 guiding questions answered Yes.`,
     start: 'Start self-assessment',
-    topics: 'Explore topics',
     check: 'Assess your AI readiness',
   },
 } as const;
@@ -64,7 +62,8 @@ async function answer(page: Page, value: Answer, step: number, lang: 'de' | 'en'
   else await expect(check(page).getByRole('heading', { name: /von 8 Leitfragen mit Ja|of 8 guiding questions/ })).toBeVisible();
 }
 
-test('REQ-34-AC1: Hero unter der Navigation, Einstiege springen zu Themenliste und Kurzcheck und setzen dort den Fokus', async ({ page }) => {
+// Die Sprungziele der beiden früheren Hero-Schaltflächen hat #131 ersetzt (131-startseite-readiness-schaltflaeche.spec.ts).
+test('REQ-34-AC1: Hero mit Leittext steht unter der Navigation', async ({ page }) => {
   await page.goto('/de');
   const hero = page.locator('#hero-title');
   await expect(hero).toHaveText('KI verstehen.Sinnvoll einsetzen.');
@@ -72,17 +71,6 @@ test('REQ-34-AC1: Hero unter der Navigation, Einstiege springen zu Themenliste u
   const navBottom = await page.locator('header').evaluate((el) => el.getBoundingClientRect().bottom);
   const heroTop = await hero.evaluate((el) => el.getBoundingClientRect().top);
   expect(heroTop, 'Hero steht unter der Hauptnavigation').toBeGreaterThanOrEqual(navBottom);
-
-  // Tastatur: Fokus auf den Einstieg, Enter, Fokus liegt am Ziel
-  await page.getByRole('link', { name: UI.de.topics }).focus();
-  await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { level: 2, name: 'Gute Fragen. Neue Perspektiven.' })).toBeFocused();
-
-  await page.getByRole('link', { name: UI.de.check }).focus();
-  await page.keyboard.press('Enter');
-  await expect(question(page)).toBeFocused();
-  await expect(question(page)).toHaveText(DIMENSIONS[0][1]);
-  await expect(question(page)).toBeInViewport();
 });
 
 test('REQ-34-AC2: ohne redaktionelle Veröffentlichungen erscheinen zwei Themenzeilen mit Leitfrage und Artikelverweis', async ({ page }) => {
@@ -126,8 +114,7 @@ test('REQ-34-AC8: DE → EN → DE wechselt Abschnitte, Fragen und Linkziele', a
   await page.getByRole('button', { name: 'English' }).click();
   await expect(page).toHaveURL(/\/en\/?$/);
   await expect(page.locator('#hero-title')).toHaveText('Understand AI.Use it wisely.');
-  await expect(page.getByRole('link', { name: UI.en.topics })).toBeVisible();
-  await expect(page.getByRole('link', { name: UI.en.check })).toBeVisible();
+  await expect(page.getByRole('link', { name: UI.en.check, exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { level: 2, name: 'Good questions. New perspectives.' })).toBeVisible();
   const links = topicList(page).getByRole('link');
   await expect(links.nth(0)).toHaveAttribute('href', '/en/themen/softwareentwicklung');
