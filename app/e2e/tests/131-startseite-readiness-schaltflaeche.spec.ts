@@ -43,7 +43,8 @@ for (const lang of ['de', 'en'] as const) {
 
   test(`REQ-131-AC4 (${lang}): Klick öffnet die Seite „KI Readiness“ der Hauptnavigation`, async ({ page }) => {
     await page.goto(`/${lang}`);
-    const navHref = await page.locator('header').getByRole('link', { name: T.nav, exact: true }).getAttribute('href');
+    // Der Eintrag steht je nach Breite im aufgeklappten Menü; sein Ziel steht unabhängig davon im Dokument.
+    const navHref = await page.locator('header a').filter({ hasText: new RegExp(`^${T.nav}$`) }).getAttribute('href');
     expect(navHref, 'Ziel des Navigationseintrags').toBe(T.path);
     await expect(cta(page, lang)).toHaveAttribute('href', T.path);
 
