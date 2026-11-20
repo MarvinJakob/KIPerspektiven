@@ -48,6 +48,17 @@ und Laufzeit auf (`frontend/src/i18n/de.ts`, `en.ts`); er ist nicht Teil der Erk
 
 An der Speicherung selbst ändert dieses Ticket nichts. Die übrigen Zeilen des Abgleichs zu #118 gelten unverändert.
 
+## Freigabe (REQ-125-AC5)
+
+Freigegeben am 20. November 2026 durch die verantwortliche Stelle (Marvin Jakob), Nachweis:
+[Freigabekommentar in #125](https://github.com/MarvinJakob/KIPerspektiven/issues/125#issuecomment-7036436861).
+Freigegebene Revision: Commit `6d09b27`, SHA-256 (Zeilenenden LF) DE
+`e44d4725b5391fb6fa51de3fa74e0a62c31354d39d1c6ac6e19667708c6f61c1`, EN
+`985602afba3e50446a19314aea8182d64f9355681ab3ec2bc27e0ec805697eca`. Die Werte stehen in
+`frontend/src/content/legal/datenschutz.freigabe.json`; der Unit-Test `REQ-125-AC5` stellt sicher, dass genau
+diese Fassungen ausgeliefert werden. Jede spätere Textänderung braucht eine neue Freigabe. Die Freigabe zu #118
+weiter unten gilt für die Vorfassung und bleibt als Verlauf erhalten.
+
 # Gekürzte Fassung zu Ticket #118
 
 Stand: 20. November 2026. Geprüfter Stand von Anwendung und Betriebsdokumentation: `main` @ `bf59306`.
