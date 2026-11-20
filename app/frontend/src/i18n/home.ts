@@ -32,7 +32,6 @@ interface HomeContent {
   display1: string;
   display2: string;
   lead: string;
-  ctaTopics: string;
   ctaCheck: string;
   topicsEyebrow: string;
   topicsTitle: [string, string];
@@ -73,7 +72,6 @@ export const home: Record<Lang, HomeContent> = {
     display1: 'KI verstehen.',
     display2: 'Sinnvoll einsetzen.',
     lead: 'Praxiswissen für den professionellen Einsatz von KI. Mit klarem Blick auf Nutzen, Grenzen und Verantwortung.',
-    ctaTopics: 'Themen entdecken',
     ctaCheck: 'KI Readiness einschätzen',
     topicsEyebrow: 'Aktuell im Fokus',
     topicsTitle: ['Gute Fragen.', 'Neue Perspektiven.'],
@@ -133,7 +131,6 @@ export const home: Record<Lang, HomeContent> = {
     display1: 'Understand AI.',
     display2: 'Use it wisely.',
     lead: 'Practical knowledge for the professional use of AI. With a clear view of benefits, limits and responsibility.',
-    ctaTopics: 'Explore topics',
     ctaCheck: 'Assess your AI readiness',
     topicsEyebrow: 'Currently in focus',
     topicsTitle: ['Good questions.', 'New perspectives.'],

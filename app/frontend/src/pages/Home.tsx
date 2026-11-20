@@ -4,11 +4,11 @@ import { Icon } from '../components/Icon';
 import { useArticles } from '../api/client';
 import { home, type CheckAnswer } from '../i18n/home';
 import { auditPath } from '../lib/audit';
-import { jumpTo, prefersReducedMotion } from '../lib/jump';
+import { prefersReducedMotion } from '../lib/jump';
 import { href, useLang } from '../lib/lang';
 import { useHead, usePageFocus } from '../lib/page';
 
-/** Sprungziele der Hero-Einstiege: Überschrift der Themenliste und aktuelle Überschrift des Kurzchecks. */
+/** Überschriften der Themenliste und des Kurzchecks; sie benennen ihre Abschnitte und nehmen dort den Fokus auf. */
 const TOPICS_ID = 'themen-title';
 const CHECK_ID = 'kurzcheck-title';
 /** Dauer der Überblendung zwischen zwei Leitfragen (.mock/home/script.js). */
@@ -20,7 +20,7 @@ const number = (i: number) => String(i + 1).padStart(2, '0');
  * Startseite nach dem Home-Mock .mock/home/ (Ticket #34): typografischer Hero, zwei nummerierte Themenzeilen,
  * KI-Readiness-Kurzcheck (Variante 7) als letzter Abschnitt. Den Profilteaser „Über mich“ hat #47 entfernt; das Profil
  * bleibt über die Hauptnavigation erreichbar. Ohne Bilder und Illustrationen.
- * Sprunglinks nutzen jumpTo: Sie scrollen zur Überschrift und setzen dort den Fokus, ohne die URL zu ändern.
+ * Im Hero steht seit #131 nur noch der Primärbutton zur Seite „KI Readiness“.
  */
 export function Home() {
   const { lang } = useLang();
@@ -43,13 +43,10 @@ export function Home() {
           <div className="home-hero-foot">
             <p className="home-lead">{c.lead}</p>
             <div className="hero-actions">
-              <a className="btn btn-primary press" href={`#${TOPICS_ID}`} onClick={(e) => jumpTo(e, TOPICS_ID)}>
-                {c.ctaTopics}
-                <Icon name="arrowRight" />
-              </a>
-              <a className="btn btn-secondary press" href={`#${CHECK_ID}`} onClick={(e) => jumpTo(e, CHECK_ID)}>
+              <Link className="btn btn-primary press" to={auditPath(lang)}>
                 {c.ctaCheck}
-              </a>
+                <Icon name="arrowRight" />
+              </Link>
             </div>
           </div>
         </div>
