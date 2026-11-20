@@ -93,8 +93,16 @@ technischen Details nicht zurückkehren. Die Zuordnung in dieser Tabelle ist ein
 
 ## Freigabe der gekürzten Fassung (REQ-118-AC7)
 
-Ausstehend. Die Freigabe der verantwortlichen Stelle wird hier mit Datum, Nachweis und SHA-256 beider Fassungen
-eingetragen; dieselben Werte stehen dann in `frontend/src/content/legal/datenschutz.freigabe.json`.
+Freigegeben am 20. November 2026 durch die verantwortliche Stelle (Marvin Jakob), Nachweis:
+[Freigabekommentar in #118](https://github.com/MarvinJakob/KIPerspektiven/issues/118#issuecomment-7034994341).
+Freigegebene Revision: Commit `e500291`, SHA-256 (Zeilenenden LF) DE
+`26e507c5f098c29cf8447800eab53aacab4219557c45db7572463c4156b6ea20`, EN
+`a7c452eae9089a2b1e2f6c2e3f769c6b273dbf4ab4117d568af81e3fb1a80f3f`. Die Werte stehen in
+`frontend/src/content/legal/datenschutz.freigabe.json`; der Unit-Test `REQ-118-AC7` stellt sicher, dass genau
+diese Fassungen ausgeliefert werden. Jede spätere Textänderung braucht eine neue Freigabe.
+
+Mit der Freigabe entschieden: Die Negativhinweise zu Drittländern und automatisierten Entscheidungen entfallen,
+als Empfänger ist nur Hetzner genannt, und der Zielumfang nach REQ-118-AC4 gilt.
 
 # Vorgängerfassung zu Ticket #74
 
