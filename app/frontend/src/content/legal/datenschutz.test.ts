@@ -15,6 +15,11 @@ import release from './datenschutz.freigabe.json';
 // Pflichtangaben P1 bis P15 (Art. 12, 13, 21 DSGVO, § 25 TDDDG), Impressum-Abnahme (#103), ADR 0010 und 0011,
 // service/retention.go (#90), deploy/Caddyfile und betrieb.md (Protokolle), lib/consent.ts, lib/lang.ts,
 // lib/theme.ts und auth (Browserspeicher), bisherige Wortzahlen auf main @ 3994c27 (wc -w: DE 1581, EN 1752).
+//
+// Anforderung #125: Tabelle der Browserspeicher-Einträge ersatzlos entfernen (Entscheidung 1 im Ticket #125).
+// Löst den Sollwert „genau vier Einträge mit Zweck und Dauer“ (REQ-118-AC1 P14, REQ-74-AC3) als dokumentierte
+// Umfangsänderung ab. Sollwerte: die im Ticket #125 zitierte Tabelle und ihre Bezeichner, AC1 bis AC5 des Tickets
+// sowie die Fassungen auf main @ bb07f25 (SHA-256 des Textes außerhalb des Abschnitts, berechnet mit git show).
 
 const TEXT = { de: privacyDe, en: privacyEn } as const;
 type Lang = keyof typeof TEXT;
@@ -56,6 +61,10 @@ const SOLL: Record<Lang, {
   controllerHeading: string;
   storageHeading: string;
   storageBasis: string;
+  /** REQ-125-AC2: Verweis auf die Cookie-Einstellungen im Footer. */
+  storageSettings: [string, string];
+  /** REQ-125-AC3: SHA-256 der Fassung auf main @ bb07f25 ohne den Abschnitt zum Browserspeicher und ohne Stand-Datum. */
+  unchangedSha256: string;
   recipientsHeading: string;
   processor: string;
   rightsHeading: string;
@@ -96,6 +105,8 @@ const SOLL: Record<Lang, {
     controllerHeading: 'Verantwortliche Stelle',
     storageHeading: 'Cookies und Browserspeicher',
     storageBasis: '§ 25 Abs. 2 TDDDG',
+    storageSettings: ['„Cookie-Einstellungen“', 'Footer'],
+    unchangedSha256: '9191dea4611089bff2d928cf0d8a0d9b2632dc6dc48a29a64d8cd4827b53a0a7',
     recipientsHeading: 'Empfänger',
     processor: 'Auftragsverarbeiter',
     rightsHeading: 'Deine Rechte',
@@ -131,6 +142,8 @@ const SOLL: Record<Lang, {
     controllerHeading: 'Controller',
     storageHeading: 'Cookies and browser storage',
     storageBasis: '§ 25(2) TDDDG',
+    storageSettings: ['"Cookie settings"', 'footer'],
+    unchangedSha256: 'e514297a63710af20d81b900a5586a4ac60c0deb6ef4d797919ee524175c464f',
     recipientsHeading: 'Recipients',
     processor: 'processor',
     rightsHeading: 'Your rights',
@@ -143,13 +156,13 @@ const SOLL: Record<Lang, {
   },
 };
 
-/** Die vier Einträge im Browserspeicher mit ihrer Dauer (lib/lang.ts, lib/theme.ts, lib/consent.ts: 180 Tage, service.SessionTTL: 12 Stunden). */
-const STORAGE = [
-  { key: 'ki-perspektiven.lang', duration: null },
-  { key: 'ki-perspektiven.theme', duration: null },
-  { key: 'ki-perspektiven.consent', duration: '180' },
-  { key: 'ki_session', duration: '12' },
-] as const;
+/** Technische Bezeichner der im Ticket #125 zitierten Tabelle; sie dürfen in der Erklärung nicht mehr vorkommen. */
+const STORAGE_KEYS = ['ki-perspektiven.lang', 'ki-perspektiven.theme', 'ki-perspektiven.consent', 'ki_session'] as const;
+/** Zwecke und Speicherdauern aus den Zeilen der zitierten Tabelle (Ticket #125, DE und EN). */
+const STORAGE_DETAILS = {
+  de: ['Sprachwahl', 'helle oder dunkle Darstellung', 'Cookie-Auswahl', 'Anmeldung der Redaktion', 'bis du sie löschst', '180 Tage', '12 Stunden'],
+  en: ['Language choice', 'Light or dark appearance', 'cookie choice', 'Editorial sign-in', 'until you delete it', '180 days', '12 hours'],
+} as const;
 
 const lf = (md: string) => md.replace(/\r\n/g, '\n');
 
@@ -181,6 +194,11 @@ const facts = (md: string) => ({
   codes: [...md.matchAll(/`([^`]+)`/g)].map((m) => m[1]).sort(),
   links: [...md.matchAll(/\]\(([^)]+)\)/g)].map((m) => m[1].replace(/\/(de|en)\//, '/:lang/')).sort(),
 });
+/** Text außerhalb eines Abschnitts und ohne die letzte Zeile (Stand-Datum), für den Vergleich mit der Vorfassung. */
+function outside(md: string, heading: string): string {
+  const parts = lf(md).split(/^## /m).filter((p) => !p.startsWith(`${heading}\n`));
+  return parts.join('## ').trimEnd().split('\n').slice(0, -1).join('\n');
+}
 /** Aufbau eines Abschnitts unabhängig von der Sprache. */
 const shape = (text: string) => ({
   listItems: (text.match(/^- /gm) ?? []).length,
@@ -249,18 +267,31 @@ describe.each(LANGS)('Datenschutzerklärung (%s)', (lang) => {
     for (const r of soll.processing[3].retention) expect(section(md, soll.processing[3].heading)).toContain(r);
   });
 
-  it('REQ-118-AC1 (P14), REQ-74-AC3: Browserspeicher nennt genau die vier Einträge mit Zweck und Dauer', () => {
+  it('REQ-125-AC1: Erklärung enthält keine Tabelle, keinen Speicherschlüssel und keine Angabe „Local Storage“', () => {
+    expect(lf(md).split('\n').filter((l) => l.trimStart().startsWith('|')), 'Tabellenzeilen').toEqual([]);
+    expect(md, 'HTML-Tabelle').not.toMatch(/<table/i);
+    for (const key of STORAGE_KEYS) expect(md, `Bezeichner ${key}`).not.toContain(key);
+    expect(md, 'Angabe „Local Storage“').not.toMatch(/local\s+storage/i);
+    expect(md, 'technische Bezeichner in Codeschrift').not.toContain('`');
+  });
+
+  it('REQ-125-AC2, REQ-118-AC1 (P14): Browserspeicher besteht nur aus Fließtext mit § 25 Abs. 2 TDDDG und Verweis auf die Cookie-Einstellungen im Footer', () => {
     const text = section(md, soll.storageHeading);
     expect(text).toContain(soll.storageBasis);
-    const rows = text.split('\n').filter((l) => l.startsWith('| `'));
-    expect(rows.map((r) => r.match(/`([^`]+)`/)![1])).toEqual(STORAGE.map((s) => s.key));
-    rows.forEach((row, i) => {
-      const cells = row.split('|').slice(1, -1).map((c) => c.trim());
-      expect(cells, `Zeile ${STORAGE[i].key}`).toHaveLength(3);
-      for (const cell of cells) expect(cell).not.toBe('');
-      const duration = STORAGE[i].duration;
-      if (duration) expect(cells[2], `Dauer ${STORAGE[i].key}`).toContain(duration);
-    });
+    for (const part of soll.storageSettings) expect(text, `Verweis „${part}“`).toContain(part);
+    expect(text.trim(), 'Abschnitt hat Text').not.toBe('');
+    expect(text, 'nur Fließtext: keine Liste, Tabelle, Überschrift und kein abgesetzter Block').not.toMatch(/^\s*([-*+] |\d+\. |\||#|>)/m);
+  });
+
+  it('REQ-125-AC2: Browserspeicher nennt keine Zwecke und Speicherdauern einzelner Einträge mehr', () => {
+    const text = section(md, soll.storageHeading);
+    for (const detail of STORAGE_DETAILS[lang]) expect(text.toLowerCase(), `unerwartet: ${detail}`).not.toContain(detail.toLowerCase());
+    // Einzige Zahlen des Abschnitts sind die der Rechtsgrundlage § 25 Abs. 2 TDDDG
+    expect(facts(text).numbers).toEqual(['2', '25']);
+  });
+
+  it('REQ-125-AC3: außerhalb des Abschnitts zum Browserspeicher und des Stand-Datums ist die Erklärung unverändert', async () => {
+    expect(await sha256(outside(md, soll.storageHeading))).toBe(soll.unchangedSha256);
   });
 
   it('REQ-118-AC1 (P5), REQ-74-AC3: Empfänger ist Hetzner als Auftragsverarbeiter', () => {
@@ -320,11 +351,11 @@ describe.each(LANGS)('Datenschutzerklärung (%s)', (lang) => {
 });
 
 describe('Datenschutzerklärung DE/EN', () => {
-  it('REQ-118-AC6, REQ-74-AC5: beide Fassungen nennen dieselben Zahlen, Schlüssel und Verweise', () => {
+  it('REQ-125-AC4, REQ-118-AC6, REQ-74-AC5: beide Fassungen nennen dieselben Zahlen, Schlüssel und Verweise', () => {
     expect(facts(privacyEn)).toEqual(facts(privacyDe));
   });
 
-  it('REQ-118-AC6: jeder Abschnitt hat in beiden Sprachen denselben Aufbau und dieselben Fakten', () => {
+  it('REQ-125-AC4, REQ-118-AC6: jeder Abschnitt hat in beiden Sprachen denselben Aufbau und dieselben Fakten', () => {
     SOLL.de.sections.forEach((heading, i) => {
       expect(shape(section(privacyEn, SOLL.en.sections[i])), heading).toEqual(shape(section(privacyDe, heading)));
     });
@@ -338,10 +369,10 @@ describe('Datenschutzerklärung DE/EN', () => {
     expect([en[1], months.indexOf(en[2].toLowerCase()), en[3]]).toEqual([de[1], monate.indexOf(de[2].toLowerCase()), de[3]]);
   });
 
-  it('REQ-118-AC7, REQ-74-AC4: veröffentlichte Fassungen entsprechen der freigegebenen Revision', async () => {
+  it('REQ-125-AC5, REQ-118-AC7, REQ-74-AC4: veröffentlichte Fassungen entsprechen der freigegebenen Revision', async () => {
     expect(release.freigegebenAm, 'Freigabedatum fehlt').toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    // Neue Fassung braucht eine neue Freigabe der verantwortlichen Stelle im Ticket #118
-    expect(release.nachweis, 'Freigabenachweis fehlt').toMatch(/^https:\/\/github\.com\/MarvinJakob\/KIPerspektiven\/issues\/118#issuecomment-\d+$/);
+    // Neue Fassung braucht eine neue Freigabe der verantwortlichen Stelle im Ticket #125
+    expect(release.nachweis, 'Freigabenachweis fehlt').toMatch(/^https:\/\/github\.com\/MarvinJakob\/KIPerspektiven\/issues\/125#issuecomment-\d+$/);
     expect(await sha256(privacyDe), 'deutsche Fassung weicht von der Freigabe ab').toBe(release.sha256.de);
     expect(await sha256(privacyEn), 'englische Fassung weicht von der Freigabe ab').toBe(release.sha256.en);
   });
