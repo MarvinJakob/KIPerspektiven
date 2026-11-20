@@ -91,7 +91,7 @@ const SOLL: Record<Lang, {
       // retention.go: sechs Monate ab letzter Anfrage; ADR 0011: Löschen nach Terminabstimmung
       { heading: 'Anfrage für ein Beratungsgespräch', basis: [LIT_B.de], retention: ['Termin abgestimmt ist', 'spätestens aber sechs Monate nach deiner letzten Anfrage'], required: true },
       // ADR 0010: Opt-in, Löschen beim Entfernen des Hakens
-      { heading: 'Ergebnisse der Selbsteinschätzung', basis: [CONSENT.de], retention: ['löschen wir dein Ergebnis sofort'], required: true },
+      { heading: 'Ergebnisse der Selbsteinschätzung', basis: [CONSENT.de], retention: ['löschen dein Ergebnis sofort'], required: true },
     ],
     controllerHeading: 'Verantwortliche Stelle',
     storageHeading: 'Cookies und Browserspeicher',
@@ -223,7 +223,7 @@ describe.each(LANGS)('Datenschutzerklärung (%s)', (lang) => {
   it.each(soll.processing)('REQ-118-AC1 (P3, P4, P7, P11): „$heading“ nennt Rechtsgrundlage, Interesse, Dauer und Erforderlichkeit', (p) => {
     const text = section(md, p.heading);
     for (const basis of p.basis) expect(text, `Rechtsgrundlage ${basis}`).toContain(basis);
-    if (p.basis.includes(LIT_F[lang])) expect(text.toLowerCase(), 'P4: berechtigtes Interesse benannt').toContain(INTEREST[lang]);
+    if (p.basis.includes(LIT_F[lang])) expect(text.toLowerCase(), 'P4: berechtigtes Interesse benannt').toContain(INTEREST[lang].toLowerCase());
     for (const r of p.retention) expect(text, `Dauer „${r}“`).toContain(r);
     expect(labels(text).includes(soll.requiredLabel), `P11: Zeile „${soll.requiredLabel}“`).toBe(p.required);
   });

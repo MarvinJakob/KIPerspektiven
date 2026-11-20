@@ -1,8 +1,104 @@
-# Datenschutzerklärung: Abgleich und Freigabe zu Ticket #74
+# Datenschutzerklärung: Abgleich und Freigabe
+
+Laufzeitdateien: `frontend/src/content/legal/datenschutz.de.md` und `datenschutz.en.md`, gerendert von `Legal.tsx`
+unter `/de/datenschutz` und `/en/datenschutz`. Der erste Teil gilt für die gekürzte Fassung aus
+[Ticket #118](https://github.com/MarvinJakob/KIPerspektiven/issues/118). Der Abgleich zur Vorgängerfassung aus
+[Ticket #74](https://github.com/MarvinJakob/KIPerspektiven/issues/74) steht darunter und bleibt als Verlauf erhalten.
+
+# Gekürzte Fassung zu Ticket #118
+
+Stand: 20. November 2026. Geprüfter Stand von Anwendung und Betriebsdokumentation: `main` @ `bf59306`.
+Die Abschnittsnamen folgen der deutschen Fassung; die englische hat dieselben Abschnitte in derselben Reihenfolge
+(Unit-Test `REQ-118-AC6`).
+
+## Umfang
+
+| | bisher (`main` @ `3994c27`) | neu | Grenze nach REQ-118-AC4 |
+| --- | --- | --- | --- |
+| Deutsch | 1.581 Wörter | 697 Wörter | 790 |
+| Englisch | 1.752 Wörter | 736 Wörter | 876 |
+
+Gezählt mit `wc -w` über die Markdown-Datei.
+
+## Pflichtangaben und Textstellen (REQ-118-AC1)
+
+| Nr. | Angabe | Textstelle |
+| --- | --- | --- |
+| P1 | Verantwortlicher | „Verantwortliche Stelle“: Name, Anschrift, Telefon, E-Mail |
+| P2 | Datenschutzbeauftragter | Entfällt, keiner benannt (Entscheidung vom 18. November 2026) |
+| P3 | Zweck und Rechtsgrundlage | Zeilen „Zweck“ und „Rechtsgrundlage“ in jedem der fünf Verarbeitungsabschnitte |
+| P4 | Berechtigtes Interesse | Zeile „Rechtsgrundlage“ in „Aufruf der Website“, „Reichweitenstatistik“ und „Kontaktformular“ |
+| P5 | Empfänger | „Empfänger“: Hetzner Online GmbH als Auftragsverarbeiter |
+| P6 | Drittland | Entfällt, keine Übermittlung |
+| P7 | Speicherdauer | Zeile „Speicherdauer“ in jedem Verarbeitungsabschnitt, Spalte „Speicherdauer“ im Browserspeicher |
+| P8 | Betroffenenrechte | „Deine Rechte“ (Art. 15, 16, 17, 18, 20) und „Widerspruchsrecht“ (Art. 21) |
+| P9 | Widerruf der Einwilligung | „Deine Rechte“ (Art. 7 Abs. 3); wie der Widerruf geschieht, steht in „Ergebnisse der Selbsteinschätzung“ |
+| P10 | Beschwerderecht | „Deine Rechte“ (Art. 77) mit dem Hessischen Beauftragten für Datenschutz und Informationsfreiheit |
+| P11 | Erforderlichkeit | Zeile „Ohne diese Daten“ in allen Verarbeitungsabschnitten außer der Reichweitenstatistik, für die Besucher nichts bereitstellen |
+| P12 | Automatisierte Entscheidung | Entfällt, findet nicht statt |
+| P13 | Getrennter Hinweis auf den Widerspruch | Eigener Abschnitt „Widerspruchsrecht“, als hervorgehobener Block gesetzt |
+| P14 | Speichern und Auslesen im Endgerät | „Cookies und Browserspeicher“ mit vier Einträgen; Einwilligung nach § 25 Abs. 1 TDDDG in „Ergebnisse der Selbsteinschätzung“ |
+| P15 | Klare, einfache Form | Gleicher Aufbau aller Verarbeitungsabschnitte: Daten, Zweck, Rechtsgrundlage, Speicherdauer (Unit-Test `REQ-118-AC5`) |
+
+## Abgleich mit Anwendung und Betrieb (REQ-118-AC2)
+
+| Verarbeitung | Ist-Stand (Quelle) | Erklärung | Befund |
+| --- | --- | --- | --- |
+| Zugriffsprotokoll | IP auf /24 beziehungsweise /48 gekürzt, tägliche Rotation, rotierte Dateien 120 Stunden (`deploy/Caddyfile`); kein Eintrag älter als sieben Tage ([Betrieb](betrieb.md#logs)). | „nur gekürzt“, „höchstens sieben Tage“ | Übereinstimmend. Die frühere Formulierung „nach sieben Tagen gelöscht“ war eine Obergrenze, die tatsächliche Aufbewahrung liegt bei rund sechs Tagen. Die neue Formulierung nennt die Obergrenze als solche. |
+| Anwendungsprotokoll | Methode, Pfad, Status, Dauer; keine IP-Adresse, keine Formularinhalte (`http/server.go`). | Nicht mehr beschrieben | Enthält keine personenbezogenen Daten, deshalb keine Pflichtangabe. |
+| Schutz der Formulare | Kontaktformular und Beratungsanfrage zählen Anfragen je IP-Adresse im Arbeitsspeicher, Fenster eine Stunde (`http/contact.go`, `http/consultations.go`). Anmeldung der Redaktion: 15 Minuten ([Login-Begrenzung](login-begrenzung.md)). | Einmal in „Aufruf der Website“: IP-Adresse nach einem Formularversand höchstens eine Stunde | Übereinstimmend. Die Anfragegrenzen entfallen als technisches Detail. |
+| Reichweitenstatistik | Tageszähler; Ableitung der IP-Adresse mit letztem Aufruftag; Aufbewahrung für die Laufzeit des Bestands, Prüfung mindestens jährlich ([ADR 0010](adr/0010-statistik-ohne-kennung-und-einwilligung.md), [Betrieb](betrieb.md#ip-bereinigung-der-seitenstatistik-142)). | „Pseudonym“, „Tag des letzten Aufrufs“, „prüfen wir jährlich“ | Übereinstimmend. Verfahren und Schlüsselverwaltung entfallen als technisches Detail. |
+| Kontaktformular | Name, Unternehmen (optional), E-Mail, Nachricht, Sprache, Zeitpunkt (`migrations/00016_contact_messages.sql`); Löschung sechs Monate nach Eingang (`service/retention.go`, #90). | Datenliste und „spätestens sechs Monate nach Eingang“ | Übereinstimmend. |
+| Beratungsanfrage | E-Mail, Sprache, Zeitpunkt; Löschen nach Terminabstimmung über die Redaktion; automatisch sechs Monate nach der letzten Anfrage ([ADR 0011](adr/0011-beratungsanfragen-in-der-redaktion.md), `service/retention.go`). | Datenliste, „sobald der Termin abgestimmt ist, spätestens aber sechs Monate nach deiner letzten Anfrage“ | Übereinstimmend. |
+| Ergebnisse der Selbsteinschätzung | Opt-in, nicht vorausgewählt; Reifegrade, Sprache, Zeitpunkt, Hash der Fensterkennung; Löschen beim Entfernen des Hakens (ADR 0010). | Datenliste, Einwilligung, sofortige Löschung beim Widerruf | Übereinstimmend. Eine feste Aufbewahrungsdauer ist weiterhin nicht festgelegt; die Erklärung nennt das Kriterium. |
+| Browserspeicher | `ki-perspektiven.lang`, `.theme`, `.consent` (180 Tage), `ki_session` (`lib/lang.ts`, `lib/theme.ts`, `lib/consent.ts`, `auth`); Sitzung gilt zwölf Stunden (`service.SessionTTL`). | Tabelle mit vier Einträgen | Übereinstimmend. Die Dauer von `ki_session` ist jetzt mit zwölf Stunden beziffert statt mit „Sitzungsdauer“. |
+| Hosting | Hetzner Cloud, Auftragsverarbeitung, Rechenzentrum in Deutschland (Entscheidung vom 18. November 2026, [Betrieb](betrieb.md)). | „Empfänger“ | Übereinstimmend. |
+| Redaktionskonten (#64) | E-Mail, Anzeigename, Rollen, Profilbild der Konten. | Nicht beschrieben | Betrifft nur Personen mit Redaktionskonto. Laut Entscheidung vom 18. November 2026 hat nur der Betreiber ein Konto. Mit der Freigabe neu zu bestätigen. |
+| LinkedIn (#85) | Die Anwendung veröffentlicht Titel und Link eigener Beiträge. Auf der Website stehen nur gewöhnliche Links zu LinkedIn. | Nicht beschrieben | Keine Daten von Besuchern. Die Content-Security-Policy (`default-src 'self'`) lässt keine fremden Inhalte zu. |
+
+Der Produktionsserver war bei der Prüfung am 20. November 2026 per SSH nicht erreichbar. Der Abgleich stützt sich
+deshalb auf Code und Betriebsdokumentation des geprüften Stands, nicht auf eine Sichtprüfung in Produktion.
+
+## Weitere Befunde
+
+1. **Antworten per E-Mail.** Die Erklärung nennt als Empfänger nur Hetzner. Antworten auf Nachrichten und
+   Beratungsanfragen gehen über das Postfach des Betreibers. Ob dessen Anbieter als Empfänger zu nennen ist,
+   entscheidet die verantwortliche Stelle. Die Vorgängerfassung nannte ihn ebenfalls nicht.
+2. **Manuelle Sicherungen.** Die automatische Sicherung ist nicht eingerichtet. Manuelle Kopien unter
+   `/root/sicherung` können Nachrichten und Anfragen über die Löschfrist hinaus enthalten. Das betrifft die
+   Datenverarbeitung und liegt außerhalb dieses Tickets.
+
+## Zuordnung der Aussagen (REQ-118-AC3)
+
+Jede Aussage der neuen Fassung dient einer Pflichtangabe:
+
+| Abschnitt | Aussagen | Pflichtangabe |
+| --- | --- | --- |
+| Verantwortliche Stelle | Name, Anschrift, Telefon, E-Mail | P1 |
+| Fünf Verarbeitungsabschnitte | Zeile „Daten“ (Gegenstand der Verarbeitung), „Zweck“, „Rechtsgrundlage“ | P3, P4 |
+| | Zeile „Speicherdauer“ | P7 |
+| | Zeile „Ohne diese Daten“ | P11 |
+| Ergebnisse der Selbsteinschätzung | Einwilligung und Widerruf durch Entfernen des Hakens | P9, P14 |
+| Cookies und Browserspeicher | Einleitung, vier Einträge mit Zweck und Dauer, Abschalten über die Cookie-Einstellungen | P14 |
+| Empfänger | Hetzner als Auftragsverarbeiter | P5 |
+| Deine Rechte | Rechte, Widerruf, Beschwerde, Kontaktweg | P8, P9, P10 |
+| Widerspruchsrecht | Hinweis nach Art. 21 | P13 |
+| Stand-Datum | Datum der Fassung | P15 |
+
+Gestrichen sind: „Kurz gesagt“, Verfahren und Bitlängen der IP-Kürzung und der Ableitung, Rotation des
+Anwendungsprotokolls, Anfragegrenzen, die Spalten „Nicht gespeichert“, die Spalten „Anbieter“ und „Einordnung“
+im Browserspeicher sowie die Negativhinweise zu Tracking, Weitergabe, Drittländern und automatisierten
+Entscheidungen. Der Unit-Test `REQ-118-AC3` prüft, dass kein Satz doppelt vorkommt und die gestrichenen
+technischen Details nicht zurückkehren. Die Zuordnung in dieser Tabelle ist eine manuelle Prüfung.
+
+## Freigabe der gekürzten Fassung (REQ-118-AC7)
+
+Ausstehend. Die Freigabe der verantwortlichen Stelle wird hier mit Datum, Nachweis und SHA-256 beider Fassungen
+eingetragen; dieselben Werte stehen dann in `frontend/src/content/legal/datenschutz.freigabe.json`.
+
+# Vorgängerfassung zu Ticket #74
 
 Stand: 18. November 2026. [Ticket #74](https://github.com/MarvinJakob/KIPerspektiven/issues/74).
-Laufzeitdateien: `frontend/src/content/legal/datenschutz.de.md` und `datenschutz.en.md`, gerendert von `Legal.tsx`
-unter `/de/datenschutz` und `/en/datenschutz`.
 
 ## Verantwortliche Stelle (REQ-74-AC1)
 
