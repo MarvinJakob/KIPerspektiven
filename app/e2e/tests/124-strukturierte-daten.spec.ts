@@ -83,7 +83,10 @@ test('REQ-124-AC5: Das Standard-Vorschaubild ist ohne Anmeldung als PNG mit 1200
 test('REQ-124-AC10 REQ-124-AC8 REQ-124-AC11: übrige indexierbare Seiten sind WebPage mit vorhandenem Seitennamen und Meta-Beschreibung', async ({ request, baseURL }) => {
   const dimension = ((await (await request.get('/api/audit?lang=de')).json()) as { dimensions: { slug: string }[] }).dimensions[0].slug;
   const topicTitle = async (lang: Lang) => ((await (await request.get(`/api/topics/vibe-coding?lang=${lang}`)).json()) as { title: string }).title;
-  const dimensionTitle = async (lang: Lang) => ((await (await request.get(`/api/audit/dimensions/${dimension}?lang=${lang}`)).json()) as { title: string }).title;
+  // Die API nennt die Sprache der angezeigten Fassung: Fehlt eine Übersetzung, gilt die vorhandene (REQ-124-AC8).
+  const dimensionIn = async (lang: Lang) => (await (await request.get(`/api/audit/dimensions/${dimension}?lang=${lang}`)).json()) as { title: string; lang: Lang };
+  const [dimDe, dimEn] = [await dimensionIn('de'), await dimensionIn('en')];
+  expect(['de', 'en'], 'Sprache der Dimension aus der API').toEqual(expect.arrayContaining([dimDe.lang, dimEn.lang]));
   // shown: Sprache der angezeigten Fassung (REQ-124-AC8); name: Seitenname laut Tabelle in #108.
   const pages: { path: string; lang: Lang; shown: Lang; name: string }[] = [
     { path: '/blog', lang: 'de', shown: 'de', name: 'News' },
@@ -100,8 +103,8 @@ test('REQ-124-AC10 REQ-124-AC8 REQ-124-AC11: übrige indexierbare Seiten sind We
     { path: '/themen/ai-audit', lang: 'en', shown: 'en', name: 'AI Readiness' },
     { path: '/themen/vibe-coding', lang: 'de', shown: 'de', name: await topicTitle('de') },
     { path: '/themen/vibe-coding', lang: 'en', shown: 'en', name: await topicTitle('en') },
-    { path: `/themen/ai-audit/${dimension}`, lang: 'de', shown: 'de', name: await dimensionTitle('de') },
-    { path: `/themen/ai-audit/${dimension}`, lang: 'en', shown: 'en', name: await dimensionTitle('en') },
+    { path: `/themen/ai-audit/${dimension}`, lang: 'de', shown: dimDe.lang, name: dimDe.title },
+    { path: `/themen/ai-audit/${dimension}`, lang: 'en', shown: dimEn.lang, name: dimEn.title },
   ];
   for (const p of pages) {
     const url = `/${p.lang}${p.path}`;
@@ -199,6 +202,16 @@ test('REQ-124-AC6 REQ-124-AC2: Titelbild des Beitrags hat Vorrang vor dem Standa
   const post = await posts.create({ texts: [fullText('de', tag), fullText('en', tag)] });
   const up = await editor.upload(`/api/admin/posts/${post.id}/cover`, { name: 'cover.png', mimeType: 'image/png', buffer: pngImage(64, 48) });
   expect(up.status(), await up.text()).toBe(200);
+  // Zum Veröffentlichen verlangt die Redaktion einen Alternativtext des Titelbilds je Fassung.
+  const save = await editor.send('PUT', `/api/admin/posts/${post.id}`, {
+    featured: false,
+    topics: [],
+    texts: [
+      { ...fullText('de', tag), coverAlt: `Testbild ${tag}` },
+      { ...fullText('en', tag), coverAlt: `Test image ${tag}` },
+    ],
+  });
+  expect(save.status(), await save.text()).toBe(200);
   await posts.publish(post.id);
 
   for (const lang of ['de', 'en'] as const) {

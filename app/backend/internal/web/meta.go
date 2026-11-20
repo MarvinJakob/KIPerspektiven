@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"encoding/json"
 	"html/template"
 	"strings"
 	"unicode/utf8"
@@ -23,8 +24,17 @@ type Meta struct {
 	Canonical   string
 	OGType      string
 	OGImage     string
-	Alternates  []Alternate
-	NoIndex     bool
+	// OGImageWidth, OGImageHeight und OGImageAlt beschreiben nur das Standard-Vorschaubild (Anforderung #124).
+	OGImageWidth  int
+	OGImageHeight int
+	OGImageAlt    string
+	// PublishedTime und ModifiedTime stehen bei Beiträgen in article:published_time und article:modified_time.
+	PublishedTime string
+	ModifiedTime  string
+	Alternates    []Alternate
+	NoIndex       bool
+	// JSONLD sind die strukturierten Daten der Seite (schema.org); nil bei nicht indexierbaren Seiten.
+	JSONLD map[string]any
 }
 
 // Alternate ist ein Verweis auf eine Übersetzung (hreflang).
@@ -61,13 +71,22 @@ var headTmpl = template.Must(template.New("head").Parse(`<title>{{.Title}}</titl
     <meta property="og:locale" content="{{.OGLocale}}">
 {{- if .OGImage}}
     <meta property="og:image" content="{{.OGImage}}">
+{{- if .OGImageAlt}}
+    <meta property="og:image:width" content="{{.OGImageWidth}}">
+    <meta property="og:image:height" content="{{.OGImageHeight}}">
+    <meta property="og:image:alt" content="{{.OGImageAlt}}">
+{{- end}}
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:image" content="{{.OGImage}}">
 {{- else}}
     <meta name="twitter:card" content="summary">
 {{- end}}
     <meta name="twitter:title" content="{{.SocialTitle}}">
-    <meta name="twitter:description" content="{{.Description}}">`))
+    <meta name="twitter:description" content="{{.Description}}">
+{{- if .PublishedTime}}
+    <meta property="article:published_time" content="{{.PublishedTime}}">
+    <meta property="article:modified_time" content="{{.ModifiedTime}}">
+{{- end}}`))
 
 const (
 	headStart = "<!--app-head-->"
@@ -81,6 +100,16 @@ func render(index []byte, m Meta) ([]byte, error) {
 	var head bytes.Buffer
 	if err := headTmpl.Execute(&head, m); err != nil {
 		return nil, err
+	}
+	if m.JSONLD != nil {
+		// encoding/json schreibt <, > und & als Unicode-Escapes: Der Block endet erst an seinem eigenen Tag.
+		ld, err := json.Marshal(m.JSONLD)
+		if err != nil {
+			return nil, err
+		}
+		head.WriteString("\n    <script type=\"application/ld+json\">")
+		head.Write(ld)
+		head.WriteString("</script>")
 	}
 	s := string(index)
 	if i, j := strings.Index(s, headStart), strings.Index(s, headEnd); i >= 0 && j > i {
