@@ -840,22 +840,50 @@ svg { display: block; }
 .consent-options .btn[aria-pressed="true"] { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); background: var(--note-bg); }
 .consent-status { color: var(--text-2); }
 
-/* Anmeldedialog der Redaktion am Kontosymbol (Ticket #109): natives <dialog> im Top-Layer, Fläche opak wie
-   alle Karten. Felder und Fehlermeldung nutzen die Formularregeln der Kontaktseite. */
-.login-dialog {
-  width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 32px; overflow-y: auto;
+/* Kontomenü am Kontosymbol (Ticket #121): hängt direkt am Symbol, nicht an der Kopfzeile. Opake Fläche wie das
+   Themenmenü (kein Glas auf Glas), rechtsbündig unter dem Symbol. 18 px liegen zwischen Symbol und Kapselrand,
+   weitere 4 px lassen die Fläche frei schweben. Bis 650 px bleibt sie anders als .popover eine schwebende Fläche. */
+.account { position: relative; display: grid; }
+.account > .icon-btn[aria-expanded="true"] { border-color: var(--brand); color: var(--accent); }
+.account-menu {
+  position: absolute; top: calc(100% + 22px); right: 0; z-index: 60;
+  width: 320px; max-width: calc(100vw - 32px); padding: 10px;
   border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text);
-  box-shadow: var(--shadow-dialog);
+  box-shadow: var(--shadow-raised);
+  visibility: hidden; opacity: 0; transform: translateY(-6px);
+  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out), visibility 0s linear var(--dur-base);
 }
-.login-dialog::backdrop { background: #0a121bb8; }
-.login-dialog h2 { font-size: 1.5rem; }
-.login-intro { margin-top: 8px; color: var(--text-2); font-size: .9375rem; line-height: 1.55; }
-.login-form { display: grid; gap: 16px; margin-top: 24px; }
-.login-error:empty { display: none; }
-.login-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 4px; }
-@media (max-width: 520px) {
-  .login-dialog { padding: 22px; }
-  .login-actions .btn { flex: 1 1 auto; }
+.account-menu.is-open { visibility: visible; opacity: 1; transform: none; transition-delay: 0s; }
+.account-label {
+  padding: 10px 14px 4px; color: var(--text-2);
+  font-size: .75rem; font-weight: 650; letter-spacing: .12em; text-transform: uppercase;
+}
+.account-link {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  min-height: 56px; padding: 10px 14px; border-radius: var(--radius-small); text-decoration: none;
+}
+.account-link:hover, .account-link:focus-visible { background: var(--fill); }
+.account-link:hover .account-title, .account-link:focus-visible .account-title { color: var(--accent); }
+/* Der Fokusrahmen liegt innen, damit er in der Fläche bleibt. */
+.account-link:focus-visible { outline-offset: -3px; }
+.account-title { display: block; font-size: 1.0625rem; font-weight: 700; line-height: 1.3; }
+.account-desc { display: block; margin-top: 2px; color: var(--text-2); font-size: .8125rem; line-height: 1.35; }
+.account-link svg { width: 18px; height: 18px; color: var(--text-2); transition: transform var(--dur-fast) var(--ease-out); }
+.account-link:hover svg, .account-link:focus-visible svg { color: var(--accent); transform: translateX(3px); }
+.account-note {
+  margin: 6px 14px 0; padding: 12px 0 8px; border-top: 1px solid var(--border);
+  color: var(--text-2); font-size: .8125rem; line-height: 1.45;
+}
+@media (max-width: 650px) {
+  /* Mobil ist die Kapsel flacher: 10 px bis zum Rand, wieder 4 px Luft. */
+  .account-menu { top: calc(100% + 14px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-menu, .account-link svg { transition: none; }
+  .account-menu { transform: none; }
+}
+@media (prefers-contrast: more), (forced-colors: active) {
+  .account-menu { border-color: var(--text-2); }
 }
 
 /* ==========================================================================
@@ -1120,7 +1148,7 @@ svg { display: block; }
 @media print {
   :root, :root[data-theme="dark"] { --navigation-bg: var(--paper); --navigation-filter: none; --navigation-sheen: none; }
   .site-header { position: static; }
-  .menu-toggle, .nav-actions, .lang-switch, .popover, .consent-backdrop, .login-dialog { display: none !important; }
+  .menu-toggle, .nav-actions, .lang-switch, .popover, .consent-backdrop, .account-menu { display: none !important; }
   .home-hero { margin-top: 0; }
   .post-row, .check, .dim-acc-item, .choice-card { break-inside: avoid; }
 }

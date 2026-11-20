@@ -92,7 +92,7 @@ Gekürzte Specs (Tests vorher → nachher):
 
 | Feature | Fidelity | Unit |
 |---|---|---|
-| Anmeldung im Dialog am Kontosymbol und über die Anmeldeseite (#109, #114) | `109-anmeldedialog` (4): Dialog öffnen und schließen, Anmeldung im Dialog, abgelehnte Anmeldung, Direktaufruf von `/redaktion` samt Dialog bei bestehender Sitzung; `support/auth.setup.ts` (3), `21-redaktion-beitraege` REQ-21-AC1 | `lib/editorialLogin`, `AccountLogin`, Go `TestREQ109AC4…`, `TestREQ64…` |
+| Kontomenü am Kontosymbol und Anmeldung über die Anmeldeseite (#121, #109) | `121-kontomenue` (5): Öffnen, Schließen und Tastatur, Lage und Fläche bei 320/375/1280 px hell und dunkel, Weg über die Anmeldeseite samt Direktaufruf von `/redaktion`, bestehende Sitzung, Zusammenspiel mit Themen- und Hauptmenü; `support/auth.setup.ts` (3), `21-redaktion-beitraege` REQ-21-AC1 | `AccountMenu`, Go `TestREQ109AC4…`, `TestREQ64…` |
 | Einklappbare Seitenleiste und überlagernde Navigation in der schmalen Ansicht (#103) | `103-seitenleiste` (4): Ziele und aktiver Bereich, Einklappen mit gespeichertem Zustand, Navigation unter 900 px, Ziele und Zugriffsschutz für Marketing | `lib/navigation` |
 | Beiträge schreiben, veröffentlichen, zurücknehmen, Titelbild | `21-redaktion-beitraege` (6) | `PostParts` |
 | Veröffentlichung auf die Minute planen | `84-minuten` (1): Termin im Editor | Go `TestREQ84…` |

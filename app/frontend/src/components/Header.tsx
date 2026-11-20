@@ -6,14 +6,14 @@ import { LANGS, href, storeLang, switchLangPath, useLang, type Lang } from '../l
 import { useTheme } from '../lib/theme';
 import type { NavState } from '../lib/page';
 import { artBackground, topicStyle } from '../lib/topicStyle';
-import { AccountLogin } from './AccountLogin';
+import { AccountMenu } from './AccountMenu';
 import { Icon } from './Icon';
 
 /**
  * Gemeinsame Kopfzeile aller öffentlichen Seiten (Anforderungen 2 und 7) als schwebende Kapsel im
  * cimt × Apple-Design (DESIGN_CIMT.md, Abschnitte 4 bis 6). Der Glaseffekt entsteht allein per CSS.
  *
- * Bis 650 px Breite klappt ein Menübutton Navigation und Sprachwahl auf; Darstellung und Kontoeinstieg (Anmeldedialog, #109)
+ * Bis 650 px Breite klappt ein Menübutton Navigation und Sprachwahl auf; Darstellung und Kontomenü (#121)
  * bleiben in der oberen Zeile. Das Menü schließt bei Linkwahl, Seitenwechsel, Klick außerhalb,
  * Fokuswechsel aus der Kopfzeile und `Esc` (dann mit Fokus zurück auf den Menübutton).
  * Auf breiten Ansichten ist der Button per CSS ausgeblendet und das Menü immer sichtbar.
@@ -111,9 +111,8 @@ export function Header() {
         </div>
         <div className="nav-actions">
           <ThemeToggle />
-          {/* Kontoeinstieg (Anforderung 6, Ticket #109): öffnet den Anmeldedialog auf der aktuellen Seite.
-              Ein offenes Menü schließt dabei, damit es nicht hinter dem Dialog stehen bleibt. */}
-          <AccountLogin onOpen={() => setMenuOpen(false)} />
+          {/* Kontomenü (Ticket #121): führt zur Anmeldeseite der Redaktion. Beim Öffnen schließt das mobile Hauptmenü. */}
+          <AccountMenu onOpen={() => setMenuOpen(false)} />
         </div>
       </nav>
     </header>

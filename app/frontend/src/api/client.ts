@@ -63,19 +63,6 @@ export async function hasEditorialSession(): Promise<boolean> {
   }
 }
 
-/**
- * Meldet ein Redaktionskonto an (Ticket #109) und liefert den HTTP-Status; 0 bedeutet „keine Antwort“.
- * Bewusst ohne unwrap: Eine abgelehnte Anmeldung (`401`) führt zu einer Meldung im Dialog, nicht zur Anmeldeseite.
- */
-export async function loginEditorial(body: components['schemas']['LoginRequest']): Promise<number> {
-  try {
-    const { response } = await client.POST('/api/auth/login', { body });
-    return response.status;
-  } catch {
-    return 0;
-  }
-}
-
 export const useArticles = (lang: Lang) =>
   useQuery({
     queryKey: ['articles', lang],
