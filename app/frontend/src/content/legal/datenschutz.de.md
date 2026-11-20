@@ -51,13 +51,6 @@ E-Mail: [mail@marvinjakob.de](mailto:mail@marvinjakob.de)
 
 Wir speichern in deinem Browser nur, was für eine von dir gewählte Funktion unbedingt erforderlich ist (§ 25 Abs. 2 TDDDG). Eine Einwilligung ist dafür nicht nötig. Über „Cookie-Einstellungen“ im Footer kannst du die Speicherung abschalten.
 
-| Eintrag | Zweck | Speicherdauer |
-| --- | --- | --- |
-| `ki-perspektiven.lang` (Local Storage) | Sprachwahl | bis du sie löschst |
-| `ki-perspektiven.theme` (Local Storage) | helle oder dunkle Darstellung | bis du sie löschst |
-| `ki-perspektiven.consent` (Local Storage) | deine Cookie-Auswahl | höchstens 180 Tage |
-| `ki_session` (Cookie) | Anmeldung der Redaktion | höchstens 12 Stunden |
-
 ## Empfänger
 
 Die Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen, betreibt unseren Server in Deutschland als Auftragsverarbeiter nach unseren Weisungen.
