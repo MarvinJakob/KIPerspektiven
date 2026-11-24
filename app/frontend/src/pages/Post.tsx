@@ -8,7 +8,6 @@ import { PostList, TopicChip } from '../components/PostRow';
 import { LoadError, Loading, TranslationNotice } from '../components/Status';
 import { href, useLang } from '../lib/lang';
 import { formatDate, useHead, usePageFocus } from '../lib/page';
-import { seedOf } from '../lib/topicStyle';
 import { NotFound } from './NotFound';
 
 /** Beitragsseite mit Titel, Datum und vollständigem Inhalt (Anforderungen 4 und 7). */
@@ -31,12 +30,13 @@ export function PostPage() {
 
   return (
     <>
+      {/* Kopf, Titelbild und Text nutzen den Inhaltsrahmen der Seite (.container, Ticket #138). */}
       <article>
-        <div className="article">
+        <div className="container">
           <Link className="back-link" to={href(lang, '/blog')}>
             <Icon name="chevLeft" /> {t('backToBlog')}
           </Link>
-          <header className="article-head">
+          <header className="post-head">
             <div className="chips">
               {p.topics.map((tp) => (
                 <TopicChip key={tp.slug} topic={tp} />
@@ -54,10 +54,13 @@ export function PostPage() {
           </header>
           {fallback && <TranslationNotice text={t('fallbackPost', { language: t(`langName.${p.lang}`) })} />}
         </div>
-        <div className="article-art">
-          <Art topic={main?.slug} seed={seedOf(p.slug) + 3} image={p.cover} eager sizes="(max-width: 1072px) 100vw, 1040px" />
-        </div>
-        <div className="article prose" lang={contentLang}>
+        {/* Ohne Titelbild entfällt die Bildfläche ersatzlos (REQ-138-AC4). */}
+        {p.cover && (
+          <div className="container post-cover">
+            <Art image={p.cover} eager sizes="(max-width: 1336px) 100vw, 1240px" />
+          </div>
+        )}
+        <div className="container prose" lang={contentLang}>
           {/* Markdown ohne rohes HTML (ARCHITECTURE.md, Abschnitt 3) */}
           <Markdown skipHtml>{p.bodyMarkdown}</Markdown>
         </div>
