@@ -1,4 +1,4 @@
-// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/styles.css app/frontend/src/typography.css app/frontend/src/pages/Home.tsx app/frontend/src/pages/VibeCoding.tsx app/frontend/src/pages/VibeCoding.css app/frontend/src/pages/Profile.tsx app/frontend/src/lib/theme.ts app/frontend/src/lib/topicStyle.ts
+// Abdeckung (Testauswahl im Merge Gate, #55): app/frontend/src/styles.css app/frontend/src/typography.css app/frontend/src/pages/Home.tsx app/frontend/src/components/ArticleBlocks.tsx app/frontend/src/pages/VibeCoding.css app/frontend/src/pages/Profile.tsx app/frontend/src/lib/theme.ts app/frontend/src/lib/topicStyle.ts
 import type { Page } from '@playwright/test';
 import { expect, test } from '../support/fixtures';
 const PALETTE = {

@@ -92,6 +92,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/topics/{slug}/article": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Veröffentlichter Themenartikel eines Themas
+         * @description Ticket #136. Liefert den veröffentlichten Themenartikel, der mit der Themenadresse verknüpft ist.
+         */
+        get: operations["getTopicArticle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/topics": {
         parameters: {
             query?: never;
@@ -926,20 +946,52 @@ export interface components {
         ArticleEntry: {
             title: string;
             description?: string;
+            /** @description Formatierungsbereiche im Titel (Ticket #136) */
+            spans?: components["schemas"]["ArticleSpan"][];
+            /** @description Formatierungsbereiche in der Kurzbeschreibung (Ticket #136) */
+            descriptionSpans?: components["schemas"]["ArticleSpan"][];
+        };
+        /**
+         * @description Formatierung eines Textbereichs (Ticket #136). start und end sind Positionen im zugehörigen Text in
+         *     UTF-16-Codeeinheiten, end ist ausschließend. Bereiche überlappen sich nicht und sind aufsteigend sortiert.
+         */
+        ArticleSpan: {
+            start: number;
+            end: number;
+            bold?: boolean;
+            italic?: boolean;
+            underline?: boolean;
+            href?: string;
         };
         ArticleBlock: {
             /** @enum {string} */
-            kind: "paragraph" | "h1" | "h2" | "h3" | "info" | "quote" | "image" | "ordered" | "unordered";
+            kind: "paragraph" | "lead" | "h1" | "h2" | "h3" | "info" | "quote" | "image" | "ordered" | "unordered" | "example" | "statement" | "section" | "outline" | "conclusion" | "related" | "quoteheading" | "cta";
             text?: string;
             src?: string;
             alt?: string;
             caption?: string;
             attribution?: string;
             items?: components["schemas"]["ArticleEntry"][];
+            label?: string;
+            eyebrow?: string;
+            description?: string;
+            href?: string;
+            anchor?: string;
+            width?: number;
+            height?: number;
+            /** @description Formatierungsbereiche in text (Ticket #136) */
+            spans?: components["schemas"]["ArticleSpan"][];
+            /** @description Inhalt eines nummerierten Abschnitts oder einer Fazit-Box (Ticket #136) */
+            blocks?: components["schemas"]["ArticleBlock"][];
         };
         ArticleText: {
             title: string;
             subtitle?: string;
+            /**
+             * @description Ticket #136: schmale Lesespalte (Standard), breiter Lesefluss oder Magazin
+             * @enum {string}
+             */
+            layout?: "column" | "wide" | "magazine";
             blocks: components["schemas"]["ArticleBlock"][];
         };
         ArticleInput: {
@@ -959,6 +1011,10 @@ export interface components {
             en?: components["schemas"]["ArticleText"];
             authorLabel: string;
             authorActive: boolean;
+            /** @description Ticket #136: Thema, unter dessen Adresse /themen/<slug> der Artikel erscheint */
+            topicSlug?: string;
+            /** @description Ticket #136: Stand, Datum der letzten inhaltlichen Änderung (JJJJ-MM-TT) */
+            updated?: string;
         };
         ArticleSummary: {
             /** Format: int64 */
@@ -974,9 +1030,14 @@ export interface components {
             lang: components["schemas"]["Lang"];
             content: components["schemas"]["ArticleText"];
             authorName?: string;
+            authorAvatar?: components["schemas"]["Avatar"];
+            /** @description Ticket #136: Stand, Datum der letzten inhaltlichen Änderung (JJJJ-MM-TT) */
+            updated?: string;
         };
         ArticleImage: {
             src: string;
+            width?: number;
+            height?: number;
         };
         /** @enum {string} */
         Lang: "de" | "en";
@@ -1749,6 +1810,33 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Veröffentlichten Themenartikel lesen */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedArticle"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getTopicArticle: {
+        parameters: {
+            query?: {
+                /** @description Gewünschte Sprache */
+                lang?: components["parameters"]["Lang"];
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Veröffentlichter Themenartikel des Themas */
             200: {
                 headers: {
                     [name: string]: unknown;

@@ -11,6 +11,17 @@ import (
 	"strings"
 )
 
+const articleImported = `-- name: ArticleImported :one
+SELECT count(*) FROM article_imports WHERE topic_slug = ?
+`
+
+func (q *Queries) ArticleImported(ctx context.Context, topicSlug string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, articleImported, topicSlug)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const claimSocialShare = `-- name: ClaimSocialShare :execrows
 UPDATE social_shares SET status = 'sending', updated_at = ?
 WHERE post_id = ? AND platform = ? AND status = 'pending'
@@ -464,6 +475,20 @@ func (q *Queries) DeleteUserSessions(ctx context.Context, userID int64) error {
 	return err
 }
 
+const findImportAuthor = `-- name: FindImportAuthor :one
+SELECT u.id FROM users u
+WHERE u.active AND (u.display_name = ?1 OR EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = u.id AND r.role = 'admin'))
+ORDER BY u.display_name = ?1 DESC, u.id LIMIT 1
+`
+
+// Autor ueberfuehrter Artikel: aktives Konto mit dem Anzeigenamen, sonst das aelteste aktive Admin-Konto.
+func (q *Queries) FindImportAuthor(ctx context.Context, displayName string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, findImportAuthor, displayName)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const finishSocialShare = `-- name: FinishSocialShare :exec
 UPDATE social_shares SET status = ?, lang = ?, post_urn = ?, message = ?, updated_at = ?
 WHERE post_id = ? AND platform = ?
@@ -493,7 +518,7 @@ func (q *Queries) FinishSocialShare(ctx context.Context, arg FinishSocialSharePa
 }
 
 const getEditorArticle = `-- name: GetEditorArticle :one
-SELECT a.id, a.author_id, a.status, a.de, a.en, u.email, u.display_name, u.active
+SELECT a.id, a.author_id, a.status, a.de, a.en, a.topic_slug, a.updated, u.email, u.display_name, u.active
 FROM articles a JOIN users u ON u.id = a.author_id WHERE a.id = ?
 `
 
@@ -503,6 +528,8 @@ type GetEditorArticleRow struct {
 	Status      string
 	De          string
 	En          sql.NullString
+	TopicSlug   sql.NullString
+	Updated     string
 	Email       string
 	DisplayName string
 	Active      bool
@@ -517,6 +544,8 @@ func (q *Queries) GetEditorArticle(ctx context.Context, id int64) (GetEditorArti
 		&i.Status,
 		&i.De,
 		&i.En,
+		&i.TopicSlug,
+		&i.Updated,
 		&i.Email,
 		&i.DisplayName,
 		&i.Active,
@@ -636,21 +665,36 @@ func (q *Queries) GetPublicAuthor(ctx context.Context, id int64) (GetPublicAutho
 }
 
 const getPublishedArticle = `-- name: GetPublishedArticle :one
-SELECT a.de, a.en, u.display_name FROM articles a
+SELECT a.de, a.en, a.updated, u.display_name, m.storage_key, m.mime_type, m.width, m.height FROM articles a
 JOIN users u ON u.id = a.author_id
+LEFT JOIN media m ON m.id = u.avatar_media_id
 WHERE a.id = ? AND a.status = 'published'
 `
 
 type GetPublishedArticleRow struct {
 	De          string
 	En          sql.NullString
+	Updated     string
 	DisplayName string
+	StorageKey  sql.NullString
+	MimeType    sql.NullString
+	Width       sql.NullInt64
+	Height      sql.NullInt64
 }
 
 func (q *Queries) GetPublishedArticle(ctx context.Context, id int64) (GetPublishedArticleRow, error) {
 	row := q.db.QueryRowContext(ctx, getPublishedArticle, id)
 	var i GetPublishedArticleRow
-	err := row.Scan(&i.De, &i.En, &i.DisplayName)
+	err := row.Scan(
+		&i.De,
+		&i.En,
+		&i.Updated,
+		&i.DisplayName,
+		&i.StorageKey,
+		&i.MimeType,
+		&i.Width,
+		&i.Height,
+	)
 	return i, err
 }
 
@@ -675,6 +719,18 @@ func (q *Queries) GetPublishedPostBySlug(ctx context.Context, slug string) (Post
 		&i.AuthorID,
 	)
 	return i, err
+}
+
+const getPublishedTopicArticleID = `-- name: GetPublishedTopicArticleID :one
+SELECT id FROM articles WHERE topic_slug = ? AND status = 'published'
+`
+
+// Ticket #136: veroeffentlichter Artikel einer Themenadresse.
+func (q *Queries) GetPublishedTopicArticleID(ctx context.Context, topicSlug sql.NullString) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getPublishedTopicArticleID, topicSlug)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const getReadinessResultByKey = `-- name: GetReadinessResultByKey :one
@@ -856,14 +912,16 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 }
 
 const insertArticle = `-- name: InsertArticle :one
-INSERT INTO articles (status, author_id, de, en) VALUES (?, ?, ?, ?) RETURNING id
+INSERT INTO articles (status, author_id, de, en, updated, topic_slug) VALUES (?, ?, ?, ?, ?, ?) RETURNING id
 `
 
 type InsertArticleParams struct {
-	Status   string
-	AuthorID int64
-	De       string
-	En       sql.NullString
+	Status    string
+	AuthorID  int64
+	De        string
+	En        sql.NullString
+	Updated   string
+	TopicSlug sql.NullString
 }
 
 func (q *Queries) InsertArticle(ctx context.Context, arg InsertArticleParams) (int64, error) {
@@ -872,6 +930,8 @@ func (q *Queries) InsertArticle(ctx context.Context, arg InsertArticleParams) (i
 		arg.AuthorID,
 		arg.De,
 		arg.En,
+		arg.Updated,
+		arg.TopicSlug,
 	)
 	var id int64
 	err := row.Scan(&id)
@@ -1087,7 +1147,7 @@ const listArticleSummaries = `-- name: ListArticleSummaries :many
 SELECT id, status,
   CAST(json_extract(CASE WHEN ?1 = 'en' AND en IS NOT NULL THEN en ELSE de END, '$.title') AS TEXT) AS title,
   CAST(coalesce(json_extract(CASE WHEN ?1 = 'en' AND en IS NOT NULL THEN en ELSE de END, '$.subtitle'), '') AS TEXT) AS subtitle
-FROM articles WHERE ?2 OR status = 'published'
+FROM articles WHERE ?2 OR (status = 'published' AND topic_slug IS NULL)
 ORDER BY id DESC
 `
 
@@ -1103,6 +1163,7 @@ type ListArticleSummariesRow struct {
 	Subtitle string
 }
 
+// Oeffentlich ohne Artikel mit Themenadresse: Sie sind ueber ihr Thema erreichbar (REQ-136-AC4).
 func (q *Queries) ListArticleSummaries(ctx context.Context, arg ListArticleSummariesParams) ([]ListArticleSummariesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listArticleSummaries, arg.Lang, arg.Editorial)
 	if err != nil {
@@ -1920,6 +1981,20 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const markArticleImported = `-- name: MarkArticleImported :exec
+INSERT INTO article_imports (topic_slug, imported_at) VALUES (?, ?)
+`
+
+type MarkArticleImportedParams struct {
+	TopicSlug  string
+	ImportedAt string
+}
+
+func (q *Queries) MarkArticleImported(ctx context.Context, arg MarkArticleImportedParams) error {
+	_, err := q.db.ExecContext(ctx, markArticleImported, arg.TopicSlug, arg.ImportedAt)
+	return err
+}
+
 const nextPendingSocialShare = `-- name: NextPendingSocialShare :one
 SELECT post_id, platform, status, lang, post_urn, message, created_at, updated_at FROM social_shares WHERE status = 'pending' ORDER BY created_at, post_id LIMIT 1
 `
@@ -2290,7 +2365,7 @@ func (q *Queries) UnschedulePost(ctx context.Context, arg UnschedulePostParams) 
 }
 
 const updateArticle = `-- name: UpdateArticle :exec
-UPDATE articles SET status = ?, author_id = ?, de = ?, en = ? WHERE id = ?
+UPDATE articles SET status = ?, author_id = ?, de = ?, en = ?, updated = ? WHERE id = ?
 `
 
 type UpdateArticleParams struct {
@@ -2298,6 +2373,7 @@ type UpdateArticleParams struct {
 	AuthorID int64
 	De       string
 	En       sql.NullString
+	Updated  string
 	ID       int64
 }
 
@@ -2307,6 +2383,7 @@ func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) er
 		arg.AuthorID,
 		arg.De,
 		arg.En,
+		arg.Updated,
 		arg.ID,
 	)
 	return err

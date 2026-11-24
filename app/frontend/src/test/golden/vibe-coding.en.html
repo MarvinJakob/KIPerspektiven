@@ -1,0 +1,176 @@
+<link rel="preload" as="image" href="/src/assets/marvin-jakob.jpg"/>
+<article class="vc-page" lang="en">
+<header class="article-head">
+<div class="container">
+<div class="article-head-copy">
+<h1 tabindex="-1">Vibe Coding</h1>
+<p class="article-subtitle">Welcome to Vibe Coding: The easiest way to generate SLOP.</p>
+<div class="byline">
+<img src="/src/assets/marvin-jakob.jpg" alt="" width="44" height="44"/>
+<p>
+<strong>Marvin Jakob</strong>
+<span class="byline-meta">
+<time dateTime="2026-11-16">Updated: 16 November 2026</time>
+<span aria-hidden="true"> · </span>
+<span>approx. 10 min read</span>
+</span>
+</p>
+</div>
+</div>
+</div>
+</header>
+<section class="container vc-intro" aria-label="Introduction">
+<div class="vc-reading">
+<p>You describe what you want and AI writes the code. It is fun. Brilliant. You watch entire worlds emerge before your eyes, looking roughly like what you imagined. If they do not, you follow up with another deeply considered, precise requirement: “Make it look a bit more modern somehow.” And just like that, you have burned through another batch of tokens and helped add something utterly mediocre to the great pile of pointless things.</p>
+<p>Suddenly, almost no time separates an idea from something you can show. A prototype is allowed to be improvised. For businesses, that is extremely tempting. It has rounded corners, a dark mode and a home page promising “Your productivity. Reimagined.” We discover what happens next when somebody wants to put it into production. An application can look impressive and still fall apart the first time someone seriously tries to use it.</p>
+<figure class="vc-example" aria-labelledby="vc-story-caption">
+<figcaption id="vc-story-caption">Imagine this</figcaption>
+<p>
+<em>We open a form and enter our details. The Save button says “Successfully saved”. Whether anything was actually saved is a philosophical follow-up question. “Oh, you only want to see your own data?” What a surprisingly demanding special request for an application with user accounts. We report the bug to AI. It fixes it. In return, the navigation disappears. We ask it to repair the navigation. Now logging in is optional. After twelve rounds the demo works again, and we decide to make only very carefully controlled mouse movements during the presentation. This is how software grows until nobody can explain its internal connections anymore. But everyone remembers how quickly it came together at the beginning.</em>
+</p>
+</figure>
+<p>While we are still wondering whether the first solution made sense, AI has already implemented three more. Code is suddenly available in abundance. Responsibility for the result still rests with us. So we need to judge what is being created. But can we still do that when AI writes new features faster than we understand the existing ones? Anyone determined to personally inspect every generated line has just created a very exhausting job as a human brake.</p>
+<blockquote class="vc-quote">
+<p>Humans should review ideas, not code.</p>
+</blockquote>
+<p>These five engineering perspectives help us incorporate that responsibility into the development process.</p>
+<ol class="vc-index">
+<li>
+<a href="#vc-prompt">
+<span>01</span>
+<strong>Prompt Engineering<small>Make the assignment clear.</small>
+</strong>
+</a>
+</li>
+<li>
+<a href="#vc-context">
+<span>02</span>
+<strong>Context Engineering<small>AI unfortunately missed the crucial meeting.</small>
+</strong>
+</a>
+</li>
+<li>
+<a href="#vc-harness">
+<span>03</span>
+<strong>Harness Engineering<small>“Work-life balance” for AI.</small>
+</strong>
+</a>
+</li>
+<li>
+<a href="#vc-specification">
+<span>04</span>
+<strong>Specification Engineering<small>“Are we there yet?”</small>
+</strong>
+</a>
+</li>
+<li>
+<a href="#vc-product">
+<span>05</span>
+<strong>Product Engineering<small>Does anyone still need this form, or can it go?</small>
+</strong>
+</a>
+</li>
+</ol>
+</div>
+</section>
+<div class="vc-perspectives">
+<section class="container vc-split vc-perspective" id="vc-prompt" tabindex="-1" aria-labelledby="vc-prompt-title">
+<header class="vc-split-head">
+<span class="vc-number" aria-hidden="true">01</span>
+<p class="eyebrow">Prompt Engineering</p>
+<h2 id="vc-prompt-title">Make the assignment clear.</h2>
+</header>
+<div class="vc-body">
+<p>Writing a good prompt means formulating a request so that AI understands as clearly as possible what it should do. That includes the desired result, the target audience, important constraints and the format. Explaining why also helps AI choose between several possible solutions.</p>
+<figure class="vc-example" aria-labelledby="vc-prompt-example-caption">
+<figcaption id="vc-prompt-example-caption">An example</figcaption>
+<p>
+<em>Instead of “Summarise the document”, the assignment could be: “Summarise the document for our executive team in five short points. They need to decide whether a pilot project is worthwhile. Include the benefits, effort and open questions.”</em>
+</p>
+</figure>
+<p>A good prompt improves the starting conditions but does not guarantee a correct answer. Nevertheless, the principle “Shit in → Shit out” remains fundamentally true.</p>
+</div>
+</section>
+<section class="container vc-split vc-perspective" id="vc-context" tabindex="-1" aria-labelledby="vc-context-title">
+<header class="vc-split-head">
+<span class="vc-number" aria-hidden="true">02</span>
+<p class="eyebrow">Context Engineering</p>
+<h2 id="vc-context-title">AI unfortunately missed the crucial meeting.</h2>
+</header>
+<div class="vc-body">
+<p>Context Engineering is about providing the information relevant to each task and keeping it up to date throughout the work: appropriate code excerpts, interfaces, project rules, business terminology and earlier decisions.</p>
+<figure class="vc-example" aria-labelledby="vc-context-example-caption">
+<figcaption id="vc-context-example-caption">In our form</figcaption>
+<p>
+<em>Our assignment is now clear. AI just does not yet know that a storage service already exists, why certain data must stay separate, or which piece of technical debt has affectionately been called a “temporary solution” for the last three years.</em>
+</p>
+</figure>
+<p>What matters is that AI finds the right knowledge at the right time and can recognise contradictory or outdated information. Otherwise it implements an exceptionally elegant solution for a company that has not existed since the last restructuring.</p>
+</div>
+</section>
+<section class="container vc-split vc-perspective" id="vc-harness" tabindex="-1" aria-labelledby="vc-harness-title">
+<header class="vc-split-head">
+<span class="vc-number" aria-hidden="true">03</span>
+<p class="eyebrow">Harness Engineering</p>
+<h2 id="vc-harness-title">“Work-life balance” for AI.</h2>
+</header>
+<div class="vc-body">
+<p>AI now knows its assignment and our project. To make reliable progress across several steps, it needs a technical working environment. We equip our agent with tools to use interfaces and perform actions. Skilled administrators can add rules specific to an organisation. Among other things, this lets them manage approvals and access permissions.</p>
+<figure class="article-figure">
+<img src="/src/assets/topics/harness.png" alt="Harness diagram: the prompt and files go into the agent. The harness connects to a skill and a tool and drives the area made up of context and model. Files end up in the context, input tokens go into the model, which produces output tokens. The end product is the result." width="1685" height="542" loading="lazy"/>
+</figure>
+<figure class="vc-example" aria-labelledby="vc-harness-example-caption">
+<figcaption id="vc-harness-example-caption">In our form</figcaption>
+<p>
+<em>For our form, this means the agent can reproduce the bug, make a change and then check whether saving, reloading, login and navigation still work together. If a check fails, its result feeds into the next attempt.</em>
+</p>
+</figure>
+<p>In Harness Engineering we control the capabilities our agent receives to complete our task.</p>
+</div>
+</section>
+<section class="container vc-split vc-perspective" id="vc-specification" tabindex="-1" aria-labelledby="vc-specification-title">
+<header class="vc-split-head">
+<span class="vc-number" aria-hidden="true">04</span>
+<p class="eyebrow">Specification Engineering</p>
+<h2 id="vc-specification-title">“Are we there yet?”</h2>
+</header>
+<div class="vc-body">
+<p>For our agent to judge when it is “finished”, it needs a yardstick. We should first become clear ourselves about what the desired result actually is. Then we turn our ideas into clear, verifiable and maintained descriptions of the desired behaviour. “Or how about the same thing in green?” Design and look and feel belong here too.</p>
+<figure class="vc-example" aria-labelledby="vc-specification-example-caption">
+<figcaption id="vc-specification-example-caption">In our form</figcaption>
+<p>
+<em>Even AI cannot read minds yet. Should the input survive only the next page change, or a restart as well? Who may read, change or delete it? What happens if the database is unavailable? It is time to take a closer look.</em>
+</p>
+</figure>
+<p>And when requirements change, descriptions and checks must change with them. Otherwise we automate the wishes of the Thursday before last with impressive consistency.</p>
+</div>
+</section>
+<section class="container vc-split vc-perspective" id="vc-product" tabindex="-1" aria-labelledby="vc-product-title">
+<header class="vc-split-head">
+<span class="vc-number" aria-hidden="true">05</span>
+<p class="eyebrow">Product Engineering</p>
+<h2 id="vc-product-title">Does anyone still need this form, or can it go?</h2>
+</header>
+<div class="vc-body">
+<p>We talk to people, observe their workflows, test assumptions with small experiments and see whether the finished solution actually saves time or reduces errors. Product Engineering connects an understanding of user problems with design, technical implementation and learning during operation.</p>
+<figure class="vc-example" aria-labelledby="vc-product-example-caption">
+<figcaption id="vc-product-example-caption">In our form</figcaption>
+<p>
+<em>What about that form over there? Perhaps people do not want to enter any data at all. Perhaps they only want to approve a request and are typing out information that the organisation already has. A leaner solution would then be far more helpful than our now exceptionally well-tested form.</em>
+</p>
+</figure>
+<p>AI can accelerate these experiments. We still have to clarify which problems to solve and how to recognise success. Otherwise we create extra work faster and give it a very tasteful user interface.</p>
+</div>
+</section>
+</div>
+<section class="container vc-split vc-conclusion" aria-labelledby="vc-conclusion-title">
+<header class="vc-split-head">
+<p class="eyebrow">Conclusion</p>
+<h2 id="vc-conclusion-title">AI has increased the pace. Now raise the ambition.</h2>
+</header>
+<div class="vc-body">
+<p>AI has increased the pace. Now would be a good time to raise our ambitions too. The five engineering perspectives help us use the speed we have gained wisely. They give our work enough reliability to make us more adventurous. This creates room to be curious, question familiar habits and pursue ideas that do not yet come with a guarantee of success. Creativity rarely follows the project plan, after all. It would be a shame if AI gave us time for everything except an original thought.</p>
+<p>That is precisely where a great opportunity lies: we can experiment more, design more boldly and find out what actually helps people move forward. This requires our imagination, our judgement and occasionally the charming audacity to challenge what used to be taken for granted. If we can already develop software at a previously unknown pace, we might as well come up with something interesting.</p>
+</div>
+</section>
+</article>

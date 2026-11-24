@@ -203,6 +203,29 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/topics/{slug}/article:
+    get:
+      operationId: getTopicArticle
+      summary: Veröffentlichter Themenartikel eines Themas
+      description: "Ticket #136. Liefert den veröffentlichten Themenartikel, der mit der Themenadresse verknüpft ist."
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Lang'
+      responses:
+        '200':
+          description: Veröffentlichter Themenartikel des Themas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishedArticle'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/topics:
     get:
       operationId: listTopics
@@ -1452,13 +1475,48 @@ components:
         description:
           type: string
           x-go-type-skip-optional-pointer: true
+        spans:
+          type: array
+          description: "Formatierungsbereiche im Titel (Ticket #136)"
+          items:
+            $ref: '#/components/schemas/ArticleSpan'
+          x-go-type-skip-optional-pointer: true
+        descriptionSpans:
+          type: array
+          description: "Formatierungsbereiche in der Kurzbeschreibung (Ticket #136)"
+          items:
+            $ref: '#/components/schemas/ArticleSpan'
+          x-go-type-skip-optional-pointer: true
+    ArticleSpan:
+      type: object
+      description: |
+        Formatierung eines Textbereichs (Ticket #136). start und end sind Positionen im zugehörigen Text in
+        UTF-16-Codeeinheiten, end ist ausschließend. Bereiche überlappen sich nicht und sind aufsteigend sortiert.
+      required: [start, end]
+      properties:
+        start:
+          type: integer
+        end:
+          type: integer
+        bold:
+          type: boolean
+          x-go-type-skip-optional-pointer: true
+        italic:
+          type: boolean
+          x-go-type-skip-optional-pointer: true
+        underline:
+          type: boolean
+          x-go-type-skip-optional-pointer: true
+        href:
+          type: string
+          x-go-type-skip-optional-pointer: true
     ArticleBlock:
       type: object
       required: [kind]
       properties:
         kind:
           type: string
-          enum: [paragraph, h1, h2, h3, info, quote, image, ordered, unordered]
+          enum: [paragraph, lead, h1, h2, h3, info, quote, image, ordered, unordered, example, statement, section, outline, conclusion, related, quoteheading, cta]
         text:
           type: string
           x-go-type-skip-optional-pointer: true
@@ -1479,6 +1537,39 @@ components:
           items:
             $ref: '#/components/schemas/ArticleEntry'
           x-go-type-skip-optional-pointer: true
+        label:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        eyebrow:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        description:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        href:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        anchor:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        width:
+          type: integer
+          x-go-type-skip-optional-pointer: true
+        height:
+          type: integer
+          x-go-type-skip-optional-pointer: true
+        spans:
+          type: array
+          description: "Formatierungsbereiche in text (Ticket #136)"
+          items:
+            $ref: '#/components/schemas/ArticleSpan'
+          x-go-type-skip-optional-pointer: true
+        blocks:
+          type: array
+          description: "Inhalt eines nummerierten Abschnitts oder einer Fazit-Box (Ticket #136)"
+          items:
+            $ref: '#/components/schemas/ArticleBlock'
+          x-go-type-skip-optional-pointer: true
     ArticleText:
       type: object
       required: [title, blocks]
@@ -1487,6 +1578,11 @@ components:
           type: string
         subtitle:
           type: string
+          x-go-type-skip-optional-pointer: true
+        layout:
+          type: string
+          description: "Ticket #136: schmale Lesespalte (Standard), breiter Lesefluss oder Magazin"
+          enum: [column, wide, magazine]
           x-go-type-skip-optional-pointer: true
         blocks:
           type: array
@@ -1525,6 +1621,14 @@ components:
           type: string
         authorActive:
           type: boolean
+        topicSlug:
+          type: string
+          description: "Ticket #136: Thema, unter dessen Adresse /themen/<slug> der Artikel erscheint"
+          x-go-type-skip-optional-pointer: true
+        updated:
+          type: string
+          description: "Ticket #136: Stand, Datum der letzten inhaltlichen Änderung (JJJJ-MM-TT)"
+          x-go-type-skip-optional-pointer: true
     ArticleSummary:
       type: object
       required: [id, title]
@@ -1558,12 +1662,24 @@ components:
         authorName:
           type: string
           x-go-type-skip-optional-pointer: true
+        authorAvatar:
+          $ref: '#/components/schemas/Avatar'
+        updated:
+          type: string
+          description: "Ticket #136: Stand, Datum der letzten inhaltlichen Änderung (JJJJ-MM-TT)"
+          x-go-type-skip-optional-pointer: true
     ArticleImage:
       type: object
       required: [src]
       properties:
         src:
           type: string
+        width:
+          type: integer
+          x-go-type-skip-optional-pointer: true
+        height:
+          type: integer
+          x-go-type-skip-optional-pointer: true
     Lang:
       type: string
       enum: [de, en]

@@ -137,6 +137,10 @@ func runServer(cfg config, log *slog.Logger) error {
 	accounts := service.NewAccounts(db)
 	go cleanupSessions(ctx, accounts, log)
 	editorial := service.NewEditorial(db)
+	// Ticket #136: bisher im Quellcode gepflegte Themenartikel einmalig in die Artikelverwaltung überführen.
+	if err := editorial.ImportTopicArticles(ctx); err != nil {
+		return err
+	}
 	cfg.linkedin.RedirectURL = strings.TrimRight(cfg.baseURL, "/") + "/api/admin/social/linkedin/callback"
 	linkedinClient := linkedin.New(cfg.linkedin)
 	social := service.NewSocial(db, linkedinClient, cfg.baseURL)

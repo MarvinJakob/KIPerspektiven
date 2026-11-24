@@ -1,7 +1,8 @@
 .article-directory { list-style: none; padding: 0; }
 .article-directory li { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--border); padding: 1rem 0; }
 .article-directory a, .article-editor { overflow-wrap: anywhere; }
-.article-editor { max-width: 52rem; }
+/* #136: Die Werkzeugleiste des WYSIWYG-Editors passt auf dem Desktop in eine Zeile. */
+.article-editor { max-width: 60rem; }
 .article-editor fieldset { min-width: 0; margin: 1rem 0; border: 1px solid var(--border); border-radius: .5rem; padding: 1rem; }
 .article-editor .article-form-fields { border: 0; padding: 0; }
 .article-editor label { display: grid; gap: .3rem; margin-block: .65rem; font-weight: 600; }

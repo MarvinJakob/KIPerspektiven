@@ -21,20 +21,35 @@ import (
 
 // Defines values for ArticleBlockKind.
 const (
-	ArticleBlockKindH1        ArticleBlockKind = "h1"
-	ArticleBlockKindH2        ArticleBlockKind = "h2"
-	ArticleBlockKindH3        ArticleBlockKind = "h3"
-	ArticleBlockKindImage     ArticleBlockKind = "image"
-	ArticleBlockKindInfo      ArticleBlockKind = "info"
-	ArticleBlockKindOrdered   ArticleBlockKind = "ordered"
-	ArticleBlockKindParagraph ArticleBlockKind = "paragraph"
-	ArticleBlockKindQuote     ArticleBlockKind = "quote"
-	ArticleBlockKindUnordered ArticleBlockKind = "unordered"
+	ArticleBlockKindConclusion   ArticleBlockKind = "conclusion"
+	ArticleBlockKindCta          ArticleBlockKind = "cta"
+	ArticleBlockKindExample      ArticleBlockKind = "example"
+	ArticleBlockKindH1           ArticleBlockKind = "h1"
+	ArticleBlockKindH2           ArticleBlockKind = "h2"
+	ArticleBlockKindH3           ArticleBlockKind = "h3"
+	ArticleBlockKindImage        ArticleBlockKind = "image"
+	ArticleBlockKindInfo         ArticleBlockKind = "info"
+	ArticleBlockKindLead         ArticleBlockKind = "lead"
+	ArticleBlockKindOrdered      ArticleBlockKind = "ordered"
+	ArticleBlockKindOutline      ArticleBlockKind = "outline"
+	ArticleBlockKindParagraph    ArticleBlockKind = "paragraph"
+	ArticleBlockKindQuote        ArticleBlockKind = "quote"
+	ArticleBlockKindQuoteheading ArticleBlockKind = "quoteheading"
+	ArticleBlockKindRelated      ArticleBlockKind = "related"
+	ArticleBlockKindSection      ArticleBlockKind = "section"
+	ArticleBlockKindStatement    ArticleBlockKind = "statement"
+	ArticleBlockKindUnordered    ArticleBlockKind = "unordered"
 )
 
 // Valid indicates whether the value is a known member of the ArticleBlockKind enum.
 func (e ArticleBlockKind) Valid() bool {
 	switch e {
+	case ArticleBlockKindConclusion:
+		return true
+	case ArticleBlockKindCta:
+		return true
+	case ArticleBlockKindExample:
+		return true
 	case ArticleBlockKindH1:
 		return true
 	case ArticleBlockKindH2:
@@ -45,13 +60,46 @@ func (e ArticleBlockKind) Valid() bool {
 		return true
 	case ArticleBlockKindInfo:
 		return true
+	case ArticleBlockKindLead:
+		return true
 	case ArticleBlockKindOrdered:
+		return true
+	case ArticleBlockKindOutline:
 		return true
 	case ArticleBlockKindParagraph:
 		return true
 	case ArticleBlockKindQuote:
 		return true
+	case ArticleBlockKindQuoteheading:
+		return true
+	case ArticleBlockKindRelated:
+		return true
+	case ArticleBlockKindSection:
+		return true
+	case ArticleBlockKindStatement:
+		return true
 	case ArticleBlockKindUnordered:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ArticleTextLayout.
+const (
+	Column   ArticleTextLayout = "column"
+	Magazine ArticleTextLayout = "magazine"
+	Wide     ArticleTextLayout = "wide"
+)
+
+// Valid indicates whether the value is a known member of the ArticleTextLayout enum.
+func (e ArticleTextLayout) Valid() bool {
+	switch e {
+	case Column:
+		return true
+	case Magazine:
+		return true
+	case Wide:
 		return true
 	default:
 		return false
@@ -222,13 +270,26 @@ func (e StatisticsPeriod) Valid() bool {
 
 // ArticleBlock defines model for ArticleBlock.
 type ArticleBlock struct {
-	Alt         string           `json:"alt,omitempty"`
-	Attribution string           `json:"attribution,omitempty"`
+	Alt         string `json:"alt,omitempty"`
+	Anchor      string `json:"anchor,omitempty"`
+	Attribution string `json:"attribution,omitempty"`
+
+	// Blocks Inhalt eines nummerierten Abschnitts oder einer Fazit-Box (Ticket #136)
+	Blocks      []ArticleBlock   `json:"blocks,omitempty"`
 	Caption     string           `json:"caption,omitempty"`
+	Description string           `json:"description,omitempty"`
+	Eyebrow     string           `json:"eyebrow,omitempty"`
+	Height      int              `json:"height,omitempty"`
+	Href        string           `json:"href,omitempty"`
 	Items       []ArticleEntry   `json:"items,omitempty"`
 	Kind        ArticleBlockKind `json:"kind"`
-	Src         string           `json:"src,omitempty"`
-	Text        string           `json:"text,omitempty"`
+	Label       string           `json:"label,omitempty"`
+
+	// Spans Formatierungsbereiche in text (Ticket #136)
+	Spans []ArticleSpan `json:"spans,omitempty"`
+	Src   string        `json:"src,omitempty"`
+	Text  string        `json:"text,omitempty"`
+	Width int           `json:"width,omitempty"`
 }
 
 // ArticleBlockKind defines model for ArticleBlock.Kind.
@@ -237,12 +298,20 @@ type ArticleBlockKind string
 // ArticleEntry defines model for ArticleEntry.
 type ArticleEntry struct {
 	Description string `json:"description,omitempty"`
-	Title       string `json:"title"`
+
+	// DescriptionSpans Formatierungsbereiche in der Kurzbeschreibung (Ticket #136)
+	DescriptionSpans []ArticleSpan `json:"descriptionSpans,omitempty"`
+
+	// Spans Formatierungsbereiche im Titel (Ticket #136)
+	Spans []ArticleSpan `json:"spans,omitempty"`
+	Title string        `json:"title"`
 }
 
 // ArticleImage defines model for ArticleImage.
 type ArticleImage struct {
-	Src string `json:"src"`
+	Height int    `json:"height,omitempty"`
+	Src    string `json:"src"`
+	Width  int    `json:"width,omitempty"`
 }
 
 // ArticleInput defines model for ArticleInput.
@@ -260,6 +329,17 @@ type ArticleList struct {
 	Items []ArticleSummary `json:"items"`
 }
 
+// ArticleSpan Formatierung eines Textbereichs (Ticket #136). start und end sind Positionen im zugehörigen Text in
+// UTF-16-Codeeinheiten, end ist ausschließend. Bereiche überlappen sich nicht und sind aufsteigend sortiert.
+type ArticleSpan struct {
+	Bold      bool   `json:"bold,omitempty"`
+	End       int    `json:"end"`
+	Href      string `json:"href,omitempty"`
+	Italic    bool   `json:"italic,omitempty"`
+	Start     int    `json:"start"`
+	Underline bool   `json:"underline,omitempty"`
+}
+
 // ArticleSummary defines model for ArticleSummary.
 type ArticleSummary struct {
 	Id int64 `json:"id"`
@@ -272,10 +352,16 @@ type ArticleSummary struct {
 
 // ArticleText defines model for ArticleText.
 type ArticleText struct {
-	Blocks   []ArticleBlock `json:"blocks"`
-	Subtitle string         `json:"subtitle,omitempty"`
-	Title    string         `json:"title"`
+	Blocks []ArticleBlock `json:"blocks"`
+
+	// Layout Ticket #136: schmale Lesespalte (Standard), breiter Lesefluss oder Magazin
+	Layout   ArticleTextLayout `json:"layout,omitempty"`
+	Subtitle string            `json:"subtitle,omitempty"`
+	Title    string            `json:"title"`
 }
+
+// ArticleTextLayout Ticket #136: schmale Lesespalte (Standard), breiter Lesefluss oder Magazin
+type ArticleTextLayout string
 
 // AuditCategory Einordnung der Dimension (organisatorisch, fachlich, technisch)
 type AuditCategory string
@@ -454,6 +540,12 @@ type EditorArticle struct {
 
 	// Status `draft` erscheint in der Redaktion als „In Arbeit“, `published` als „Veröffentlicht“
 	Status PostStatus `json:"status"`
+
+	// TopicSlug Ticket #136: Thema, unter dessen Adresse /themen/<slug> der Artikel erscheint
+	TopicSlug string `json:"topicSlug,omitempty"`
+
+	// Updated Ticket #136: Stand, Datum der letzten inhaltlichen Änderung (JJJJ-MM-TT)
+	Updated string `json:"updated,omitempty"`
 }
 
 // EditorPost defines model for EditorPost.
@@ -752,9 +844,14 @@ type ProfileInput struct {
 
 // PublishedArticle defines model for PublishedArticle.
 type PublishedArticle struct {
-	AuthorName string      `json:"authorName,omitempty"`
-	Content    ArticleText `json:"content"`
-	Lang       Lang        `json:"lang"`
+	// AuthorAvatar Profilbild in der Variante 480 px
+	AuthorAvatar *Avatar     `json:"authorAvatar,omitempty"`
+	AuthorName   string      `json:"authorName,omitempty"`
+	Content      ArticleText `json:"content"`
+	Lang         Lang        `json:"lang"`
+
+	// Updated Ticket #136: Stand, Datum der letzten inhaltlichen Änderung (JJJJ-MM-TT)
+	Updated string `json:"updated,omitempty"`
 }
 
 // ReadinessDimensionName defines model for ReadinessDimensionName.
@@ -1022,6 +1119,12 @@ type GetTopicParams struct {
 	Lang *Lang `form:"lang,omitempty" json:"lang,omitempty"`
 }
 
+// GetTopicArticleParams defines parameters for GetTopicArticle.
+type GetTopicArticleParams struct {
+	// Lang Gewünschte Sprache
+	Lang *Lang `form:"lang,omitempty" json:"lang,omitempty"`
+}
+
 // AdminCreateArticleJSONRequestBody defines body for AdminCreateArticle for application/json ContentType.
 type AdminCreateArticleJSONRequestBody = ArticleInput
 
@@ -1240,6 +1343,9 @@ type ServerInterface interface {
 	// GetTopic Ein Thema mit seinen veröffentlichten Beiträgen
 	// (GET /api/topics/{slug})
 	GetTopic(w http.ResponseWriter, r *http.Request, slug Slug, params GetTopicParams)
+	// GetTopicArticle Veröffentlichter Themenartikel eines Themas
+	// (GET /api/topics/{slug}/article)
+	GetTopicArticle(w http.ResponseWriter, r *http.Request, slug string, params GetTopicArticleParams)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -2533,6 +2639,48 @@ func (siw *ServerInterfaceWrapper) GetTopic(w http.ResponseWriter, r *http.Reque
 	handler.ServeHTTP(w, r)
 }
 
+// GetTopicArticle operation middleware
+func (siw *ServerInterfaceWrapper) GetTopicArticle(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", r.PathValue("slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetTopicArticleParams
+
+	// ------------- Optional query parameter "lang" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "lang", r.URL.Query(), &params.Lang, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "lang"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "lang", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTopicArticle(w, r, slug, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -2661,6 +2809,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/admin/articles/media", wrapper.AdminUploadArticleImage)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/articles", wrapper.ListArticles)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/articles/{id}", wrapper.GetArticle)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/topics/{slug}/article", wrapper.GetTopicArticle)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/topics", wrapper.ListTopics)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/topics/{slug}", wrapper.GetTopic)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/posts", wrapper.ListPosts)
@@ -6200,6 +6349,57 @@ func (response GetTopic404JSONResponse) VisitGetTopicResponse(w http.ResponseWri
 	return err
 }
 
+type GetTopicArticleRequestObject struct {
+	Slug   string `json:"slug"`
+	Params GetTopicArticleParams
+}
+
+type GetTopicArticleResponseObject interface {
+	VisitGetTopicArticleResponse(w http.ResponseWriter) error
+}
+
+type GetTopicArticle200JSONResponse PublishedArticle
+
+func (response GetTopicArticle200JSONResponse) VisitGetTopicArticleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTopicArticle400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetTopicArticle400JSONResponse) VisitGetTopicArticleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTopicArticle404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetTopicArticle404JSONResponse) VisitGetTopicArticleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// AdminListArticles Themenartikel der Redaktion
@@ -6364,6 +6564,9 @@ type StrictServerInterface interface {
 	// GetTopic Ein Thema mit seinen veröffentlichten Beiträgen
 	// (GET /api/topics/{slug})
 	GetTopic(ctx context.Context, request GetTopicRequestObject) (GetTopicResponseObject, error)
+	// GetTopicArticle Veröffentlichter Themenartikel eines Themas
+	// (GET /api/topics/{slug}/article)
+	GetTopicArticle(ctx context.Context, request GetTopicArticleRequestObject) (GetTopicArticleResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -7882,6 +8085,33 @@ func (sh *strictHandler) GetTopic(w http.ResponseWriter, r *http.Request, slug S
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetTopicResponseObject); ok {
 		if err := validResponse.VisitGetTopicResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetTopicArticle operation middleware
+func (sh *strictHandler) GetTopicArticle(w http.ResponseWriter, r *http.Request, slug string, params GetTopicArticleParams) {
+	var request GetTopicArticleRequestObject
+
+	request.Slug = slug
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTopicArticle(ctx, request.(GetTopicArticleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTopicArticle")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTopicArticleResponseObject); ok {
+		if err := validResponse.VisitGetTopicArticleResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
