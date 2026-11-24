@@ -69,6 +69,9 @@ test('REQ-136-AC2/AC3/AC15: Kopf, Aufbau und Gestaltung der überführten Artike
   await expect(page.locator('.vc-number')).toHaveText(['01', '02', '03', '04', '05']);
   expect(await columns(page.locator('#vc-prompt'))).toBe(2);
   await expect(page.locator('.vc-index a')).toHaveCount(5);
+  // Die Einträge der Übersicht behalten die Textfarbe; nur Links im Fließtext sind farbig.
+  const color = (l: Locator) => l.evaluate((el) => getComputedStyle(el).color);
+  expect(await color(page.locator('.vc-index a strong').first())).toBe(await color(page.locator('.article-head h1')));
   await expect(page.locator('figure.vc-example')).toHaveCount(6);
   await expect(page.locator('blockquote.vc-quote')).toHaveText('Humans should review ideas, not code.');
   await expect(page.locator('section.vc-conclusion .eyebrow')).toHaveText('Fazit');
