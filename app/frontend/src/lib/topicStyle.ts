@@ -31,13 +31,6 @@ export const topicStyle = (slug: string | undefined) => (slug && TOPICS[slug]) |
 
 export const topicColor = (slug: string | undefined) => PALETTES[topicStyle(slug).palette].dot;
 
-/** Kleine, stabile Zahl aus einem Text, damit jede Grafik leicht anders aussieht. */
-export function seedOf(text: string): number {
-  let h = 0;
-  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % 997;
-  return h;
-}
-
 export function artBackground(slug: string | undefined, seed = 0): CSSProperties {
   const p = PALETTES[topicStyle(slug).palette];
   const s = seed * 23;

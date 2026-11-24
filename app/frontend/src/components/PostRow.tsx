@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import type { PostSummary, TopicRef } from '../api/client';
 import { href, useLang } from '../lib/lang';
 import { formatDate } from '../lib/page';
-import { seedOf, topicColor } from '../lib/topicStyle';
+import { topicColor } from '../lib/topicStyle';
 import { Art } from './Art';
 
 export function TopicChip({ topic }: { topic: TopicRef }) {
@@ -20,7 +20,10 @@ export function LangChip({ contentLang }: { contentLang: string }) {
   return <span className="chip chip--lang">{t('onlyIn', { language: t(`langName.${contentLang}`) })}</span>;
 }
 
-/** Beitragszeile: Vorschaubild, Datum, Themen-Chips, Titel und Kurztext. Die ganze Zeile ist ein Link. */
+/**
+ * Beitragszeile: Vorschaubild, Datum, Themen-Chips, Titel und Kurztext. Die ganze Zeile ist ein Link.
+ * Ohne Titelbild entfällt das Vorschaubild, der Text nutzt die volle Zeilenbreite (REQ-138-AC5).
+ */
 export function PostRow({ post, headingLevel = 3 }: { post: PostSummary; headingLevel?: 2 | 3 }) {
   const { lang } = useLang();
   const H = headingLevel === 2 ? 'h2' : 'h3';
@@ -28,10 +31,12 @@ export function PostRow({ post, headingLevel = 3 }: { post: PostSummary; heading
   const contentLang = fallback ? post.lang : undefined;
   return (
     <li>
-      <Link className="post-row" to={href(lang, `/blog/${post.slug}`)}>
-        <div className="post-thumb">
-          <Art topic={post.topics[0]?.slug} seed={seedOf(post.slug)} image={post.cover} sizes="128px" />
-        </div>
+      <Link className={post.cover ? 'post-row' : 'post-row post-row--text'} to={href(lang, `/blog/${post.slug}`)}>
+        {post.cover && (
+          <div className="post-thumb">
+            <Art image={post.cover} sizes="136px" />
+          </div>
+        )}
         <div className="post-main">
           <p className="post-meta">
             <time dateTime={post.publishedAt}>{formatDate(post.publishedAt, lang)}</time>
