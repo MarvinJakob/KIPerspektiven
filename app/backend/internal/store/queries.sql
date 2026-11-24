@@ -353,8 +353,8 @@ INSERT INTO article_imports (topic_slug, imported_at) VALUES (?, ?);
 -- Autor ueberfuehrter Artikel: aktives Konto mit dem Anzeigenamen, sonst das aelteste aktive Admin-Konto.
 -- name: FindImportAuthor :one
 SELECT u.id FROM users u
-WHERE u.active AND (u.display_name = @name OR EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = u.id AND r.role = 'admin'))
-ORDER BY u.display_name = @name DESC, u.id LIMIT 1;
+WHERE u.active AND (u.display_name = ?1 OR EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = u.id AND r.role = 'admin'))
+ORDER BY u.display_name = ?1 DESC, u.id LIMIT 1;
 
 -- name: ListContactMessages :many
 SELECT id, name, company, email, message, lang, received_at FROM contact_messages ORDER BY received_at DESC, id DESC;

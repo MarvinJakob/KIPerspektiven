@@ -77,6 +77,15 @@ export const useArticle = (id: number, lang: Lang) =>
     staleTime: 0,
   });
 
+/** Veröffentlichter Themenartikel einer Themenadresse (Ticket #136); 404, wenn das Thema keinen hat. */
+export const useTopicArticle = (slug: string, lang: Lang, enabled = true) =>
+  useQuery({
+    queryKey: ['topic-article', slug, lang],
+    queryFn: () => unwrap(client.GET('/api/topics/{slug}/article', { params: { path: { slug }, query: { lang } } })),
+    enabled,
+    staleTime: 0,
+  });
+
 export const useTopics = (lang: Lang) =>
   useQuery({
     queryKey: ['topics', lang],

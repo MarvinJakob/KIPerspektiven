@@ -17,8 +17,8 @@ type Article = components['schemas']['PublishedArticle'];
 type Text = components['schemas']['ArticleText'];
 type Block = components['schemas']['ArticleBlock'];
 
-const root = new URL('../../', import.meta.url);
-const read = (path: string) => readFileSync(new URL(path, root), 'utf8');
+// Vitest läuft im Verzeichnis des Frontends.
+const read = (path: string) => readFileSync(path, 'utf8');
 const imported = (slug: string) =>
   JSON.parse(read(`../backend/internal/service/topicarticles/${slug}.json`)) as Record<Lang, Text>;
 const AVATAR = { src: '/media/portrait-480.jpg', width: 480, height: 480 };
@@ -62,7 +62,8 @@ describe('REQ-136-AC2/AC3: überführte Artikel erzeugen den Seitenaufbau von vo
   for (const slug of ['vibe-coding', 'softwareentwicklung']) {
     for (const lang of ['de', 'en'] as const) {
       it(`${slug} (${lang})`, () => {
-        const actual = render(lang, imported(slug)[lang]);
+        // React stellt dem Markup einen Vorlade-Hinweis für das Porträt voran; er gehört nicht zum Seitenaufbau.
+        const actual = render(lang, imported(slug)[lang]).replace(/^<link rel="preload"[^>]*>/, '');
         const expected = golden(slug, lang);
         // Zuerst der sichtbare Text in Reihenfolge: Eine Abweichung nennt so die betroffene Stelle.
         expect(dom(actual).body.textContent).toBe(dom(expected).body.textContent);

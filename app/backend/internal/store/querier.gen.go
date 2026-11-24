@@ -50,7 +50,7 @@ type Querier interface {
 	DeleteUserRoles(ctx context.Context, userID int64) error
 	DeleteUserSessions(ctx context.Context, userID int64) error
 	// Autor ueberfuehrter Artikel: aktives Konto mit dem Anzeigenamen, sonst das aelteste aktive Admin-Konto.
-	FindImportAuthor(ctx context.Context, name string) (int64, error)
+	FindImportAuthor(ctx context.Context, displayName string) (int64, error)
 	FinishSocialShare(ctx context.Context, arg FinishSocialShareParams) error
 	GetEditorArticle(ctx context.Context, id int64) (GetEditorArticleRow, error)
 	GetMedia(ctx context.Context, id int64) (GetMediaRow, error)

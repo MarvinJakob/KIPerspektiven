@@ -30,6 +30,17 @@ func (s *apiServer) GetArticle(ctx context.Context, req api.GetArticleRequestObj
 	return api.GetArticle200JSONResponse(article), err
 }
 
+func (s *apiServer) GetTopicArticle(ctx context.Context, req api.GetTopicArticleRequestObject) (api.GetTopicArticleResponseObject, error) {
+	if !validLang(req.Params.Lang) {
+		return api.GetTopicArticle400JSONResponse{BadRequestJSONResponse: api.BadRequestJSONResponse{Message: msgBadLang}}, nil
+	}
+	article, err := s.svc.TopicArticle(ctx, req.Slug, langOf(req.Params.Lang))
+	if errors.Is(err, service.ErrNotFound) {
+		return api.GetTopicArticle404JSONResponse{NotFoundJSONResponse: api.NotFoundJSONResponse{Message: "Themenartikel nicht gefunden."}}, nil
+	}
+	return api.GetTopicArticle200JSONResponse(article), err
+}
+
 func (s *apiServer) AdminListArticles(ctx context.Context, req api.AdminListArticlesRequestObject) (api.AdminListArticlesResponseObject, error) {
 
 	article, err := s.editorial.Articles(ctx)
@@ -110,6 +121,6 @@ func (s *apiServer) AdminUploadArticleImage(ctx context.Context, req api.AdminUp
 		if err != nil {
 			return nil, err
 		}
-		return api.AdminUploadArticleImage200JSONResponse{Src: media.URL(stored.Key, stored.MimeType, "960")}, nil
+		return api.AdminUploadArticleImage200JSONResponse{Src: media.URL(stored.Key, stored.MimeType, "960"), Width: stored.Width, Height: stored.Height}, nil
 	}
 }

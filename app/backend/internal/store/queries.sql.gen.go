@@ -478,12 +478,12 @@ func (q *Queries) DeleteUserSessions(ctx context.Context, userID int64) error {
 const findImportAuthor = `-- name: FindImportAuthor :one
 SELECT u.id FROM users u
 WHERE u.active AND (u.display_name = ?1 OR EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = u.id AND r.role = 'admin'))
-ORDER BY u.display_name = @name DESC, u.id LIMIT 1
+ORDER BY u.display_name = ?1 DESC, u.id LIMIT 1
 `
 
 // Autor ueberfuehrter Artikel: aktives Konto mit dem Anzeigenamen, sonst das aelteste aktive Admin-Konto.
-func (q *Queries) FindImportAuthor(ctx context.Context, name string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, findImportAuthor, name)
+func (q *Queries) FindImportAuthor(ctx context.Context, displayName string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, findImportAuthor, displayName)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
