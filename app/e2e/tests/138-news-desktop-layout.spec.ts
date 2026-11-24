@@ -160,8 +160,8 @@ async function rowOf(page: Page, slug: string) {
 
 test('REQ-138-AC5: Beitragszeile ohne Titelbild zeigt kein Vorschaubild, mit Titelbild wie bisher', async ({ page, posts, editor }) => {
   const tag = uid();
-  const plain = await publishPost(posts, editor, `${tag}a`, false);
-  const pictured = await publishPost(posts, editor, `${tag}b`, true);
+  const plain = await publishPost(posts, editor, uid(), false);
+  const pictured = await publishPost(posts, editor, tag, true);
   await page.setViewportSize({ width: 1600, height: 900 });
   await page.goto('/de/blog');
 
@@ -176,7 +176,7 @@ test('REQ-138-AC5: Beitragszeile ohne Titelbild zeigt kein Vorschaubild, mit Tit
   expect(Math.abs(rowBox.width - want.width)).toBeLessThanOrEqual(1);
 
   const picturedRow = await rowOf(page, pictured.slug);
-  const thumb = picturedRow.getByRole('img', { name: `Titelbild ${tag}b` });
+  const thumb = picturedRow.getByRole('img', { name: `Titelbild ${tag}` });
   await expect(thumb).toBeVisible();
   await expect.poll(() => thumb.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
   const thumbBox = await box(thumb);
