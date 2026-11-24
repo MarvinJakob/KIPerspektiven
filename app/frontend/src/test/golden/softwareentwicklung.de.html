@@ -1,0 +1,71 @@
+<link rel="preload" as="image" href="/src/assets/marvin-jakob.jpg"/>
+<div class="sd-page" lang="de">
+<header class="article-head">
+<div class="container">
+<div class="article-head-copy">
+<h1 id="sd-title" tabindex="-1">KI in der Software­entwicklung</h1>
+<div class="byline">
+<img src="/src/assets/marvin-jakob.jpg" alt="" width="44" height="44"/>
+<p>
+<strong>Marvin Jakob</strong>
+<span class="byline-meta">
+<time dateTime="2026-11-16">Stand: 16. November 2026</time>
+<span aria-hidden="true"> · </span>
+<span>ca. 4 Min. Lesezeit</span>
+</span>
+</p>
+</div>
+</div>
+</div>
+</header>
+<div class="container article-layout">
+<article class="article-body">
+<section aria-labelledby="moderne-softwareentwicklung">
+<h2 id="moderne-softwareentwicklung">Moderne Softwareentwicklung</h2>
+<p class="article-lead">KI lässt sich besonders wirkungsvoll einsetzen, wenn ihre Ergebnisse gut überprüfbar sind. In der Mathematik können etwa Beweise oder Gegenbeispiele eine Lösung bestätigen oder widerlegen. In der Softwareentwicklung helfen ausführbare Tests, festzustellen, ob eine Implementierung die erwarteten Ergebnisse liefert. Inzwischen ist KI sogar so gut in der Softwareentwicklung geworden, dass wir mit der Beurteilung der Ergebnisse gar nicht mehr hinterherkommen.</p>
+<a class="related-link" href="/de/themen/vibe-coding" data-discover="true">
+<span class="related-label">Weiterlesen</span>
+<span class="related-title">Wie du mit Vibe Coding sinnvolle Ergebnisse erzielst, habe ich hier beschrieben</span>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+<path d="M5 12h14M13 6l6 6-6 6">
+</path>
+</svg>
+</a>
+<p>KI kann neben dem Schreiben von Code auch Tests erstellen, Fehler suchen und Korrekturen umsetzen. Für Menschen gewinnen klare Anforderungen, geeignete Prüfverfahren und die Gestaltung des gesamten Entwicklungsprozesses an Bedeutung. Je verlässlicher sich Ergebnisse prüfen lassen, desto mehr Arbeitsschritte können Agenten selbstständig übernehmen. Damit verändert sich die Arbeit in der Softwareentwicklung grundlegend.</p>
+</section>
+<section aria-labelledby="der-weg">
+<h2 id="der-weg" class="quote-heading">
+<span class="quote-mark" aria-hidden="true">“</span>„Das ist der Weg!“<small>– Din Djarin</small>
+</h2>
+<p>Es führt kein Weg daran vorbei, dass wir klar verstehen müssen, was wir eigentlich wollen und, vielleicht noch wichtiger, warum. Wenn wir das jedoch genau beschreiben können, ist es an der Zeit, die KI auf das Problem loszulassen. Hier möchte ich einen Weg vorstellen, bei dem wir Menschen uns auf die Inhalte konzentrieren und die Fleißarbeit so weit wie möglich der Maschine überlassen.</p>
+</section>
+<section id="drei-teams" aria-label="Drei Teams">
+<figure class="article-figure">
+<img src="/src/assets/topics/development-process_de.png" alt="Entwicklungsprozess: Anforderungen gehen an Team 1 (Analyst), das Szenarien schreibt und verifizierte Tests in den Fidelity Test Backlog legt. Team 2 (Tester) führt die Tests aus und meldet, welche Dinge funktionieren und welche nicht. Team 3 (Fixer) übernimmt mit einem Agenten pro Fall die nicht funktionierenden Dinge und bringt den Code über das Merge Gate (Build, Review, Security, Fidelity) ins gemeinsame Repository." width="1602" height="833" loading="lazy"/>
+</figure>
+<p>Damit möglichst viele Agenten gleichzeitig arbeiten können, habe ich sie in drei Teams aufgeteilt. Das erste Team aus erfahrenen Testanalysten zerlegt die Anforderungen in Szenarien und schreibt Fidelity-Tests. Die erstellte Software soll sich exakt so verhalten, wie es in den Anforderungen beschrieben wurde. Dazu werden in den Fidelity-Tests Abläufe, Sonderfälle und Fehlerbehandlung nach den erstellten Referenzszenarien festgehalten. Diese Art der Tests ist für eine KI leichter überprüfbar. Das ist dann auch die Aufgabe des zweiten Teams aus versierten Testagenten. Diese führen die Tests auf dem bisher erstellten Code einzeln aus und erstellen Feature- und Bug-Tickets. Findet ein Tester eine Abweichung von dem beschriebenen Verhalten, wird diese im Backlog dokumentiert. Auch das gewünschte Verhalten wird als Ticket festgehalten. So füllt sich ein internes Backlog nach und nach als Arbeitsgrundlage für ein drittes Team. Die Fixer holen sich jeweils ein Bug-Ticket und denken so lange darauf herum, bis es gelöst ist. Bevor sich ein Fixer auf einen Code committed, wird dieser noch durch ein Merge Gate geschleust. Alle gelösten Tickets müssen nicht nur das eigentliche Problem lösen, sondern auch Mindeststandards an Code Quality und Security erfüllen.</p>
+</section>
+<section id="release-gate" aria-label="Release Gate">
+<figure class="article-figure">
+<img src="/src/assets/topics/releasegate_de.png" alt="Release Gate: Der Code Stream durchläuft Build (Commits neu bauen), Test (die gesamte Testsuite ausführen) und Final Check (letzte Überprüfungen vor der Freigabe). Danach entsteht der Release Branch, aus dem das fertige Produkt gepackt wird. Erst ganz am Ende wird im Repository veröffentlicht." width="1521" height="576" loading="lazy"/>
+</figure>
+<p>Die Produktivität unserer Agenten führt zu einer Vielzahl an Commits, die für jedes Release in einem Branch zusammengefasst werden. Bevor wir etwas veröffentlichen, stellen wir in einem finalen Test sicher, dass unser Release auch sauber funktioniert. Der Push in das Repository erfolgt erst ganz am Ende.</p>
+</section>
+<section class="opinion" id="meinung" aria-labelledby="opinion-title">
+<svg class="opinion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">
+<path d="M4 5h16v11H9l-5 4V5Z">
+</path>
+</svg>
+<div>
+<h2 id="opinion-title">Würdest du auch so entwickeln?</h2>
+<p>Teile mir gerne deine Meinung dazu mit.</p>
+</div>
+<a class="btn opinion-button press" href="/de/kontakt" data-discover="true">Zum Kontaktformular <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+<path d="M5 12h14M13 6l6 6-6 6">
+</path>
+</svg>
+</a>
+</section>
+</article>
+</div>
+</div>

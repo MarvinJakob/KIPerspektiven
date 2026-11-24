@@ -10,6 +10,7 @@ import (
 )
 
 type Querier interface {
+	ArticleImported(ctx context.Context, topicSlug string) (int64, error)
 	ClaimSocialShare(ctx context.Context, arg ClaimSocialShareParams) (int64, error)
 	ClearSocialConnection(ctx context.Context, arg ClearSocialConnectionParams) error
 	CountIdentifiedPageView(ctx context.Context, arg CountIdentifiedPageViewParams) error
@@ -48,6 +49,8 @@ type Querier interface {
 	DeleteSession(ctx context.Context, id string) error
 	DeleteUserRoles(ctx context.Context, userID int64) error
 	DeleteUserSessions(ctx context.Context, userID int64) error
+	// Autor ueberfuehrter Artikel: aktives Konto mit dem Anzeigenamen, sonst das aelteste aktive Admin-Konto.
+	FindImportAuthor(ctx context.Context, name string) (int64, error)
 	FinishSocialShare(ctx context.Context, arg FinishSocialShareParams) error
 	GetEditorArticle(ctx context.Context, id int64) (GetEditorArticleRow, error)
 	GetMedia(ctx context.Context, id int64) (GetMediaRow, error)
@@ -58,6 +61,8 @@ type Querier interface {
 	GetPublicAuthor(ctx context.Context, id int64) (GetPublicAuthorRow, error)
 	GetPublishedArticle(ctx context.Context, id int64) (GetPublishedArticleRow, error)
 	GetPublishedPostBySlug(ctx context.Context, slug string) (Post, error)
+	// Ticket #136: veroeffentlichter Artikel einer Themenadresse.
+	GetPublishedTopicArticleID(ctx context.Context, topicSlug sql.NullString) (int64, error)
 	GetReadinessResultByKey(ctx context.Context, keyHash string) (GetReadinessResultByKeyRow, error)
 	GetSession(ctx context.Context, id string) (GetSessionRow, error)
 	// ---------------------------------------------------------------------------
@@ -86,6 +91,7 @@ type Querier interface {
 	// ---------------------------------------------------------------------------
 	ListAllPosts(ctx context.Context) ([]Post, error)
 	ListAllUserRoles(ctx context.Context) ([]UserRole, error)
+	// Oeffentlich ohne Artikel mit Themenadresse: Sie sind ueber ihr Thema erreichbar (REQ-136-AC4).
 	ListArticleSummaries(ctx context.Context, arg ListArticleSummariesParams) ([]ListArticleSummariesRow, error)
 	ListConsultationRequests(ctx context.Context) ([]ConsultationRequest, error)
 	// Kandidaten der fristgerechten Loeschung (Ticket #90). Die genaue Faelligkeit prueft der Dienst.
@@ -117,6 +123,7 @@ type Querier interface {
 	// behaelt seine Rolle aus der alten Spalte users.role. Das uebernimmt der Dienst.
 	ListUserRoles(ctx context.Context, userIds []int64) ([]UserRole, error)
 	ListUsers(ctx context.Context) ([]User, error)
+	MarkArticleImported(ctx context.Context, arg MarkArticleImportedParams) error
 	NextPendingSocialShare(ctx context.Context) (SocialShare, error)
 	Ping(ctx context.Context) (int64, error)
 	PublishPost(ctx context.Context, arg PublishPostParams) (int64, error)

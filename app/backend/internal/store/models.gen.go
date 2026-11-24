@@ -9,11 +9,18 @@ import (
 )
 
 type Article struct {
-	ID       int64
-	AuthorID int64
-	Status   string
-	De       string
-	En       sql.NullString
+	ID        int64
+	AuthorID  int64
+	Status    string
+	De        string
+	En        sql.NullString
+	TopicSlug sql.NullString
+	Updated   string
+}
+
+type ArticleImport struct {
+	TopicSlug  string
+	ImportedAt string
 }
 
 type ConsultationRequest struct {

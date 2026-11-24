@@ -1,0 +1,71 @@
+<link rel="preload" as="image" href="/src/assets/marvin-jakob.jpg"/>
+<div class="sd-page" lang="en">
+<header class="article-head">
+<div class="container">
+<div class="article-head-copy">
+<h1 id="sd-title" tabindex="-1">AI in Software Development</h1>
+<div class="byline">
+<img src="/src/assets/marvin-jakob.jpg" alt="" width="44" height="44"/>
+<p>
+<strong>Marvin Jakob</strong>
+<span class="byline-meta">
+<time dateTime="2026-11-16">Updated: 16 November 2026</time>
+<span aria-hidden="true"> · </span>
+<span>approx. 4 min read</span>
+</span>
+</p>
+</div>
+</div>
+</div>
+</header>
+<div class="container article-layout">
+<article class="article-body">
+<section aria-labelledby="moderne-softwareentwicklung">
+<h2 id="moderne-softwareentwicklung">Modern Software Development</h2>
+<p class="article-lead">AI can be used most effectively when its results are easy to verify. In mathematics, for example, proofs or counterexamples can confirm or refute a solution. In software development, executable tests help to determine whether an implementation delivers the expected results. AI has now become so good at software development that our evaluation of the results can no longer keep up.</p>
+<a class="related-link" href="/en/themen/vibe-coding" data-discover="true">
+<span class="related-label">Read on</span>
+<span class="related-title">How you can achieve meaningful results with Vibe Coding is what I describe here</span>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+<path d="M5 12h14M13 6l6 6-6 6">
+</path>
+</svg>
+</a>
+<p>AI can do more than write code: it can also create tests, find errors and implement fixes. For people, clear requirements, suitable verification methods and the design of the entire development process are becoming more important. The more reliably results can be verified, the more work steps agents can take on independently. This fundamentally changes the work in software development.</p>
+</section>
+<section aria-labelledby="der-weg">
+<h2 id="der-weg" class="quote-heading">
+<span class="quote-mark" aria-hidden="true">“</span>“This is the way!”<small>– Din Djarin</small>
+</h2>
+<p>There is no way around clearly understanding what we actually want and, perhaps more importantly, why. Once we can describe that precisely, it is time to let AI loose on the problem. Here I would like to present an approach in which we humans focus on the content and leave as much of the routine work as possible to the machine.</p>
+</section>
+<section id="drei-teams" aria-label="Three teams">
+<figure class="article-figure">
+<img src="/src/assets/topics/development-process_en.png" alt="Development process: Requirements go to Team 1 (Analyst), which writes scenarios and places verified tests in the Fidelity Test Backlog. Team 2 (Tester) runs the tests and reports which things work and which do not. Team 3 (Fixer) takes on the things that do not work, with one agent per case, and brings the code into the shared repository through the Merge Gate (Build, Review, Security, Fidelity)." width="1602" height="833" loading="lazy"/>
+</figure>
+<p>To let as many agents as possible work simultaneously, I have divided them into three teams. The first team, made up of experienced test analysts, breaks the requirements down into scenarios and writes Fidelity Tests. The software we build should behave exactly as described in the requirements. To achieve this, the Fidelity Tests capture flows, edge cases and error handling based on the reference scenarios created. These kinds of tests are easier for an AI to verify. Verifying them is then the job of the second team of skilled test agents. They run the tests on the code written so far, one by one, and create feature and bug tickets. If a tester finds a deviation from the described behaviour, it is documented in the backlog. The desired behaviour is also recorded as a ticket. In this way, an internal backlog gradually fills up as the basis for a third team. The fixers each pick up one bug ticket and chew on it until it is solved. Before a fixer commits to any code, it is passed through a Merge Gate. All resolved tickets must not only solve the actual problem but also meet minimum standards for code quality and security.</p>
+</section>
+<section id="release-gate" aria-label="Release Gate">
+<figure class="article-figure">
+<img src="/src/assets/topics/releasegate_en.png" alt="Release Gate: The code stream passes through Build (rebuild commits), Test (run the entire test suite) and Final Check (last checks before approval). The release branch is then created, from which the finished product is packaged. Publishing to the repository happens only at the very end." width="1521" height="576" loading="lazy"/>
+</figure>
+<p>The productivity of our agents leads to a large number of commits, which are combined in a branch for each release. Before we publish anything, we make sure in a final test that our release actually works cleanly. The push to the repository only happens at the very end.</p>
+</section>
+<section class="opinion" id="meinung" aria-labelledby="opinion-title">
+<svg class="opinion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">
+<path d="M4 5h16v11H9l-5 4V5Z">
+</path>
+</svg>
+<div>
+<h2 id="opinion-title">Would you develop like this too?</h2>
+<p>Feel free to share your opinion with me.</p>
+</div>
+<a class="btn opinion-button press" href="/en/kontakt" data-discover="true">Go to the contact form <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+<path d="M5 12h14M13 6l6 6-6 6">
+</path>
+</svg>
+</a>
+</section>
+</article>
+</div>
+</div>

@@ -314,15 +314,21 @@ DELETE FROM consultation_requests WHERE id = ? AND requested_at = ?;
 INSERT INTO contact_messages (name, company, email, message, lang, received_at) VALUES (?, ?, ?, ?, ?, ?);
 
 -- name: GetPublishedArticle :one
-SELECT a.de, a.en, u.display_name FROM articles a
+SELECT a.de, a.en, a.updated, u.display_name, m.storage_key, m.mime_type, m.width, m.height FROM articles a
 JOIN users u ON u.id = a.author_id
+LEFT JOIN media m ON m.id = u.avatar_media_id
 WHERE a.id = ? AND a.status = 'published';
 
+-- Ticket #136: veroeffentlichter Artikel einer Themenadresse.
+-- name: GetPublishedTopicArticleID :one
+SELECT id FROM articles WHERE topic_slug = ? AND status = 'published';
+
+-- Oeffentlich ohne Artikel mit Themenadresse: Sie sind ueber ihr Thema erreichbar (REQ-136-AC4).
 -- name: ListArticleSummaries :many
 SELECT id, status,
   CAST(json_extract(CASE WHEN @lang = 'en' AND en IS NOT NULL THEN en ELSE de END, '$.title') AS TEXT) AS title,
   CAST(coalesce(json_extract(CASE WHEN @lang = 'en' AND en IS NOT NULL THEN en ELSE de END, '$.subtitle'), '') AS TEXT) AS subtitle
-FROM articles WHERE @editorial OR status = 'published'
+FROM articles WHERE @editorial OR (status = 'published' AND topic_slug IS NULL)
 ORDER BY id DESC;
 
 -- name: GetEditorArticle :one
@@ -330,13 +336,25 @@ SELECT a.*, u.email, u.display_name, u.active
 FROM articles a JOIN users u ON u.id = a.author_id WHERE a.id = ?;
 
 -- name: InsertArticle :one
-INSERT INTO articles (status, author_id, de, en) VALUES (?, ?, ?, ?) RETURNING id;
+INSERT INTO articles (status, author_id, de, en, updated, topic_slug) VALUES (?, ?, ?, ?, ?, ?) RETURNING id;
 
 -- name: UpdateArticle :exec
-UPDATE articles SET status = ?, author_id = ?, de = ?, en = ? WHERE id = ?;
+UPDATE articles SET status = ?, author_id = ?, de = ?, en = ?, updated = ? WHERE id = ?;
 
 -- name: DeleteArticle :execrows
 DELETE FROM articles WHERE id = ?;
+
+-- name: ArticleImported :one
+SELECT count(*) FROM article_imports WHERE topic_slug = ?;
+
+-- name: MarkArticleImported :exec
+INSERT INTO article_imports (topic_slug, imported_at) VALUES (?, ?);
+
+-- Autor ueberfuehrter Artikel: aktives Konto mit dem Anzeigenamen, sonst das aelteste aktive Admin-Konto.
+-- name: FindImportAuthor :one
+SELECT u.id FROM users u
+WHERE u.active AND (u.display_name = @name OR EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = u.id AND r.role = 'admin'))
+ORDER BY u.display_name = @name DESC, u.id LIMIT 1;
 
 -- name: ListContactMessages :many
 SELECT id, name, company, email, message, lang, received_at FROM contact_messages ORDER BY received_at DESC, id DESC;
