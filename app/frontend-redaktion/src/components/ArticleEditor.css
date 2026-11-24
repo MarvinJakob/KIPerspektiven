@@ -1,0 +1,134 @@
+/* WYSIWYG-Editor für Themenartikel (Ticket #136). Der Schreibbereich zeigt die Elemente in der Art der öffentlichen
+   Darstellung (app/frontend: styles.css, Article.css, VibeCoding.css) mit deren Farben. */
+.article-wysiwyg {
+  --ed-brand: #dc6e14; --ed-ink: #b4530a; --ed-warm: #fcf1e6; --ed-soft: #f1efec; --ed-navy: #12263a; --ed-paper: #ffffff;
+  margin-block: 1rem; border: 1px solid var(--border-strong); border-radius: .75rem; background: var(--surface);
+}
+:root[data-theme="dark"] .article-wysiwyg { --ed-ink: #f39b56; --ed-warm: #111b26; --ed-soft: #182433; --ed-paper: #0f1722; }
+
+/* Werkzeugleiste: bleibt beim Scrollen am oberen Rand sichtbar (REQ-136-AC7) und bricht auf schmalen Ansichten um. */
+.tb-sticky { position: sticky; top: 0; z-index: 30; border-bottom: 1px solid var(--border-strong); border-radius: .75rem .75rem 0 0; background: var(--surface); }
+.tb { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; padding: .4rem .5rem; }
+.article-editor .tb .tb-btn {
+  display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; min-height: 0; padding: 0; border: 0; border-radius: .5rem;
+  background: none; color: var(--text); font: inherit; cursor: pointer;
+}
+.article-editor .tb .tb-btn:hover:not(:disabled) { background: var(--fill); }
+.article-editor .tb .tb-btn[aria-pressed="true"] { background: var(--fill-active); color: var(--accent); }
+.article-editor .tb .tb-btn:disabled { opacity: .4; cursor: default; }
+.tb-btn svg { width: 1.25rem; height: 1.25rem; }
+.tb-btn[data-glyph]::before { content: attr(data-glyph); font-family: Georgia, 'Times New Roman', serif; font-size: 1.125rem; font-weight: 700; line-height: 1; }
+.tb-btn[data-glyph="I"]::before { font-style: italic; font-weight: 500; }
+.tb-btn[data-glyph="U"]::before { font-weight: 500; text-decoration: underline; }
+.article-editor .tb .tb-select { width: auto; max-width: 11.5rem; height: 2.5rem; padding: 0 .5rem; border-color: var(--border); border-radius: .5rem; font-size: .9375rem; }
+.tb-sep { align-self: stretch; width: 1px; margin: .35rem .2rem; background: var(--border-strong); }
+.tb-link { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .5rem .75rem; border-top: 1px solid var(--border); }
+.article-editor .tb-link label { margin: 0; }
+.article-editor .tb-link input { flex: 1 1 14rem; width: auto; }
+.tb-link p, .tb-error { flex-basis: 100%; margin: 0; color: var(--danger, #b3261e); font-weight: 600; }
+.tb-error { padding: .5rem .75rem; border-top: 1px solid var(--border); }
+@media (max-width: 899px) {
+  /* Unter der mobilen Kopfleiste der Redaktion bleiben (styles.css, .ed-topbar: 12 px Abstand, 56 px hoch). */
+  .tb-sticky { top: calc(max(12px, env(safe-area-inset-top)) + 64px); }
+}
+@media (max-width: 599px) {
+  .tb { gap: .125rem; padding: .35rem; }
+  .tb-sep { display: none; }
+  .article-editor .tb .tb-btn { width: 2.375rem; height: 2.375rem; }
+  .article-editor .tb .tb-select { max-width: 8.25rem; padding-inline: .35rem; font-size: .875rem; }
+}
+
+/* Schreibbereich */
+.article-doc { min-height: 18rem; padding: 1.5rem clamp(1rem, 4vw, 2.5rem) 3rem; outline: none; font-size: 1.0625rem; line-height: 1.85; overflow-wrap: anywhere; }
+.article-doc:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent); border-radius: 0 0 .75rem .75rem; }
+.article-doc > * + *, .article-doc [data-role="body"] > * + * { margin-top: 1.1em; }
+.article-doc p { margin: 0; }
+.article-doc > p:first-child, .article-doc p.article-lead { font-size: 1.1875rem; line-height: 1.75; }
+.article-doc h2 { margin: 1.6em 0 .5em; font-size: 1.75rem; line-height: 1.2; letter-spacing: -.03em; }
+.article-doc h3 { margin: 1.5em 0 .4em; font-size: 1.375rem; line-height: 1.3; }
+.article-doc h4 { margin: 1.4em 0 .4em; font-size: 1.125rem; }
+.article-doc a { color: var(--ed-ink); text-decoration: underline; cursor: text; }
+.article-doc ul, .article-doc ol { margin-block: 1em; padding-left: 1.4em; }
+.article-doc li + li { margin-top: .4em; }
+/* Listen: Die erste Zeile ist der Eintragstitel, weitere Zeilen die Kurzbeschreibung (wie öffentlich). */
+.article-doc li > p:first-child::first-line { font-weight: 700; }
+.article-doc li > p + p { margin-top: .2em; }
+.article-doc aside.article-info { padding: 1rem 1.25rem; border-inline-start: .25rem solid var(--ed-ink); background: var(--fill); }
+
+/* Platzhalter leerer Felder */
+.article-doc [data-placeholder] { min-height: 1.6em; }
+.article-doc [data-placeholder]:has(> br.ProseMirror-trailingBreak:only-child)::before {
+  content: attr(data-placeholder); float: left; height: 0; color: var(--text-3); font-style: normal; font-weight: 400; pointer-events: none;
+}
+.article-doc [data-kind] { position: relative; }
+.article-doc .ProseMirror-selectednode { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Zitat (#67) */
+.article-doc figure { margin-inline: 0; }
+.article-doc figure[data-kind="quote"] blockquote { margin: 0; font-size: 1.35em; line-height: 1.5; }
+.article-doc figure[data-kind="quote"] figcaption { margin-top: .5rem; color: var(--text-2); }
+
+/* Bild mit Feldern für Alternativtext und Bildunterschrift */
+.article-doc figure[data-kind="image"] { padding: .75rem; border: 1px solid var(--border-strong); border-radius: .75rem; background: var(--ed-paper); }
+.article-doc figure[data-kind="image"] img { display: block; max-width: 100%; height: auto; margin-inline: auto; background: #fff; border-radius: .35rem; }
+.ed-image-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .5rem 1rem; margin-top: .75rem; }
+.article-editor .ed-image-fields label { margin: 0; font-size: .8125rem; color: var(--text-2); }
+.article-editor .ed-image-fields input[aria-invalid="true"] { border-color: var(--danger, #b3261e); }
+
+/* Beispielkasten und Kernaussage („Vibe Coding“) */
+.article-doc figure[data-kind="example"] { padding: 22px 24px; background: var(--ed-warm); border: 1px solid var(--border); border-left: 3px solid var(--ed-brand); border-radius: 0 16px 16px 0; }
+.article-doc figure[data-kind="example"] [data-role="label"] { margin-bottom: 10px; font-size: 11px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: var(--ed-ink); }
+.article-doc figure[data-kind="example"] [data-role="text"] { font-size: 16px; font-style: italic; line-height: 1.8; }
+.article-doc blockquote[data-kind="statement"] { margin: 2rem 0; padding-block: 28px; border-block: 1px solid var(--border-strong); text-align: center; font-size: clamp(1.6rem, 3.2vw, 2.4rem); font-weight: 700; line-height: 1.15; letter-spacing: -.04em; }
+.article-doc blockquote[data-kind="statement"]:has(> br.ProseMirror-trailingBreak:only-child)::before { content: 'Kernaussage'; color: var(--text-3); }
+
+/* Nummerierter Abschnitt und Fazit-Box */
+.article-doc { counter-reset: ed-section; }
+.article-doc section[data-kind="section"], .article-doc section[data-kind="conclusion"] {
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: .5rem 2.5rem; align-items: start; padding: 1.75rem 1.5rem; border-radius: .75rem;
+}
+.article-doc section[data-kind="section"] { counter-increment: ed-section; background: var(--ed-soft); }
+.article-doc section[data-kind="section"]::before {
+  content: counter(ed-section, decimal-leading-zero); grid-column: 1; font-size: 3rem; font-weight: 250; line-height: .9; color: var(--ed-ink);
+}
+.article-doc section > [data-role="eyebrow"] { grid-column: 1; font-size: .75rem; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: var(--ed-ink); }
+.article-doc section > [data-role="heading"] { grid-column: 1; font-size: 1.75rem; font-weight: 700; line-height: 1.15; letter-spacing: -.03em; }
+.article-doc section > [data-role="body"] { grid-column: 2; grid-row: 1 / span 4; min-width: 0; font-size: 1.03125rem; }
+.article-doc section[data-kind="conclusion"] { background: var(--ed-navy); color: #f6f8fa; }
+.article-doc section[data-kind="conclusion"] > [data-role="eyebrow"] { color: #f39b56; }
+.article-doc section[data-kind="conclusion"] > [data-role="body"] { grid-row: 1 / span 3; color: #bfc9d3; }
+.article-doc section[data-kind="conclusion"] [data-placeholder]::before { color: #8fa0b3; }
+@media (max-width: 899px) {
+  .article-doc section[data-kind="section"], .article-doc section[data-kind="conclusion"] { grid-template-columns: 1fr; padding: 1.25rem 1rem; }
+  .article-doc section > [data-role="body"] { grid-column: 1; grid-row: auto; }
+}
+
+/* Abschnittsübersicht */
+.article-doc [data-kind="outline"] { padding: .75rem 1rem; border: 1px dashed var(--border-strong); border-radius: .75rem; }
+.ed-element-label { font-size: .75rem; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: var(--text-2); }
+.ed-hint { color: var(--text-2); font-size: .9375rem; }
+.article-doc [data-kind="outline"] ol { list-style: none; margin: .5rem 0 0; padding: 0; }
+.article-doc [data-kind="outline"] li { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .75rem; margin: 0; padding-block: .5rem; border-top: 1px solid var(--border); }
+.article-doc [data-kind="outline"] li > span { font-size: .75rem; color: var(--ed-ink); }
+.article-doc [data-kind="outline"] li > small { flex-basis: 100%; color: var(--text-2); font-size: .8125rem; }
+
+/* Verweis, Zitatüberschrift und Aufruf („KI in der Softwareentwicklung“) */
+.article-doc [data-kind="related"] { padding: 20px 24px; background: var(--ed-soft); border: 1px solid var(--border); border-left: 3px solid var(--ed-brand); border-radius: 16px; }
+.article-doc [data-kind="related"] [data-role="label"] { font-size: .625rem; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: var(--ed-ink); }
+.article-doc [data-kind="related"] [data-role="title"] { font-size: .9375rem; font-weight: 600; line-height: 1.5; }
+.article-doc [data-kind="related"]::after, .article-doc [data-kind="cta"]::after {
+  content: 'Ziel: ' attr(data-href); display: block; margin-top: .5rem; font-size: .8125rem; font-weight: 500; opacity: .8;
+}
+.article-doc [data-kind="related"]:not([data-href])::after, .article-doc [data-kind="cta"]:not([data-href])::after { content: 'Ziel fehlt: Schaltfläche „Link“ in der Werkzeugleiste'; font-weight: 700; }
+.article-doc [data-kind="quoteheading"] { position: relative; margin-top: 2.4em; padding-top: 18px; }
+.article-doc [data-kind="quoteheading"]::before { content: '“'; position: absolute; top: -30px; left: -6px; font-size: 88px; line-height: 1; font-weight: 700; color: var(--ed-brand); opacity: .35; pointer-events: none; }
+.article-doc [data-kind="quoteheading"] [data-role="text"] { font-size: 1.75rem; font-weight: 700; line-height: 1.15; letter-spacing: -.03em; }
+.article-doc [data-kind="quoteheading"] [data-role="source"] { margin-top: 10px; font-size: .875rem; font-weight: 500; color: var(--text-2); }
+.article-doc section[data-kind="cta"] { padding: 28px; background: var(--ed-brand); color: var(--ed-navy); border-radius: 1.25rem; }
+.article-doc section[data-kind="cta"] [data-role="heading"] { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+.article-doc section[data-kind="cta"] [data-role="text"] { font-size: .9375rem; line-height: 1.6; }
+.article-doc section[data-kind="cta"] [data-role="button"] { display: inline-block; min-width: 9rem; margin-top: .75rem; padding: .55rem 1.1rem; border-radius: 999px; background: var(--ed-navy); color: #f6f8fa; font-weight: 600; }
+.article-doc section[data-kind="cta"] [data-placeholder]::before { color: rgba(18, 38, 58, .65); }
+.article-doc section[data-kind="cta"] [data-role="button"][data-placeholder]::before { color: #b9c4d0; }
+
+.article-address { margin-block: .25rem .75rem; color: var(--text-2); font-size: .9375rem; }

@@ -119,6 +119,19 @@ describe('REQ-136-AC6/AC11: Dokument des Editors wird zu Bausteinen', () => {
     expect(docToBlocks(doc(empty))).toEqual([]);
   });
 
+  it('Listen: ein Zeilenumbruch im Eintrag trennt Eintragstitel und Kurzbeschreibung', () => {
+    const item = (...content: DocNode[]): DocNode => ({ type: 'listItem', content: [paragraph(...content)] });
+    const bold = { type: 'bold' };
+    const blocks = docToBlocks(doc({ type: 'orderedList', content: [
+      item(text('Eintrag A'), { type: 'hardBreak' }, text('Beschreibung '), text('A', bold), { type: 'hardBreak' }, text('zweite Zeile')),
+      item(text('Eintrag B')),
+    ] }));
+    expect(blocks).toEqual([{ kind: 'ordered', items: [
+      { title: 'Eintrag A', description: 'Beschreibung A\nzweite Zeile', descriptionSpans: [{ start: 13, end: 14, bold: true }] }, { title: 'Eintrag B' },
+    ] }]);
+    expect(roundTrip(blocks)).toEqual(blocks);
+  });
+
   it('Listen: erster Absatz ist der Eintragstitel, weitere Absätze die Kurzbeschreibung', () => {
     const item = (...content: DocNode[]): DocNode => ({ type: 'listItem', content });
     expect(docToBlocks(doc(

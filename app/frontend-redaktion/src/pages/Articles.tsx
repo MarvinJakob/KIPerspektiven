@@ -1,21 +1,32 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useOutletContext, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useOutletContext, useParams } from 'react-router';
 import { client, unwrap, type Me } from '../api/client';
 import { useAuthors, type AuthorOption } from '../api/posts';
 import type { components } from '../api/schema';
-import { ArticleBlockEditor } from '../components/ArticleBlockEditor';
+import { ArticleEditor, type ArticleLayout } from '../components/ArticleEditor';
 import { Loading, Page } from '../components/Layout';
 import './Articles.css';
 
 type Article = components['schemas']['EditorArticle'];
 type Content = components['schemas']['ArticleText'];
+type Block = components['schemas']['ArticleBlock'];
 type Status = Article['status'];
 type Language = 'de' | 'en';
 const directory = '/themenartikel';
 const listKey = ['admin', 'articles'];
 const detailKey = (id: number) => ['admin', 'article', id];
 const emptyText = (): Content => ({ title: '', blocks: [] });
+const LAYOUTS: [ArticleLayout, string][] = [['column', 'Schmale Lesespalte'], ['wide', 'Breiter Lesefluss'], ['magazine', 'Magazin']];
+
+/** Vergleichbare Fassung unabhängig von der Reihenfolge der Felder; so gilt nur echter Inhalt als Änderung. */
+const stable = (value: unknown): string =>
+  JSON.stringify(value, (_key, v: unknown) =>
+    v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v);
+
+/** Bild ohne Alternativtext, auch innerhalb von Abschnitten (REQ-136-AC10). */
+const missingAlt = (blocks: Block[]): boolean =>
+  blocks.some((block) => (block.kind === 'image' && !block.alt?.trim()) || missingAlt(block.blocks ?? []));
 
 export function ArticlesPage() {
   const list = useQuery({ queryKey: listKey, queryFn: () => unwrap(client.GET('/api/admin/articles')) });
@@ -50,7 +61,9 @@ function Editor({ article, me, authors }: { article?: Article; me: Me; authors: 
   const [authorId, setAuthor] = useState(article?.authorId ?? me.id);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const location = useLocation();
+  // Nach dem ersten Speichern wechselt die Adresse zum neuen Artikel; die Bestätigung reist mit.
+  const [notice, setNotice] = useState((location.state as { notice?: string } | null)?.notice ?? '');
   const [invalidTitle, setInvalidTitle] = useState<Language>();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -62,6 +75,17 @@ function Editor({ article, me, authors }: { article?: Article; me: Me; authors: 
   const status = article?.status ?? 'draft';
   const listLink = <Link to={directory}>Zur Übersicht</Link>;
 
+  // REQ-136-AC14: Ungespeicherte Änderungen nicht stillschweigend verlieren.
+  const snapshot = stable({ de, en: hasEnglish ? en : null, authorId });
+  const [baseline, setBaseline] = useState(snapshot);
+  const dirty = snapshot !== baseline;
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
   async function save(nextStatus: Status) {
     const missing = !de.title.trim() ? 'de' : hasEnglish && !en.title.trim() ? 'en' : undefined;
     setError(''); setNotice('');
@@ -69,6 +93,12 @@ function Editor({ article, me, authors }: { article?: Article; me: Me; authors: 
       setInvalidTitle(missing); setLanguage(missing); titleRef.current?.focus(); return;
     }
     setInvalidTitle(undefined);
+    const withoutAlt = missingAlt(de.blocks) ? 'de' : hasEnglish && missingAlt(en.blocks) ? 'en' : undefined;
+    if (withoutAlt) {
+      setLanguage(withoutAlt);
+      setError('Bitte für jedes Bild einen Alternativtext eingeben. Er beschreibt das Bild für Menschen, die es nicht sehen.');
+      return;
+    }
     setBusy(true);
     const body = { de, ...(hasEnglish && { en }), authorId, status: nextStatus };
     try {
@@ -76,8 +106,9 @@ function Editor({ article, me, authors }: { article?: Article; me: Me; authors: 
         await unwrap(client.POST('/api/admin/articles', { body }));
       cache.setQueryData(detailKey(result.id), result);
       void cache.invalidateQueries({ queryKey: listKey });
-      if (!article) navigate(directory + '/' + result.id, { replace: true });
-      setNotice('Themenartikel gespeichert.');
+      setBaseline(snapshot);
+      if (!article) navigate(directory + '/' + result.id, { replace: true, state: { notice: 'Themenartikel gespeichert.' } });
+      else setNotice('Themenartikel gespeichert.');
     } catch (err) { setError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen.'); }
     finally { setBusy(false); }
   }
@@ -106,14 +137,22 @@ function Editor({ article, me, authors }: { article?: Article; me: Me; authors: 
             {authors.filter(a => a.id !== article?.authorId || article.authorActive).map(a =>
               <option key={a.id} value={a.id}>{a.displayName || a.email}</option>)}
           </select></label>
+          <label>Layout<select value={content.layout ?? 'column'} onChange={e => {
+            const layout = e.target.value as ArticleLayout;
+            change({ ...content, layout: layout === 'column' ? undefined : layout });
+          }}>
+            {LAYOUTS.map(([value, name]) => <option key={value} value={value}>{name}</option>)}
+          </select></label>
         </div>
+        {article?.topicSlug && <p className="article-address">Öffentliche Adresse: /{language}/themen/{article.topicSlug}</p>}
         <label htmlFor="article-title">Titel</label>
         <input id="article-title" ref={titleRef} aria-invalid={invalidTitle === language} aria-describedby={invalidTitle === language ? 'title-error' : undefined}
           value={content.title} onChange={e => { change({ ...content, title: e.target.value }); setInvalidTitle(undefined); }} />
         {invalidTitle === language && <p id="title-error" role="alert">Bitte einen Titel eingeben.</p>}
         <label>Untertitel<input value={content.subtitle ?? ''} onChange={e => change({ ...content, subtitle: e.target.value })} /></label>
-        <ArticleBlockEditor key={language} blocks={content.blocks} onChange={blocks => change({ ...content, blocks })} onBusy={setBusy} />
-        <p>Status · {status === 'draft' ? 'Entwurf' : 'Veröffentlicht'}</p>
+        <ArticleEditor key={language} blocks={content.blocks} layout={content.layout ?? 'column'}
+          onChange={blocks => { setNotice(''); change(current => ({ ...current, blocks })); }} onBusy={setBusy} />
+        <p>Status · {status === 'draft' ? 'Entwurf' : 'Veröffentlicht'}{dirty && ' · Ungespeicherte Änderungen'}</p>
         <div className="article-actions">
           <button className="btn btn-primary" type="submit">Speichern</button>
           <button type="button" onClick={() => void save(status === 'draft' ? 'published' : 'draft')}>

@@ -12,7 +12,7 @@ test('REQ-19-AC1: Artikel mit Hero, Autor, Stand und Lesezeit in beiden Sprachen
   };
   for (const lang of ['de', 'en'] as const) {
     await page.goto(PATH(lang));
-    await expect.poll(async () => text(await page.locator('#sd-title').innerText())).toBe(expected[lang].title);
+    await expect.poll(async () => text(await page.getByRole('heading', { level: 1 }).innerText())).toBe(expected[lang].title);
     const byline = page.locator('.byline');
     await expect(byline).toContainText('Marvin Jakob');
     await expect(byline).toContainText(expected[lang].stand);

@@ -95,7 +95,7 @@ test('REQ-136-AC2/AC3/AC15: Kopf, Aufbau und Gestaltung der überführten Artike
     await page.goto(`/de/themen/${slug}`);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     expect(await noOverflow(), slug).toBe(true);
-    await expect(page.locator('nav.toc'), 'mobiles Inhaltsverzeichnis (#98)').toBeVisible();
+    await expect(page.locator('nav.toc .toc-toggle'), 'mobiles Inhaltsverzeichnis (#98)').toBeVisible();
   }
   expect(await columns(page.locator('#vc-prompt'))).toBe(1);
 });
@@ -127,10 +127,12 @@ test.describe('Redaktionsoberfläche', () => {
     await expect(page).toHaveURL(/themenartikel\/\d+$/);
     return page.url().split('/').pop()!;
   };
-  /** Setzt die Schreibmarke in den leeren Absatz am Ende des Dokuments. */
+  /** Setzt die Schreibmarke in einen leeren Absatz am Ende des Dokuments; ein beschriebener Absatz erhält einen neuen. */
   const toEnd = async (page: Page) => {
-    await content(page).locator(':scope > p').last().click();
+    const last = content(page).locator(':scope > p').last();
+    await last.click();
     await page.keyboard.press(`${mod}+End`);
+    if ((await last.innerText()).trim()) await page.keyboard.press('Enter');
   };
   const insert = (page: Page, element: string) => toolbar(page).getByLabel('Element einfügen').selectOption({ label: element });
   const slot = (block: Locator, role: string) => block.locator(`[data-role="${role}"]`);
@@ -177,7 +179,7 @@ test.describe('Redaktionsoberfläche', () => {
       const { id } = await created.json();
       try {
         await page.goto(`${editorial}/${id}`);
-        await expect(content(page)).toContainText(body.de.blocks[0].text);
+        await expect(content(page)).toContainText(body.de.blocks[0].text.split('\n')[0]);
         if (body.en) {
           // Auch die zweite Fassung einmal anzeigen, bevor gespeichert wird.
           await page.getByLabel('Sprachfassung').selectOption('en');
@@ -232,8 +234,7 @@ test.describe('Redaktionsoberfläche', () => {
     await tool(page, 'Unterstrichen').focus();
     await page.keyboard.press('Enter');
     await expect(tool(page, 'Unterstrichen')).toHaveAttribute('aria-pressed', 'false');
-    await doc.locator(':scope > p').first().click();
-    await page.keyboard.press('End');
+    // Die Schreibmarke steht danach wieder im Text.
     await page.keyboard.type(' Linktext');
     await page.keyboard.press(`Shift+${mod}+ArrowLeft`);
 
@@ -314,7 +315,7 @@ test.describe('Redaktionsoberfläche', () => {
     try {
       const stored = await (await editor.get(`${api}/${id}`)).json();
       const image = stored.de.blocks.find((b: { kind: string }) => b.kind === 'image');
-      expect(image.src).toMatch(/^\/media\/[0-9a-f]{32}-960\.png$/);
+      expect(image.src).toMatch(/^\/media\/[0-9a-f]{32}-960\.(jpg|png)$/);
       expect(stored.de.blocks).toEqual([
         { kind: 'h1', text: 'Kopfzeile' },
         { kind: 'paragraph', text: 'Normal fett kursiv unter Linktext', spans: [

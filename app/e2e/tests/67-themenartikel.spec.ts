@@ -1,4 +1,4 @@
-// Abdeckung: app/frontend-redaktion/src/pages/Articles.tsx app/frontend/src/components/ArticleBlocks.tsx app/backend/internal/service/articles.go
+// Abdeckung: app/frontend-redaktion/src/pages/Articles.tsx app/frontend/src/components/ArticleBlocks.tsx app/frontend/src/components/ArticleView.tsx app/backend/internal/service/articles.go
 import { AUTH, expect, pngImage, test, uid } from '../support/fixtures';
 
 const api = '/api/admin/articles';
@@ -71,27 +71,30 @@ test('REQ-67-AC10: direkte Aktionen ohne Sitzung gesperrt', async ({ request }) 
 
 test.describe('Redaktionsoberfläche', () => {
   test.use({storageState: AUTH.editor});
-  test('REQ-67-AC4–AC12: Bausteine im Editor anordnen und beide Fassungen veröffentlichen', async ({page,editor,admin}) => {
+  test('REQ-67-AC4–AC12: Inhalt im Editor verfassen und beide Fassungen veröffentlichen', async ({page,editor,admin}) => {
     await page.goto(editorial+'/neu');
     const title = 'Redaktion '+uid();
     await page.getByLabel('Titel',{exact:true}).fill(title);
     await page.getByLabel('Autor').selectOption(String(admin.me.id));
-    const add = async (kind: string) => {
-      await page.getByLabel('Baustein',{exact:true}).selectOption(kind);
-      await page.getByRole('button',{name:'Baustein hinzufügen'}).press('Enter');
-      return page.locator('.article-block-editor > fieldset').last();
-    };
-    const info = await add('info');
-    await info.getByLabel('Text',{exact:true}).fill('Merken');
-    const quote = await add('quote');
-    await quote.getByLabel('Text',{exact:true}).fill('Ein Zitat');
-    await quote.getByLabel('Zuschreibung').fill('Ada');
-    await quote.getByRole('button',{name:'Nach oben'}).press('Enter');
-    const list = await add('ordered');
-    await list.getByLabel('Eintragstitel').fill('Eintrag A');
-    await list.getByLabel('Kurzbeschreibung').fill('Beschreibung A');
-    await list.getByRole('button',{name:'Eintrag hinzufügen'}).press('Enter');
-    await list.getByLabel('Eintragstitel').last().fill('Eintrag B');
+    // Seit #136 entsteht der Inhalt im WYSIWYG-Editor; die Werkzeugleiste ist per Tastatur bedienbar (REQ-67-AC10).
+    const content = page.getByRole('textbox', { name: 'Artikelinhalt' });
+    const tool = (name: string) => page.getByRole('toolbar', { name: 'Formatierung' }).getByRole('button', { name, exact: true });
+    await content.click();
+    await tool('Zitat').press('Enter');
+    await page.keyboard.type('Ein Zitat');
+    await content.locator('[data-kind="quote"] [data-role="source"]').click();
+    await page.keyboard.type('Ada');
+    await content.locator(':scope > p').last().click();
+    await tool('Infobox').press('Enter');
+    await page.keyboard.type('Merken');
+    await content.locator(':scope > p').last().click();
+    await tool('Nummerierte Liste').press('Enter');
+    // Der Zeilenumbruch im Eintrag trennt Eintragstitel und Kurzbeschreibung.
+    await page.keyboard.type('Eintrag A');
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('Beschreibung A');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('Eintrag B');
     await page.getByLabel('Sprachfassung').selectOption('en');
     await page.getByLabel('Titel',{exact:true}).fill('English '+title);
     await page.getByRole('button',{name:'Veröffentlichen',exact:true}).press('Enter');
