@@ -30,7 +30,7 @@ Vollständig entfernt (Testzahlen aus dem Lauf 44547333616):
 | Specs 25, 37, 38, 47, 61, 63: entfernte Themen, „Mehr Themen“, Linkkarten, Profilteaser, Brotkrumen | 48 | Prüfen, dass entfernte Inhalte fehlen; kein Feature der Seite. |
 | Specs 41, 43, 56, 57, 66: Diagrammklick, Spaltenbreiten, Position der Metadaten, Lesefluss | 44 | Layoutdetails einzelner Artikel in Pixeln und je Breite. |
 | Spec 67-artikelkonten | 2 | Rollenprüfung und Leerzustand; Rechte je Rolle prüfen die Go-Tests `TestREQ64…`, den Zugriffsschutz `67-themenartikel`. |
-| Vitest `ArticleHeader`, `Diagram`, `Home`, `Profile`, `SoftwareDevelopment`, `i18n/softwareDevelopment`, `i18n/vibeCoding` | 34 | CSS-Regeln und Negativprüfungen zu denselben Themen. |
+| Vitest `ArticleHeader`, `Diagram`, `Home`, `Profile`, `ArticleView` (seit #136 anstelle von `SoftwareDevelopment`, `i18n/softwareDevelopment` und `i18n/vibeCoding`) | 34 | CSS-Regeln und Negativprüfungen zu denselben Themen. |
 
 Gekürzte Specs (Tests vorher → nachher):
 

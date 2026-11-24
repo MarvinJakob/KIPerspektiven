@@ -278,7 +278,7 @@ Die HIG betonen lesbare Inhalte, ausreichend große Bedienelemente, Kontraste un
 
 ## 8. Redaktionelle Themenartikel
 
-Vorlage für alle redaktionellen Themenartikel unter `/{lang}/themen/<slug>` in Deutsch und Englisch (#61). Sie beschreibt den umgesetzten Stand der beiden vorhandenen Artikel **„Vibe Coding“** (`VibeCoding.tsx`, `VibeCoding.css`) und **„KI in der Softwareentwicklung“** (`SoftwareDevelopment.tsx`, Artikelregeln in `styles.css`). Der Artikelkopf ist für beide identisch (`components/ArticleHeader.tsx`); der Artikelkörper setzt sich aus den unten genannten Bausteinen zusammen. Allgemeine Themenseiten mit Beitragsliste und die KI-Readiness-Selbsteinschätzung sind keine redaktionellen Artikel und nutzen eigene Layouts.
+Vorlage für alle redaktionellen Themenartikel unter `/{lang}/themen/<slug>` in Deutsch und Englisch (#61). Sie beschreibt den umgesetzten Stand der beiden vorhandenen Artikel **„Vibe Coding“** (Layout „Magazin“, `VibeCoding.css`) und **„KI in der Softwareentwicklung“** (Layout „Breiter Lesefluss“, Artikelregeln in `styles.css`). Seit #136 sind beide Artikel Themenartikel der Redaktion: `components/ArticleBlocks.tsx` erzeugt ihre Bausteine, der WYSIWYG-Editor der Redaktion bietet sie als Elemente an. Der Artikelkopf ist für beide identisch (`components/ArticleHeader.tsx`); der Artikelkörper setzt sich aus den unten genannten Bausteinen zusammen. Allgemeine Themenseiten mit Beitragsliste und die KI-Readiness-Selbsteinschätzung sind keine redaktionellen Artikel und nutzen eigene Layouts.
 
 ### Seitenaufbau und Navigation
 
